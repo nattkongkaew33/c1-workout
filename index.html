@@ -500,7 +500,7 @@ function viewWorkout(date){
   const wrap=`<section class="ex"><span class="exname" style="color:var(--ink)">How did it feel?</span>
       <div class="feel">${FEEL.map((l,i)=>`<button type="button" data-feel="${i+1}" aria-pressed="${x.feel==i+1}">${l}</button>`).join("")}</div>
       <textarea class="note" id="wn-${date}" data-wnote="1" rows="2" placeholder="Workout notes: sleep, energy, anything for your coach" aria-label="Workout notes">${esc(x.wnote||"")}</textarea>
-      <div class="rowbtns" style="margin-top:10px">${ended?"":`<button type="button" class="btn primary" data-act="finish">✓ Finish workout</button>`}${started(s)?`<button type="button" class="btn" data-act="share">Share workout</button>`:""}</div></section>
+      <div class="rowbtns" style="margin-top:10px">${ended?"":`<button type="button" class="btn primary" data-act="finish">✓ Finish workout</button>`}${started(s)?`<button type="button" class="btn" data-act="share">Share workout</button>`:""}${s&&s.start?`<button type="button" class="btn danger" data-act="discard">${ended?"Delete workout":"Discard"}</button>`:""}</div></section>
     <datalist id="exlist">${names.map(n=>`<option value="${esc(n)}"></option>`).join("")}</datalist>`;
   app.innerHTML=`<div class="whead"><div class="wtop"><a class="back" href="#week" aria-label="Back to schedule">←</a>
       <div class="wt"><small>${date===today()?"Today’s Workout":flong(date)}</small><h1>${esc(x.title)}</h1></div>
@@ -892,6 +892,29 @@ sheet.addEventListener("click",ev=>{
 });
 sheet.addEventListener("change",ev=>{if(ev.target.dataset.shday){const d=ev.target.dataset.shday;setDay(d,ev.target.value);closeSheet();toast(ev.target.value==="rest"?"Changed to a rest day":`Changed to ${DD(d,ev.target.value).title}`);render()}});
 
+
+/* ---------- finish sheet: save or discard ---------- */
+let WS=null;
+function openFinish(date,confirm){const s=S[date];if(!s||!s.start){toast("Tap Start first");return}WS={date,confirm};drawFinish();sheet.hidden=false;scrim.hidden=false}
+function drawFinish(){
+  const s=S[WS.date],done=!!s.end,sets=s.ex.reduce((a,x)=>a+x.sets.filter(t=>t.d).length,0),exd=s.ex.filter(x=>x.sets.some(t=>t.d)).length;
+  sheet.innerHTML=`<div class="in"><h3 id="sheetTitle">${done?`${esc(titleOf(s))} · saved`:`Finish ${esc(titleOf(s))}?`}</h3>
+    <div class="fmac" style="grid-template-columns:repeat(3,minmax(0,1fr))"><div><b>${fmtDur((s.end||Date.now())-s.start)}</b><span>time</span></div><div><b>${exd}/${s.ex.length}</b><span>exercises</span></div><div><b>${sets}</b><span>sets</span></div></div>
+    ${!done&&!sets?`<p class="muted" style="margin:0">No sets ticked yet. Saving keeps only the time.</p>`:""}
+    ${done?"":`<button type="button" class="btn primary" data-wsave="1">✓ Save workout</button>`}
+    ${WS.confirm?`<div class="confirm">${done?"Delete this saved workout":"Discard this workout"}, its sets and time? This can’t be undone. <button type="button" class="btn sm danger" data-wdiscard2="1">${done?"Delete":"Discard"}</button><button type="button" class="btn sm" data-wnodiscard="1">Cancel</button></div>`:`<button type="button" class="btn danger" data-wdiscard="1">${done?"Delete workout":"Discard workout"}</button>`}
+    <button type="button" class="btn" data-wkeep="1">${done?"Close":"Keep going"}</button></div>`;
+}
+function stopWorkoutUI(){clearInterval(tick);tEl.hidden=true;wake(false)}
+document.getElementById("sheet").addEventListener("click",ev=>{
+  if(!WS)return;const b=ev.target.closest("button");if(!b)return;const s=S[WS.date];
+  if(b.dataset.wkeep){WS=null;return closeSheet()}
+  if(b.dataset.wdiscard){WS.confirm=true;return drawFinish()}
+  if(b.dataset.wnodiscard){WS.confirm=false;return drawFinish()}
+  if(b.dataset.wsave){s.go=true;s.end=Date.now();saveS();stopWorkoutUI();toast(`${titleOf(s)} saved · ${fmtDur(s.end-s.start)}`);WS=null;closeSheet();if(location.hash==="#week")render();else location.hash="#week";return}
+  if(b.dataset.wdiscard2){const d=WS.date,was=!!s.end;delete S[d];delete chosen[d];saveS();stopWorkoutUI();toast(was?"Workout deleted":"Workout discarded");WS=null;closeSheet();if(location.hash==="#week")render();else location.hash="#week";return}
+});
+document.getElementById("scrim").addEventListener("click",()=>{WS=null});
 /* ---------- backup ---------- */
 function backupData(){return {app:"c1-workout",version:2,exported:new Date().toISOString(),sessions:S,log:LOG,prog:PROG,sched:SCHED,first:FIRST,unit:UNIT,bw:BW,sound:SOUND,food:FOOD,nut:NUT,presets:PRESETS}}
 async function exportBackup(){
@@ -997,11 +1020,8 @@ app.addEventListener("click",async ev=>{
   if(b=q("[data-add]")){const s=ensure(date,day);s.ex[+b.dataset.add].sets.push({w:"",r:"",d:false});saveS();return render()}
   if(b=q("[data-rest]")){const s=S[date]&&S[date].day===day?S[date]:blank(day,date),e=s.ex[+b.dataset.rest];return startTimer(restSec(e.rest),e.n)}
   if(b=q("[data-act=start]")){begin(date,day);toast("Workout started — timer running");return render()}
-  if(b=q("[data-act=finish]")){
-    const s=S[date];
-    if(!s||!s.start){toast("Tap Start first");return}
-    s.go=true;s.end=Date.now();saveS();clearInterval(tick);tEl.hidden=true;wake(false);toast(`${titleOf(s)} saved · ${fmtDur(s.end-s.start)}`);location.hash="#week";
-  }
+  if(b=q("[data-act=finish]"))return openFinish(date,false);
+  if(b=q("[data-act=discard]"))return openFinish(date,true);
 });
 app.addEventListener("toggle",ev=>{const d=ev.target.closest&&ev.target.closest("details.pw");if(d&&d.open)openPw=d.dataset.pw},true);
 app.addEventListener("input",ev=>{
@@ -1036,7 +1056,7 @@ function render(){
   else if(h==="food")viewFood();
   else viewWeek();
 }
-window.addEventListener("hashchange",()=>{closeSheet();FS=null;rpeOpen=null;swapOpen=null;render();window.scrollTo(0,0)});
+window.addEventListener("hashchange",()=>{closeSheet();FS=null;WS=null;rpeOpen=null;swapOpen=null;render();window.scrollTo(0,0)});
 render();
 </script>
 <script>if("serviceWorker" in navigator){window.addEventListener("load",()=>navigator.serviceWorker.register("sw.js").catch(()=>{}))}</script>
