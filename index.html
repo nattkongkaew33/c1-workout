@@ -76,6 +76,8 @@ input.txt,select.txt{background:var(--field);color:var(--ink);border:1px solid v
 .wt small{color:var(--muted);font-size:14px}
 .wt h1{font-size:30px}
 .finish{flex:none;border:2px solid var(--blue);color:var(--blue);background:transparent;border-radius:12px;padding:8px 14px;font-weight:700;font-size:15px;cursor:pointer}
+.startw{flex:none;border:0;background:var(--blue);color:#06142e;border-radius:12px;padding:10px 16px;font-weight:800;font-size:16px;cursor:pointer}
+.el.live{font-size:18px}
 .donepill{flex:none;color:var(--green);font-weight:700;border:1.5px solid var(--green);border-radius:12px;padding:7px 12px;font-size:14px}
 .wbar{display:flex;align-items:center;gap:12px;margin-top:8px;font-variant-numeric:tabular-nums}
 .el{color:var(--blue);font-weight:600;min-width:84px;white-space:nowrap}
@@ -300,13 +302,18 @@ function planFor(d){
   if(d in SCHED)return SCHED[d]==="rest"||!D(SCHED[d])?null:SCHED[d];
   const b=basePlan(d);return b&&D(b)?b:null;
 }
-const started=s=>!!s&&s.ex.some(x=>x.sets.some(t=>t.d));
+const started=s=>!!s&&(!!s.go||s.ex.some(x=>x.sets.some(t=>t.d)));
 const typeOf=s=>s.type||(D(s.day)||{}).type||"other";
 const titleOf=s=>s.title||(D(s.day)||{}).title||"Workout";
 
 /* sessions keep a copy of the exercise list, so later plan edits don't change history */
 function blank(day){const P=D(day);return {day,title:P.title,type:P.type,start:null,end:null,ex:P.ex.map(e=>({n:e.n,reps:e.reps,rest:e.rest,v:e.v,note:e.note||"",memo:"",sets:Array.from({length:+e.sets||1},()=>({w:"",r:"",d:false}))}))}}
-function ensure(date,day){if(!S[date]||(S[date].day!==day&&!started(S[date])))S[date]=blank(day);if(!S[date].start)S[date].start=Date.now();return S[date]}
+function ensure(date,day){if(!S[date]||(S[date].day!==day&&!started(S[date])))S[date]=blank(day);return S[date]}
+let wakeLock=null;
+async function wake(on){try{if(on&&navigator.wakeLock&&!wakeLock){wakeLock=await navigator.wakeLock.request("screen");wakeLock.addEventListener("release",()=>wakeLock=null)}else if(!on&&wakeLock){await wakeLock.release();wakeLock=null}}catch(e){}}
+function begin(date,day){const s=ensure(date,day);if(!s.start)s.start=Date.now();s.go=true;saveS();wake(true);return s}
+document.addEventListener("visibilitychange",()=>{if(document.visibilityState==="visible"){const d=app.dataset.date,x=d&&S[d];if(x&&x.go&&!x.end)wake(true)}});
+let pendingStart=null;
 // migrate sessions saved by the previous version
 for(const d in S){const s=S[d],P=D(s.day);if(!s.title&&P){s.title=P.title;s.type=P.type}s.ex.forEach((x,i)=>{const e=P&&P.ex[i]||{};if(!x.n){x.n=e.n||"Exercise "+(i+1);x.reps=e.reps;x.rest=e.rest||e.sec;x.v=e.v?(String(e.v).startsWith("http")?e.v:U(e.v)):"";x.memo=x.note||"";x.note=e.note||""}})}
 saveS();
@@ -349,7 +356,7 @@ function viewWeek(){
     const title=s&&started(s)?titleOf(s):D(day).title, type=s&&started(s)?typeOf(s):D(day).type, nEx=s&&started(s)?s.ex.length:D(day).ex.length;
     const label={complete:"Complete ✓",missed:"Missed ⚠",progress:"In progress",today:"Today",upcoming:fshort(d),before:fshort(d)}[st];
     const extra=st==="complete"?`<em>${nEx} exercises · ${fmtDur(s.end-s.start)} · <b>Review</b></em>`:st==="progress"?`<em>${s.ex.reduce((a,x)=>a+x.sets.filter(t=>t.d).length,0)} sets logged</em>`:`<em>${nEx} exercises</em>`;
-    const btn=(st==="today"||(st==="progress"&&isT))?`<span class="startbtn">▶ ${st==="progress"?"Continue":"Start"}</span>`:"";
+    const btn=(st==="today"||(st==="progress"&&isT))?`<span class="startbtn" data-startnow="${d}">▶ ${st==="progress"?"Continue":"Start"}</span>`:"";
     return `<div class="row">${wd}<a class="wcard st-${st}" href="#w-${d}"><span class="ico" style="--c:var(${TCOLOR[type]})">${icon}</span><span class="wtxt"><small>${label}</small>${moved}<strong>${esc(title)}</strong>${extra}</span>${btn}</a>${more}</div>`;
   }).join("");
   app.innerHTML=`<div class="eyebrow">${esc(PLAN.name)}</div><h1>This Week’s Schedule</h1>
@@ -386,13 +393,15 @@ function viewWorkout(date){
   const P=D(x.day)||{};
   app.innerHTML=`<div class="whead"><div class="wtop"><a class="back" href="#week" aria-label="Back to schedule">←</a>
       <div class="wt"><small>${date===today()?"Today’s Workout":flong(date)}</small><h1>${esc(x.title)}</h1></div>
-      ${s&&s.end?`<span class="donepill">✓ Done</span>`:`<button type="button" class="finish" data-act="finish">✓ Finish</button>`}</div>
+      ${s&&s.end?`<span class="donepill">✓ Done</span>`:(s&&s.day===x.day&&s.start?`<button type="button" class="finish" data-act="finish">✓ Finish</button>`:`<button type="button" class="startw" data-act="start">▶ Start</button>`)}</div>
       <div class="wbar"><span class="el" id="elapsed">⏱ 0:00</span><div class="pbar"><i id="pfill"></i></div><span id="pcount">0/0</span></div></div>
     <div class="tools">${unitSeg()}${P.warm?`<a class="chipl" href="${esc(P.warm)}" target="_blank" rel="noopener">▶ Warm-up video</a>`:""}
       ${canSwap?`<label class="swap">Workout <select id="swap-${date}">${Object.entries(PLAN.days).map(([id,d])=>`<option value="${id}"${id===x.day?" selected":""}>${esc(d.title)}</option>`).join("")}</select></label>`:""}</div>
     ${cards}`;
   app.dataset.date=date; app.dataset.day=x.day;
   tickWorkout();
+  if(pendingStart===date){pendingStart=null;if(!(s&&s.end)){begin(date,x.day);return render()}}
+  if(s&&s.day===x.day&&s.start&&!s.end)wake(true);
 }
 
 function viewCal(){
@@ -547,7 +556,7 @@ function applyImport(b){S=b.sessions||{};LOG=b.log||{};PLAN=b.plan||clone(DEFAUL
 function tickWorkout(){
   const el=document.getElementById("elapsed");if(!el)return;
   const s=S[app.dataset.date],x=s&&s.day===app.dataset.day?s:null;
-  el.textContent="⏱ "+(x&&x.start?fmtDur((x.end||Date.now())-x.start):"Not started");
+  el.textContent="⏱ "+(x&&x.start?fmtDur((x.end||Date.now())-x.start):"Tap Start");el.classList.toggle("live",!!(x&&x.start&&!x.end));
   const list=x?x.ex:(D(app.dataset.day)||{ex:[]}).ex,tot=list.length,dn=x?x.ex.filter(e=>e.sets.length&&e.sets.every(t=>t.d)).length:0;
   document.getElementById("pfill").style.width=(tot?dn/tot*100:0)+"%";
   document.getElementById("pcount").textContent=`${dn}/${tot}`;
@@ -564,6 +573,7 @@ let toastT;function toast(m){const t=document.getElementById("toast");t.textCont
 const app=document.getElementById("app");
 app.addEventListener("click",async ev=>{
   const q=s=>ev.target.closest(s);let b;
+  if(b=q("[data-startnow]"))pendingStart=b.dataset.startnow;
   if(b=q("[data-sheet]")){ev.preventDefault();return openSheet(b.dataset.sheet)}
   if(b=q("[data-unit]")){if(UNIT!==b.dataset.unit){UNIT=b.dataset.unit;store.set("c1-unit",UNIT);toast(`Weights now shown in ${UNIT}`)}return render()}
   if(b=q("[data-wk]")){weekOff+=+b.dataset.wk;return render()}
@@ -589,15 +599,17 @@ app.addEventListener("click",async ev=>{
   if(b=q("[data-chk]")){
     const [i,j]=b.dataset.chk.split("-").map(Number),s=ensure(date,day),e=s.ex[i],t=e.sets[j];
     t.d=!t.d;
+    if(t.d&&!s.start){s.start=Date.now();s.go=true;wake(true)}
     if(t.d){const row=b.closest("tr");if(!t.w)t.w=fromDisp(row.querySelector('[data-f="w"]').placeholder.replace(/^-$/,""));if(!t.r)t.r=row.querySelector('[data-f="r"]').placeholder;startTimer(restSec(e.rest),e.n)}
     saveS();return render();
   }
   if(b=q("[data-add]")){const s=ensure(date,day);s.ex[+b.dataset.add].sets.push({w:"",r:"",d:false});saveS();return render()}
   if(b=q("[data-rest]")){const s=S[date]&&S[date].day===day?S[date]:blank(day),e=s.ex[+b.dataset.rest];return startTimer(restSec(e.rest),e.n)}
+  if(b=q("[data-act=start]")){begin(date,day);toast("Workout started — timer running");return render()}
   if(b=q("[data-act=finish]")){
     const s=S[date];
-    if(!started(s)){toast("Tick at least one set first");return}
-    s.end=Date.now();saveS();clearInterval(tick);tEl.hidden=true;toast(`${titleOf(s)} saved · ${fmtDur(s.end-s.start)}`);location.hash="#week";
+    if(!s||!s.start){toast("Tap Start first");return}
+    s.go=true;s.end=Date.now();saveS();clearInterval(tick);tEl.hidden=true;wake(false);toast(`${titleOf(s)} saved · ${fmtDur(s.end-s.start)}`);location.hash="#week";
   }
 });
 app.addEventListener("toggle",ev=>{const d=ev.target.closest&&ev.target.closest("details.pw");if(d&&d.open)openPw=d.dataset.pw},true);
