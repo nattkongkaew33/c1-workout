@@ -78,6 +78,16 @@ input.txt,select.txt{background:var(--field);color:var(--ink);border:1px solid v
 .finish{flex:none;border:2px solid var(--blue);color:var(--blue);background:transparent;border-radius:12px;padding:8px 14px;font-weight:700;font-size:15px;cursor:pointer}
 .startw{flex:none;border:0;background:var(--blue);color:#06142e;border-radius:12px;padding:10px 16px;font-weight:800;font-size:16px;cursor:pointer}
 .el.live{font-size:18px}
+.prb{color:var(--amber);font-weight:700;font-size:12px;white-space:nowrap}
+.bwrow{display:flex;gap:8px;align-items:center}
+.bwrow input{max-width:120px}
+.bwlist{display:flex;flex-wrap:wrap;gap:6px;margin-top:10px}
+.bwlist span{display:inline-flex;gap:6px;align-items:center;font-size:13px;background:var(--field);border-radius:8px;padding:4px 8px;font-variant-numeric:tabular-nums}
+.bwlist button{border:0;background:transparent;color:var(--muted);cursor:pointer;font-size:13px;padding:0 2px}
+.recs{display:grid;gap:6px}
+.rec{display:flex;justify-content:space-between;gap:10px;align-items:center;background:var(--card);border:1px solid var(--line);border-radius:12px;padding:10px 12px}
+.rec b{font-variant-numeric:tabular-nums;white-space:nowrap}
+.rec small{display:block;color:var(--muted);font-size:12px}
 .donepill{flex:none;color:var(--green);font-weight:700;border:1.5px solid var(--green);border-radius:12px;padding:7px 12px;font-size:14px}
 .wbar{display:flex;align-items:center;gap:12px;margin-top:8px;font-variant-numeric:tabular-nums}
 .el{color:var(--blue);font-weight:600;min-width:84px;white-space:nowrap}
@@ -272,6 +282,10 @@ const KG2LB=2.20462;
 const toDisp=k=>{const v=parseFloat(k);if(k===""||k==null||!isFinite(v))return "";return String(UNIT==="lb"?Math.round(v*KG2LB*2)/2:+v.toFixed(2))};
 const fromDisp=x=>{const v=parseFloat(String(x??"").replace(",","."));if(x===""||x==null||!isFinite(v))return "";return String(UNIT==="lb"?+(v/KG2LB).toFixed(4):v)};
 const unitSeg=()=>`<span class="seg" role="group" aria-label="Weight unit"><button type="button" data-unit="kg" aria-pressed="${UNIT==="kg"}">kg</button><button type="button" data-unit="lb" aria-pressed="${UNIT==="lb"}">lb</button></span>`;
+let BW=store.get("c1-bw",{});          // body weight log {date: kg}
+let SOUND=store.get("c1-sound",true);
+const saveBW=()=>store.set("c1-bw",BW);
+const bwLatest=()=>{const k=Object.keys(BW).sort();return k.length?BW[k[k.length-1]]:null};
 const saveS=()=>store.set("c1-sessions",S), saveL=()=>store.set("c1-log",LOG), saveP=()=>store.set("c1-plan",PLAN), saveSch=()=>store.set("c1-sched",SCHED);
 
 /* ---------- helpers ---------- */
@@ -332,6 +346,8 @@ function suggestion(e,last){
   if(w>0){const nx=+toDisp(w)+(UNIT==="lb"?5:2.5);return {text:`↑ You hit ${top} on every set — try ${nx} ${UNIT}`,w:nx}}
   return {text:timed(e)?`↑ Every set hit ${top}s — add 5 seconds`:`↑ Every set hit ${top} — add a rep or slow the lowering`};
 }
+function histBest(name,beforeDate){let n=0,mw=0,rw=0,mr=0;for(const d in S){if(d>=beforeDate)continue;const x=S[d].ex.find(e=>e.n===name);if(!x)continue;for(const t of x.sets){if(!t.d)continue;n++;const w=parseFloat(t.w)||0,r=+t.r||0;if(w>mw){mw=w;rw=r}else if(w===mw&&r>rw)rw=r;if(r>mr)mr=r}}return {n,mw,rw,mr}}
+function prType(h,t){if(!h.n||!t.d)return null;const w=parseFloat(t.w)||0,r=+t.r||0;if(w>0){if(w>h.mw)return "Weight PR";if(w===h.mw&&r>h.rw)return "Rep PR"}else if(h.mw===0&&r>h.mr)return "Rep PR";return null}
 function status(d){
   const s=S[d],t=today();
   if(s&&s.end)return "complete";
@@ -374,19 +390,19 @@ function viewWorkout(date){
   const useS=s&&(started(s)||s.day===day)&&(s.day===day||started(s));
   const x=useS?s:blank(day), canSwap=!started(s);
   const cards=x.ex.map((e,i)=>{
-    const last=lastFor(e.n,date), sg=suggestion(e,last), all=e.sets.length&&e.sets.every(t=>t.d);
+    const last=lastFor(e.n,date), sg=suggestion(e,last), all=e.sets.length&&e.sets.every(t=>t.d), hb=histBest(e.n,date);
     const rows=e.sets.map((t,j)=>{
       const p=last&&last.x.sets[j];
       const pt=p&&(p.w||p.r)?`${p.w?toDisp(p.w)+" "+UNIT+" × ":""}${p.r||"-"}${timed(e)?"s":""}`:"—";
       const wph=sg&&sg.w?sg.w:(p&&p.w?toDisp(p.w):"-");
-      return `<tr class="${t.d?"done":""}"><td><span class="sn">${j+1}</span></td><td class="prev">${pt}</td>
+      return `<tr class="${t.d?"done":""}"><td><span class="sn">${j+1}</span></td><td class="prev">${pt}${prType(hb,t)?` <span class="prb">🏆 PR</span>`:""}</td>
         <td><input id="w-${date}-${i}-${j}" inputmode="decimal" data-f="w" data-k="${i}-${j}" value="${esc(toDisp(t.w))}" placeholder="${esc(wph)}" aria-label="${UNIT} set ${j+1}"></td>
         <td><input id="r-${date}-${i}-${j}" inputmode="numeric" data-f="r" data-k="${i}-${j}" value="${esc(t.r)}" placeholder="${esc(p&&p.r||lowTarget(e))}" aria-label="${timed(e)?"seconds":"reps"} set ${j+1}"></td>
         <td><button type="button" class="chk" data-chk="${i}-${j}" aria-pressed="${t.d}" aria-label="Complete set ${j+1}"></button></td></tr>`}).join("");
     const th=TH(e.v);
     return `<section class="ex${all?" alldone":""}">
       <div class="exh">${e.v?`<a class="thumb" style="--c:var(${TCOLOR[x.type]})" href="${esc(e.v)}" target="_blank" rel="noopener" aria-label="Watch ${esc(e.n)}">▶${th?`<img src="${th}" alt="" loading="lazy" onerror="this.remove()">`:""}</a>`:""}
-      <div class="exn">${e.v?`<a class="exname" href="${esc(e.v)}" target="_blank" rel="noopener">${esc(e.n)}</a>`:`<span class="exname">${esc(e.n)}</span>`}<div class="tgt">${esc(e.reps)}${e.note?" · "+esc(e.note):""}</div>${sg?`<span class="sugg">${esc(sg.text)}</span>`:""}</div></div>
+      <div class="exn">${e.v?`<a class="exname" href="${esc(e.v)}" target="_blank" rel="noopener">${esc(e.n)}</a>`:`<span class="exname">${esc(e.n)}</span>`}<div class="tgt">${esc(e.reps)}${e.note?" · "+esc(e.note):""}${/นน\.?ตัว|body ?weight|\bBW\b/i.test(e.note||"")&&bwLatest()?` · ½ BW ≈ ${toDisp(bwLatest()/2)}, 1× ≈ ${toDisp(bwLatest())} ${UNIT}`:""}</div>${sg?`<span class="sugg">${esc(sg.text)}</span>`:""}</div></div>
       <input class="note" id="n-${date}-${i}" data-memo="${i}" value="${esc(e.memo)}" placeholder="✎ Add notes…" aria-label="Notes for ${esc(e.n)}">
       <div class="tbl"><table><thead><tr><th>SET</th><th>PREVIOUS</th><th>${UNIT.toUpperCase()}</th><th>${timed(e)?"SEC":"REPS"}</th><th></th></tr></thead><tbody>${rows}</tbody></table></div>
       <div class="exf"><button type="button" data-rest="${i}">⏱ Rest: ${esc(e.rest)}</button><button type="button" data-add="${i}">+ Add Set</button></div></section>`}).join("");
@@ -459,11 +475,40 @@ function viewProgress(){
     return `<div class="exp"><strong>${esc(n)}</strong><span class="muted">Best: ${fmt(best)} · top ${vals[vals.length-1]}${unit}</span><span class="muted">Last: ${fshort(last.d)} · ${last.sets.length} sets · ${arr.length} session${arr.length>1?"s":""}</span>${spark}</div>`}).join("");
   app.innerHTML=`<div class="eyebrow">Your training</div><h1>Progress</h1>
     <div class="stats"><div class="stat"><b>${ds.filter(d=>d>=mon).length}</b><span>this week</span></div><div class="stat"><b>${ds.filter(d=>d.startsWith(mk)).length}</b><span>this month</span></div><div class="stat"><b>${sets}</b><span>sets logged</span></div></div>
+    ${bwSection()}
     <h2 class="sec">Workouts per week</h2><div class="chartbox"><svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Workouts per week, last 8 weeks">${bars}</svg></div>
+    ${recSection(by)}
     <h2 class="sec">Exercises</h2><p class="muted" style="margin:-4px 0 10px">Line shows your top weight each session (or top reps for bodyweight moves).</p>
     ${exRows||`<div class="empty">Finish your first workout and your lifts will show up here.</div>`}`;
 }
 
+
+function bwSection(){
+  const keys=Object.keys(BW).sort(),t=today(),last=keys.slice(-20);
+  let chart="";
+  if(last.length>1){
+    const vals=last.map(k=>+toDisp(BW[k])),mn=Math.min(...vals),mx=Math.max(...vals),W=320,H=118,pl=34,pr=10,pt=12,pb=30;
+    const x=i=>pl+i*(W-pl-pr)/(last.length-1),y=v=>mx===mn?H/2:pt+(mx-v)/(mx-mn)*(H-pt-pb);
+    const pts=vals.map((v,i)=>`${x(i)},${y(v)}`).join(" ");
+    chart=`<div class="chartbox" style="margin-top:10px"><svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Body weight trend">
+      <line x1="${pl}" y1="${y(mx)}" x2="${W-pr}" y2="${y(mx)}" stroke="var(--line)" stroke-dasharray="2 4"/><line x1="${pl}" y1="${y(mn)}" x2="${W-pr}" y2="${y(mn)}" stroke="var(--line)" stroke-dasharray="2 4"/>
+      <text x="${pl-6}" y="${y(mx)+4}" fill="var(--muted)" font-size="10" text-anchor="end">${mx}</text><text x="${pl-6}" y="${y(mn)+4}" fill="var(--muted)" font-size="10" text-anchor="end">${mn}</text>
+      <polyline points="${pts}" fill="none" stroke="var(--green)" stroke-width="2" stroke-linejoin="round"/>
+      ${vals.map((v,i)=>`<circle cx="${x(i)}" cy="${y(v)}" r="${i===vals.length-1?4:2.5}" fill="var(--green)"/>`).join("")}
+      <text x="${pl}" y="${H-4}" fill="var(--muted)" font-size="10">${fshort(last[0])}</text><text x="${W-pr}" y="${H-4}" fill="var(--muted)" font-size="10" text-anchor="end">${fshort(last[last.length-1])}</text></svg></div>`;
+  }
+  const lv=bwLatest(),k30=keys.filter(k=>k>=addDays(t,-30)),ch=k30.length>1?+toDisp(BW[k30[k30.length-1]])-+toDisp(BW[k30[0]]):null;
+  const list=keys.slice(-6).reverse().map(k=>`<span>${fshort(k)} · ${toDisp(BW[k])} ${UNIT}<button type="button" data-delbw="${k}" aria-label="Delete ${fshort(k)}">✕</button></span>`).join("");
+  return `<h2 class="sec">Body weight</h2><div class="dayrec" style="margin-top:0">
+    <div class="bwrow"><input class="txt" id="bw-input" inputmode="decimal" value="${esc(toDisp(BW[t]))}" placeholder="${esc(lv?toDisp(lv):UNIT)}" aria-label="Today's body weight in ${UNIT}"><span class="muted">${UNIT}</span><button type="button" class="btn sm primary" data-act="savebw">${BW[t]?"Update today":"Save today"}</button></div>
+    <p style="margin:8px 0 0">${lv?`Latest <b>${toDisp(lv)} ${UNIT}</b>${ch!==null?` · ${ch>0?"+":""}${+ch.toFixed(1)} ${UNIT} in 30 days`:""}`:"Log your weight to see the trend. It also fills in body-weight targets like the seated row."}</p>
+    ${chart}${list?`<div class="bwlist">${list}</div>`:""}</div>`;
+}
+function recSection(by){
+  const recs=Object.entries(by).map(([n,arr])=>{let best=null;arr.forEach(a=>a.sets.forEach(q=>{const w=parseFloat(q.w)||0,r=+q.r||0,k=w*1000+r;if(!best||k>best.k)best={k,w,r,d:a.d,timed:a.timed}}));return {n,...best}}).filter(r=>r.k>0).sort((a,b)=>b.d.localeCompare(a.d)).slice(0,12);
+  if(!recs.length)return "";
+  return `<h2 class="sec">🏆 Personal records</h2><div class="recs">${recs.map(r=>`<div class="rec"><span>${esc(r.n)}<small>Set on ${fshort(r.d)}</small></span><b>${r.w?toDisp(r.w)+" "+UNIT+" × ":""}${r.r}${r.timed?"s":""}</b></div>`).join("")}</div>`;
+}
 function viewPlan(){
   const opts=sel=>`<option value="">Rest</option>`+Object.entries(PLAN.days).map(([id,P])=>`<option value="${id}"${id===sel?" selected":""}>${esc(P.title)}</option>`).join("");
   const week=WDN.map((w,i)=>`<label>${w}<select class="txt" data-weekday="${i}" id="wk-${i}">${opts(PLAN.week[i])}</select></label>`).join("");
@@ -485,6 +530,7 @@ function viewPlan(){
   const lb=store.get("c1-lastbackup",null);
   app.innerHTML=`<div class="eyebrow">Program</div><h1>Plan</h1>
     <label class="fl" style="margin-top:12px">Program name<input class="txt" id="pname" data-pname="1" value="${esc(PLAN.name)}"></label>
+    <h2 class="sec">Rest timer sound</h2><div style="display:flex;gap:12px;align-items:center;flex-wrap:wrap"><span class="seg" role="group" aria-label="Rest timer sound"><button type="button" data-sound="1" aria-pressed="${SOUND}">On</button><button type="button" data-sound="0" aria-pressed="${!SOUND}">Off</button></span><span class="muted">Beeps 3-2-1 and plays a chime when rest ends. Keep the app open, with your ringer on.</span></div>
     <h2 class="sec">Weight unit</h2><div style="display:flex;gap:12px;align-items:center;flex-wrap:wrap">${unitSeg()}<span class="muted">All saved weights convert automatically.</span></div>
     <h2 class="sec">Weekly schedule</h2><div class="wkplan">${week}</div>
     <p class="muted">This repeats every week. To change a single date, use ⋮ on the Workout tab.</p>
@@ -540,7 +586,7 @@ sheet.addEventListener("click",ev=>{
 sheet.addEventListener("change",ev=>{if(ev.target.dataset.shday){const d=ev.target.dataset.shday;setDay(d,ev.target.value);closeSheet();toast(ev.target.value==="rest"?"Changed to a rest day":`Changed to ${D(ev.target.value).title}`);render()}});
 
 /* ---------- backup ---------- */
-function backupData(){return {app:"c1-workout",version:2,exported:new Date().toISOString(),sessions:S,log:LOG,plan:PLAN,sched:SCHED,first:FIRST,unit:UNIT}}
+function backupData(){return {app:"c1-workout",version:2,exported:new Date().toISOString(),sessions:S,log:LOG,plan:PLAN,sched:SCHED,first:FIRST,unit:UNIT,bw:BW,sound:SOUND}}
 async function exportBackup(){
   const json=JSON.stringify(backupData(),null,1),name=`c1-workout-backup-${today()}.json`;
   try{
@@ -550,7 +596,7 @@ async function exportBackup(){
   try{const a=document.createElement("a");a.href=URL.createObjectURL(new Blob([json],{type:"application/json"}));a.download=name;document.body.appendChild(a);a.click();a.remove();store.set("c1-lastbackup",new Date().toISOString());toast("Backup downloaded");render()}
   catch(e){toast("Couldn’t save a file here. Use Copy backup text instead.")}
 }
-function applyImport(b){S=b.sessions||{};LOG=b.log||{};PLAN=b.plan||clone(DEFAULT_PLAN);SCHED=b.sched||{};if(b.first){FIRST=b.first;store.set("c1-first",FIRST)}if(b.unit){UNIT=b.unit;store.set("c1-unit",UNIT)}saveS();saveL();saveP();saveSch()}
+function applyImport(b){S=b.sessions||{};LOG=b.log||{};PLAN=b.plan||clone(DEFAULT_PLAN);SCHED=b.sched||{};if(b.first){FIRST=b.first;store.set("c1-first",FIRST)}if(b.unit){UNIT=b.unit;store.set("c1-unit",UNIT)}if(b.bw){BW=b.bw;saveBW()}if(typeof b.sound==="boolean"){SOUND=b.sound;store.set("c1-sound",SOUND)}saveS();saveL();saveP();saveSch()}
 
 /* ---------- live bits ---------- */
 function tickWorkout(){
@@ -562,10 +608,15 @@ function tickWorkout(){
   document.getElementById("pcount").textContent=`${dn}/${tot}`;
 }
 setInterval(tickWorkout,1000);
-let left=0,tick=null;const tEl=document.getElementById("timer");
-function draw(){document.getElementById("timerT").textContent=(left<0?"+":"")+fmtDur(Math.abs(left)*1000);tEl.classList.toggle("up",left<=0)}
-function startTimer(sec,name){left=sec;document.getElementById("timerLbl").textContent="Rest · "+name;tEl.hidden=false;draw();clearInterval(tick);tick=setInterval(()=>{left--;draw()},1000)}
-document.getElementById("timerAdd").onclick=()=>{left+=30;draw()};
+let left=0,tick=null,restEnd=0,alerted=false,lastBeep=null;const tEl=document.getElementById("timer");
+let actx=null;function audio(){try{if(!actx)actx=new (window.AudioContext||window.webkitAudioContext)();if(actx.state==="suspended")actx.resume()}catch(e){}return actx}
+document.addEventListener("pointerdown",()=>{if(SOUND)audio()},{passive:true});
+function beep(freqs,len=.18,gap=.08,vol=.5){if(!SOUND)return;const a=audio();if(!a)return;let t=a.currentTime+.02;freqs.forEach(f=>{const o=a.createOscillator(),g=a.createGain();o.type="sine";o.frequency.value=f;g.gain.setValueAtTime(.0001,t);g.gain.exponentialRampToValueAtTime(vol,t+.02);g.gain.exponentialRampToValueAtTime(.0001,t+len);o.connect(g);g.connect(a.destination);o.start(t);o.stop(t+len+.03);t+=len+gap})}
+function restDone(){beep([880,880,1175],.22,.1,.6);try{navigator.vibrate&&navigator.vibrate([300,120,300])}catch(e){}}
+function draw(){left=Math.ceil((restEnd-Date.now())/1000);document.getElementById("timerT").textContent=(left<0?"+":"")+fmtDur(Math.abs(left)*1000);tEl.classList.toggle("up",left<=0);
+  if(left<=0&&!alerted){alerted=true;restDone()}else if(left>0&&left<=3&&lastBeep!==left){lastBeep=left;beep([660],.08,0,.35)}}
+function startTimer(sec,name){restEnd=Date.now()+sec*1000;alerted=false;lastBeep=null;document.getElementById("timerLbl").textContent="Rest · "+name;tEl.hidden=false;draw();clearInterval(tick);tick=setInterval(draw,250)}
+document.getElementById("timerAdd").onclick=()=>{restEnd+=30000;if(restEnd>Date.now()){alerted=false;lastBeep=null}draw()};
 document.getElementById("timerStop").onclick=()=>{clearInterval(tick);tEl.hidden=true};
 let toastT;function toast(m){const t=document.getElementById("toast");t.textContent=m;t.hidden=false;clearTimeout(toastT);toastT=setTimeout(()=>t.hidden=true,2600)}
 
@@ -575,6 +626,9 @@ app.addEventListener("click",async ev=>{
   const q=s=>ev.target.closest(s);let b;
   if(b=q("[data-startnow]"))pendingStart=b.dataset.startnow;
   if(b=q("[data-sheet]")){ev.preventDefault();return openSheet(b.dataset.sheet)}
+  if(b=q("[data-act=savebw]")){const v=fromDisp(document.getElementById("bw-input").value);if(!v){toast("Type your weight first");return}BW[today()]=+v;saveBW();toast(`Saved ${toDisp(v)} ${UNIT}`);return render()}
+  if(b=q("[data-delbw]")){delete BW[b.dataset.delbw];saveBW();return render()}
+  if(b=q("[data-sound]")){SOUND=b.dataset.sound==="1";store.set("c1-sound",SOUND);if(SOUND){audio();beep([880],.12)}toast(SOUND?"Rest sound on":"Rest sound off");return render()}
   if(b=q("[data-unit]")){if(UNIT!==b.dataset.unit){UNIT=b.dataset.unit;store.set("c1-unit",UNIT);toast(`Weights now shown in ${UNIT}`)}return render()}
   if(b=q("[data-wk]")){weekOff+=+b.dataset.wk;return render()}
   if(b=q("[data-pick]")){chosen[location.hash.slice(3)]=b.dataset.pick;return render()}
@@ -600,7 +654,8 @@ app.addEventListener("click",async ev=>{
     const [i,j]=b.dataset.chk.split("-").map(Number),s=ensure(date,day),e=s.ex[i],t=e.sets[j];
     t.d=!t.d;
     if(t.d&&!s.start){s.start=Date.now();s.go=true;wake(true)}
-    if(t.d){const row=b.closest("tr");if(!t.w)t.w=fromDisp(row.querySelector('[data-f="w"]').placeholder.replace(/^-$/,""));if(!t.r)t.r=row.querySelector('[data-f="r"]').placeholder;startTimer(restSec(e.rest),e.n)}
+    if(t.d){const row=b.closest("tr");if(!t.w)t.w=fromDisp(row.querySelector('[data-f="w"]').placeholder.replace(/^-$/,""));if(!t.r)t.r=row.querySelector('[data-f="r"]').placeholder;startTimer(restSec(e.rest),e.n);
+      const pr=prType(histBest(e.n,date),t);if(pr){toast(`🏆 ${pr}! ${e.n} · ${parseFloat(t.w)?toDisp(t.w)+" "+UNIT+" × ":""}${t.r}`);setTimeout(()=>beep([523,659,784,1047],.12,.03,.5),700)}}
     saveS();return render();
   }
   if(b=q("[data-add]")){const s=ensure(date,day);s.ex[+b.dataset.add].sets.push({w:"",r:"",d:false});saveS();return render()}
