@@ -159,6 +159,11 @@ textarea.note{resize:vertical;min-height:52px;font:inherit}
 .airow{display:grid;grid-template-columns:auto minmax(0,1fr) 76px;gap:8px;align-items:center;background:var(--field);border-radius:10px;padding:8px 10px}
 .airow small{display:block;color:var(--muted);font-size:12px}
 .airow input.txt{padding:6px 8px}
+.prow{display:flex;gap:6px}
+.prow button:first-child{flex:1;min-width:0}
+.fres .px{flex:none;width:42px;justify-content:center;align-items:center;color:var(--muted)}
+.fsec{margin:4px 0 0;font-size:12px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--muted)}
+.saveml{width:36px;height:36px;border:0;background:transparent;color:var(--amber);font-size:20px;cursor:pointer}
 .donepill{flex:none;color:var(--green);font-weight:700;border:1.5px solid var(--green);border-radius:12px;padding:7px 12px;font-size:14px}
 .wbar{display:flex;align-items:center;gap:12px;margin-top:8px;font-variant-numeric:tabular-nums}
 .el{color:var(--blue);font-weight:600;min-width:84px;white-space:nowrap}
@@ -629,12 +634,16 @@ let FOOD=store.get("c1-food",{});      // {date:[{id,meal,name,g,per:{cal,p,c,f}
 let NUT=store.get("c1-nut",null);       // targets {cal:[min,max],p:[..],c:[..],f:[..]}
 let AIKEY=store.get("c1-aikey",""), AIMODEL=store.get("c1-aimodel","claude-haiku-5-5");
 const saveF=()=>store.set("c1-food",FOOD);
+let PRESETS=store.get("c1-presets",{foods:[],meals:[]});   // saved foods {id,name,g,per} and meals {id,name,items:[{name,g,per}]}
+const savePR=()=>store.set("c1-presets",PRESETS);
+const uid=()=>Date.now().toString(36)+Math.random().toString(36).slice(2,6);
 const MEALS=[["breakfast","Breakfast"],["lunch","Lunch"],["dinner","Dinner"],["snack","Snacks"]];
 const MACROS=[["p","Protein","#b48cf2"],["c","Carbs","#4fd18b"],["f","Fat","#f5cf6b"]];
 // common foods, approx. per 100 g (cooked where relevant): name, kcal, protein, carbs, fat, usual grams
 const LOCAL=[["Chicken breast, cooked",165,31,0,3.6,150],["Chicken thigh, cooked",209,26,0,10.9,120],["Egg, whole",143,12.6,.7,9.5,50],["Egg white",52,10.9,.7,.2,33],["White rice, cooked",130,2.7,28,.3,150],["Jasmine rice, cooked",129,2.7,28,.3,150],["Brown rice, cooked",112,2.6,23.5,.9,150],["Sticky rice, cooked",97,2,21,.2,100],["Rice noodles, cooked",108,1.8,24,.2,150],["Pasta, cooked",158,5.8,31,.9,180],["Bread, white",265,9,49,3.2,30],["Oats, dry",389,16.9,66,6.9,40],["Salmon, cooked",206,22,0,12,120],["Tuna, canned in water",116,26,0,.8,100],["Shrimp, cooked",99,24,.2,.3,100],["Beef, lean, cooked",217,26,0,12,120],["Pork loin, cooked",196,27,0,9,120],["Tofu, firm",144,17.3,2.8,8.7,100],["Greek yogurt, plain nonfat",59,10.2,3.6,.4,170],["Milk, whole",61,3.2,4.8,3.3,240],["Whey protein powder",400,80,8,6,30],["Cheddar cheese",403,25,1.3,33,28],["Broccoli, steamed",35,2.4,7.2,.4,80],["Mixed vegetables, cooked",65,2.9,13,.2,100],["Sweet potato, baked",90,2,20.7,.2,150],["Potato, baked",93,2.5,21,.1,150],["Banana",89,1.1,22.8,.3,118],["Apple",52,.3,13.8,.2,180],["Avocado",160,2,8.5,14.7,70],["Almonds",579,21,22,50,28],["Peanut butter",588,25,20,50,32],["Olive oil",884,0,0,100,14],["Soy sauce",53,8,4.9,.6,15]];
-function suggestTargets(){const bw=bwLatest()||70,r10=v=>Math.round(v/10)*10;const cal=[r10(bw*31),r10(bw*34)],p=[Math.round(bw*1.6),Math.round(bw*2.2)],f=[Math.round(bw*.6),Math.round(bw*1.2)];return {cal,p,f,c:[Math.max(0,Math.round((cal[0]-p[1]*4-f[1]*9)/4)),Math.round((cal[1]-p[0]*4-f[0]*9)/4)]}}
-const targets=()=>NUT||suggestTargets();
+function suggestTargets(){const bw=bwLatest()||70,cal=Math.round(bw*33/10)*10,p=Math.round(bw*1.6),f=Math.round(bw*.6);return {cal,p,f,c:Math.max(0,Math.round((cal-p*4-f*9)/4))}}
+// calories = one daily target; protein/carbs/fat = minimums (older saved ranges are converted)
+const targets=()=>{if(!NUT)return suggestTargets();const one=(v,i)=>Array.isArray(v)?v[i]:v;return {cal:one(NUT.cal,1),p:one(NUT.p,0),c:one(NUT.c,0),f:one(NUT.f,0)}};
 const mac=e=>{const k=(+e.g||0)/100;return {cal:e.per.cal*k,p:e.per.p*k,c:e.per.c*k,f:e.per.f*k}};
 const sumMac=list=>list.reduce((a,e)=>{const m=mac(e);a.cal+=m.cal;a.p+=m.p;a.c+=m.c;a.f+=m.f;return a},{cal:0,p:0,c:0,f:0});
 const R=v=>Math.round(v);
@@ -645,16 +654,16 @@ const camIcon=`<svg width="26" height="26" viewBox="0 0 24 24" fill="none" strok
 function viewFood(){
   const d=foodDate,T=targets(),list=FOOD[d]||[],tot=sumMac(list),rem=foodMode==="remaining";
   const lbl=d===today()?`Today, ${parse(d).toLocaleDateString("en-US",{month:"short",day:"numeric"})}`:parse(d).toLocaleDateString("en-US",{weekday:"short",month:"short",day:"numeric"});
-  const big=rem?R(T.cal[1]-tot.cal):R(tot.cal),pct=Math.min(100,tot.cal/T.cal[1]*100);
-  const macs=MACROS.map(([k,l,c])=>{const v=tot[k],ok=v>=T[k][0]&&v<=T[k][1],shown=rem?R(T[k][1]-v):R(v);
-    return `<div class="mac" style="--c:${c}"><small>${l}</small><div class="mb"><i style="width:${Math.min(100,v/T[k][1]*100)}%"></i></div><p>${ok&&!rem?`<span class="ok">✓</span> `:""}<b>${shown}</b> / ${T[k][0]}–${T[k][1]}g</p></div>`}).join("");
+  const big=rem?R(T.cal-tot.cal):R(tot.cal),pct=Math.min(100,tot.cal/T.cal*100);
+  const macs=MACROS.map(([k,l,c])=>{const v=tot[k],ok=v>=T[k],shown=rem?Math.max(0,R(T[k]-v)):R(v);
+    return `<div class="mac" style="--c:${c}"><small>${l}</small><div class="mb"><i style="width:${Math.min(100,T[k]?v/T[k]*100:0)}%"></i></div><p>${ok?`<span class="ok">✓</span> `:""}<b>${shown}</b>${rem?"g left":` / ${T[k]}g+`}</p></div>`}).join("");
   const meals=MEALS.map(([m,l])=>{const items=list.filter(e=>e.meal===m),mt=sumMac(items),open=!closedMeals[m];
-    return `<div class="meal"><div class="mealh"><button type="button" class="t" data-mealt="${m}" aria-expanded="${open}"><span style="font-size:16px;color:var(--muted)">${open?"⌃":"⌄"}</span>${l}</button><span class="chipc">${R(mt.cal)} Cal</span><span class="chipp">${R(mt.p)} P</span><button type="button" class="addm" data-addmeal="${m}" aria-label="Add food to ${l}">+</button></div>
+    return `<div class="meal"><div class="mealh"><button type="button" class="t" data-mealt="${m}" aria-expanded="${open}"><span style="font-size:16px;color:var(--muted)">${open?"⌃":"⌄"}</span>${l}</button><span class="chipc">${R(mt.cal)} Cal</span><span class="chipp">${R(mt.p)} P</span>${items.length?`<button type="button" class="saveml" data-savemeal="${m}" aria-label="Save ${l} as a meal preset">☆</button>`:""}<button type="button" class="addm" data-addmeal="${m}" aria-label="Add food to ${l}">+</button></div>
       ${open&&items.length?`<div class="fitems">${items.map(e=>{const x=mac(e);return `<button type="button" class="fitem" data-editfood="${e.id}"><span>${esc(e.name)}<small>${R(e.g)} g</small></span><span class="r">${R(x.cal)} cal<small>${R(x.p)}g protein</small></span></button>`}).join("")}</div>`:""}</div>`}).join("");
   app.innerHTML=`<div class="fhead"><button type="button" data-fday="-1" aria-label="Previous day">‹</button><b>${lbl}</b><button type="button" data-fday="1" aria-label="Next day">›</button></div>
     <div class="ncard"><div class="ntog"><button type="button" data-fmode="consumed" aria-pressed="${!rem}">Consumed</button><button type="button" data-fmode="remaining" aria-pressed="${rem}">Remaining</button></div>
-      <div class="nbig"><b>${big}</b><span>/ ${T.cal[0]}–${T.cal[1]} cal${rem?" left":""}</span></div>
-      <div class="nbar"><i class="${tot.cal>T.cal[1]?"over":""}" style="width:${pct}%"></i></div>
+      <div class="nbig"><b>${big}</b><span>${rem?"cal left":`/ ${T.cal} cal`}</span></div>
+      <div class="nbar"><i class="${tot.cal>T.cal?"over":""}" style="width:${pct}%"></i></div>
       <div class="macros">${macs}</div>${NUT?"":`<p class="muted" style="margin:12px 0 0">Targets are suggested from your body weight${bwLatest()?"":" (70 kg until you log it)"}. Change them with ⚙.</p>`}</div>
     <div class="flh"><h2>Food Log</h2><span><button type="button" class="iconbtn" data-act="fsettings" aria-label="Nutrition settings"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg></button><button type="button" class="iconbtn" data-act="fcopy" aria-label="Copy yesterday's food to this day"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="8" y="8" width="12" height="13" rx="2"/><path d="M16 8V5a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v11a2 2 0 0 0 2 2h2"/></svg></button></span></div>
     ${meals}
@@ -668,9 +677,11 @@ function fsDraw(){
   const st=FS;let h="";
   if(st.mode==="search"){
     const q=(st.q||"").trim().toLowerCase(),loc=LOCAL.filter(f=>!q||q.split(/\s+/).every(w=>f[0].toLowerCase().includes(w))).slice(0,q?20:12);
+    const sm=PRESETS.meals.filter(x=>!q||x.name.toLowerCase().includes(q)),sf=PRESETS.foods.filter(x=>!q||x.name.toLowerCase().includes(q));
+    const saved=(sm.length||sf.length)?`<p class="fsec">Saved</p>${sm.map(x=>{const t=sumMac(x.items);return `<div class="prow"><button type="button" data-pmeal="${x.id}"><span>★ ${esc(x.name)}<small>Meal · ${x.items.length} items · ${R(t.p)}P ${R(t.c)}C ${R(t.f)}F</small></span><span class="r">${R(t.cal)} cal<small>tap to log</small></span></button><button type="button" class="px" data-pdelm="${x.id}" aria-label="Delete ${esc(x.name)}">✕</button></div>`}).join("")}${sf.map(x=>{const t=mac(x);return `<div class="prow"><button type="button" data-pfood="${x.id}"><span>☆ ${esc(x.name)}<small>My food · ${R(t.p)}P ${R(t.c)}C ${R(t.f)}F</small></span><span class="r">${R(t.cal)} cal<small>${R(x.g)} g</small></span></button><button type="button" class="px" data-pdelf="${x.id}" aria-label="Delete ${esc(x.name)}">✕</button></div>`}).join("")}<p class="fsec">Foods</p>`:"";
     h=`<h3 id="sheetTitle">Add food</h3><div class="inline"><input class="txt" id="fs-q" placeholder="Search: chicken, rice, banana…" value="${esc(st.q||"")}" autocomplete="off" enterkeyhint="search">${mealSel(st.meal)}</div>
-      <div class="rowbtns"><button type="button" class="btn sm" data-fphoto="1">📷 Photo of meal</button><button type="button" class="btn sm" data-fbarcode="1">Scan barcode</button>${q?`<button type="button" class="btn sm primary" data-faitext="1">✨ Ask AI: “${esc(st.q)}”</button>`:""}</div>
-      <div class="fres">${loc.map((f,i)=>`<button type="button" data-flocal="${LOCAL.indexOf(f)}"><span>${esc(f[0])}<small>${f[1]} cal · ${f[2]}P ${f[3]}C ${f[4]}F per 100 g</small></span><span class="r">${R(f[1]*f[5]/100)} cal<small>${f[5]} g</small></span></button>`).join("")}
+      <div class="rowbtns"><button type="button" class="btn sm" data-fphoto="1">📷 Photo of meal</button><button type="button" class="btn sm" data-fbarcode="1">Scan barcode</button><button type="button" class="btn sm" data-fcreate="1">＋ Create food</button>${q?`<button type="button" class="btn sm primary" data-faitext="1">✨ Ask AI: “${esc(st.q)}”</button>`:""}</div>
+      <div class="fres">${saved}${loc.map((f,i)=>`<button type="button" data-flocal="${LOCAL.indexOf(f)}"><span>${esc(f[0])}<small>${f[1]} cal · ${f[2]}P ${f[3]}C ${f[4]}F per 100 g</small></span><span class="r">${R(f[1]*f[5]/100)} cal<small>${f[5]} g</small></span></button>`).join("")}
       ${st.off?st.off.map((f,i)=>`<button type="button" data-foff="${i}"><span>${esc(f.name)}<small>${R(f.per.cal)} cal · ${R(f.per.p)}P ${R(f.per.c)}C ${R(f.per.f)}F per 100 g · Open Food Facts</small></span><span class="r">${f.g} g</span></button>`).join(""):""}
       ${q&&st.offLoading?`<p class="muted">Searching Open Food Facts…</p>`:""}${q&&!loc.length&&st.off&&!st.off.length?`<p class="muted">No matches. Try “Ask AI”, or a simpler word.</p>`:""}</div>
       <button type="button" class="btn" data-fclose="1">Close</button>`;
@@ -680,7 +691,7 @@ function fsDraw(){
       <div class="inline"><input class="txt" id="fs-g" inputmode="decimal" value="${esc(st.g)}" aria-label="Amount in grams"><span class="muted" style="align-self:center">g</span>${mealSel(st.meal)}</div>
       <div class="fmac"><div><b id="fm-cal">${R(p.cal*k)}</b><span>cal</span></div><div><b id="fm-p">${R(p.p*k)}</b><span>protein g</span></div><div><b id="fm-c">${R(p.c*k)}</b><span>carbs g</span></div><div><b id="fm-f">${R(p.f*k)}</b><span>fat g</span></div></div>
       <p class="muted" style="margin:0">${R(p.cal)} cal per 100 g${st.src?` · ${esc(st.src)}`:""}</p>
-      <div class="rowbtns"><button type="button" class="btn primary" data-fsave="1">${st.editId?"Save":"Add to log"}</button>${st.editId?`<button type="button" class="btn danger" data-fdel="1">Delete</button>`:`<button type="button" class="btn" data-fback="1">Back</button>`}</div>
+      <div class="rowbtns"><button type="button" class="btn primary" data-fsave="1">${st.editId?"Save":"Add to log"}</button>${st.editId?`<button type="button" class="btn danger" data-fdel="1">Delete</button>`:`<button type="button" class="btn" data-fback="1">Back</button>`}<button type="button" class="btn" data-ffav="1">☆ Save to My foods</button></div>
       <button type="button" class="btn" data-fclose="1">Close</button>`;
   }else if(st.mode==="ai"){
     h=`<h3 id="sheetTitle">${st.loading?"Looking at your food…":"Check the estimate"}</h3>
@@ -688,13 +699,32 @@ function fsDraw(){
       ${st.loading?`<p class="muted">This takes a few seconds.</p>`:st.err?`<p style="color:var(--red)">${esc(st.err)}</p>`:`
       <p class="muted" style="margin:0">Untick anything wrong and fix the grams; nutrition scales with the amount. Estimates from photos can be off by 20–30%.</p>
       ${st.items.map((it,i)=>`<label class="airow"><input type="checkbox" data-aion="${i}" ${it.on?"checked":""}><span>${esc(it.name)}<small>${R(it.per.cal*it.g/100)} cal · ${R(it.per.p*it.g/100)}P ${R(it.per.c*it.g/100)}C ${R(it.per.f*it.g/100)}F</small></span><input class="txt" inputmode="decimal" data-aig="${i}" value="${it.g}" aria-label="${esc(it.name)} grams"></label>`).join("")}
-      ${mealSel(st.meal)}<button type="button" class="btn primary" data-faiadd="1">Add ${st.items.filter(i=>i.on).length} item(s)</button>`}
+      ${mealSel(st.meal)}<div class="rowbtns"><button type="button" class="btn primary" data-faiadd="1">Add ${st.items.filter(i=>i.on).length} item(s)</button><button type="button" class="btn" data-faisave="1">★ Save as meal</button></div>
+      <label class="fl">Not right? Tell the AI<textarea class="txt note" id="fs-refine" rows="2" placeholder="e.g. That’s pork, not chicken. Rice is about 2 cups."></textarea></label>
+      <button type="button" class="btn" data-frefine="1">Ask again</button>`}
       <button type="button" class="btn" data-fclose="1">Close</button>`;
+  }else if(st.mode==="aiprep"){
+    h=`<h3 id="sheetTitle">Photo of your meal</h3><img src="${st.img}" alt="Your meal" style="max-height:200px;border-radius:12px;object-fit:cover">
+      <label class="fl">Help the AI (optional)<textarea class="txt note" id="fs-hint" rows="3" placeholder="e.g. Pad kra pao with fried egg. Rice about 1.5 cups, I ate half the plate.">${esc(st.hint||"")}</textarea></label>
+      <p class="muted" style="margin:0">Name the dish, sizes (cups, pieces, grams) or how much you ate, and the estimate gets much better.</p>
+      ${mealSel(st.meal)}<button type="button" class="btn primary" data-fanalyze="1">✨ Analyze</button><button type="button" class="btn" data-fclose="1">Cancel</button>`;
+  }else if(st.mode==="savemeal"){
+    const t=sumMac(st.items);
+    h=`<h3 id="sheetTitle">Save meal preset</h3><label class="fl">Name<input class="txt" id="fs-pname" value="${esc(st.name||"")}" placeholder="e.g. Usual breakfast"></label>
+      <p class="muted" style="margin:0">${st.items.map(i=>`${esc(i.name)} ${R(i.g)} g`).join(" · ")}<br>${R(t.cal)} cal · ${R(t.p)}P ${R(t.c)}C ${R(t.f)}F</p>
+      <button type="button" class="btn primary" data-fpsave="1">Save preset</button><button type="button" class="btn" data-fclose="1">Cancel</button>`;
+  }else if(st.mode==="create"){
+    h=`<h3 id="sheetTitle">Create food</h3><label class="fl">Name<input class="txt" id="cf-name" placeholder="e.g. Mom’s chicken soup" value="${esc(st.name||"")}"></label>
+      <div class="grid2"><label class="fl">Serving (g)<input class="txt" inputmode="decimal" id="cf-g" value="100"></label><label class="fl">Calories per serving<input class="txt" inputmode="decimal" id="cf-cal"></label></div>
+      <div class="grid2"><label class="fl">Protein g<input class="txt" inputmode="decimal" id="cf-p"></label><label class="fl">Carbs g<input class="txt" inputmode="decimal" id="cf-c"></label></div>
+      <div class="grid2"><label class="fl">Fat g<input class="txt" inputmode="decimal" id="cf-f"></label><label class="fl">Log it to${mealSel(st.meal)}</label></div>
+      <label style="display:flex;gap:8px;align-items:center;font-size:14px"><input type="checkbox" id="cf-log" checked> Also add one serving to today’s log</label>
+      <button type="button" class="btn primary" data-fcsave="1">Save to My foods</button><button type="button" class="btn" data-fclose="1">Cancel</button>`;
   }else if(st.mode==="settings"){
-    const T=targets(),row=(k,l)=>`<div class="grid2"><label class="fl">${l} min<input class="txt" inputmode="numeric" id="ns-${k}0" value="${T[k][0]}"></label><label class="fl">${l} max<input class="txt" inputmode="numeric" id="ns-${k}1" value="${T[k][1]}"></label></div>`;
-    h=`<h3 id="sheetTitle">Nutrition settings</h3>${row("cal","Calories")}${row("p","Protein g")}${row("c","Carbs g")}${row("f","Fat g")}
+    const T=targets(),fld=(k,l)=>`<label class="fl">${l}<input class="txt" inputmode="numeric" id="ns-${k}" value="${T[k]}"></label>`;
+    h=`<h3 id="sheetTitle">Nutrition settings</h3><div class="grid2">${fld("cal","Calories per day")}${fld("p","Protein, at least (g)")}</div><div class="grid2">${fld("c","Carbs, at least (g)")}${fld("f","Fat, at least (g)")}</div>
       <button type="button" class="btn sm" data-fsuggest="1">Suggest from body weight (${bwLatest()?toDisp(bwLatest())+" "+UNIT:"log it on Progress"})</button>
-      <p class="muted" style="margin:0">Suggestion: protein 1.6–2.2 g/kg, fat 0.6–1.2 g/kg, calories about 31–34 × body weight (maintenance). Adjust for cutting or bulking.</p>
+      <p class="muted" style="margin:0">Suggestion: calories about 33 × body weight in kg (maintenance), protein at least 1.6 g/kg, fat at least 0.6 g/kg, carbs fill the rest. Eat less to cut, more to bulk.</p>
       <h3 style="font-size:19px;margin-top:6px">AI food photos</h3>
       <label class="fl">Claude API key<input class="txt" type="password" id="ns-key" value="${esc(AIKEY)}" placeholder="sk-ant-…" autocomplete="off"></label>
       <label class="fl">Model<input class="txt" id="ns-model" value="${esc(AIMODEL)}"></label>
@@ -719,7 +749,7 @@ async function shrink(file,max=1024){const url=URL.createObjectURL(file);const i
 async function aiFood(img,text){
   if(!AIKEY)throw new Error("Add your Claude API key in ⚙ Nutrition settings first.");
   const content=[];if(img)content.push({type:"image",source:{type:"base64",media_type:"image/jpeg",data:img.split(",")[1]}});
-  content.push({type:"text",text:`${text?`Food described by the user: "${text}"\n`:""}Identify each separate food${img?" in this photo":""}, estimate its portion in grams (cooked weight) and the nutrition for that portion. Reply with JSON only, no other text, exactly like {"items":[{"name":"Chicken breast, grilled","grams":150,"cal":248,"protein":46,"carbs":0,"fat":5}]}. Use short English names.`});
+  content.push({type:"text",text:`${text?(img?`Notes from the user about this photo (trust them over what you see): "${text}"\n`:`Food described by the user: "${text}"\n`):""}Identify each separate food${img?" in this photo":""}, estimate its portion in grams (cooked weight) and the nutrition for that portion. Reply with JSON only, no other text, exactly like {"items":[{"name":"Chicken breast, grilled","grams":150,"cal":248,"protein":46,"carbs":0,"fat":5}]}. Use short English names.`});
   const r=await fetch("https://api.anthropic.com/v1/messages",{method:"POST",headers:{"content-type":"application/json","x-api-key":AIKEY,"anthropic-version":"2023-06-01","anthropic-dangerous-direct-browser-access":"true"},body:JSON.stringify({model:AIMODEL,max_tokens:4000,messages:[{role:"user",content}]})});
   const j=await r.json().catch(()=>({}));
   if(!r.ok)throw new Error((j.error&&j.error.message)||`The AI request failed (${r.status}).`);
@@ -727,7 +757,8 @@ async function aiFood(img,text){
   if(!m)throw new Error("The AI didn’t return an estimate. Try another photo.");
   return (JSON.parse(m[0]).items||[]).map(it=>{const g=Math.max(1,+it.grams||100);return {on:true,name:it.name||"Food",g:R(g),per:{cal:(+it.cal||0)/g*100,p:(+it.protein||0)/g*100,c:(+it.carbs||0)/g*100,f:(+it.fat||0)/g*100}}});
 }
-async function runAI(img,text,meal){fsOpen({mode:"ai",loading:true,img,meal,items:[]});try{const items=await aiFood(img,text);if(FS&&FS.mode==="ai"){FS.loading=false;FS.items=items;if(!items.length)FS.err="No food found in that photo.";fsDraw()}}catch(e){if(FS&&FS.mode==="ai"){FS.loading=false;FS.err=e.message;fsDraw()}}}
+async function photoFlow(meal){const file=await pickImage();if(!file)return;const img=await shrink(file);fsOpen({mode:"aiprep",img,meal,hint:""});const el=document.getElementById("fs-hint");if(el)el.focus()}
+async function runAI(img,text,meal){fsOpen({mode:"ai",loading:true,img,meal,items:[],hint:text||""});try{const items=await aiFood(img,text);if(FS&&FS.mode==="ai"){FS.loading=false;FS.items=items;if(!items.length)FS.err="No food found in that photo.";fsDraw()}}catch(e){if(FS&&FS.mode==="ai"){FS.loading=false;FS.err=e.message;fsDraw()}}}
 let zxingP=null;
 function loadZX(){return zxingP||(zxingP=new Promise((ok,no)=>{const s=document.createElement("script");s.src="https://cdn.jsdelivr.net/npm/@zxing/library@0.21.3/umd/index.min.js";s.onload=ok;s.onerror=()=>{zxingP=null;no()};document.head.appendChild(s)}))}
 async function scanBarcode(meal){
@@ -750,13 +781,27 @@ document.getElementById("sheet").addEventListener("click",async ev=>{
     if(FS.editId){const e=(FOOD[foodDate]||[]).find(x=>x.id===FS.editId);if(e){e.g=g;e.meal=meal}}else{(FOOD[foodDate]=FOOD[foodDate]||[]).push({id:Date.now().toString(36)+Math.random().toString(36).slice(2,5),meal,name:FS.name,g,per:FS.per})}
     saveF();closedMeals[meal]=false;toast(FS.editId?"Saved":`Added to ${MEALS.find(m=>m[0]===meal)[1]}`);FS=null;closeSheet();return render()}
   if(b.dataset.fdel){FOOD[foodDate]=(FOOD[foodDate]||[]).filter(x=>x.id!==FS.editId);saveF();FS=null;closeSheet();toast("Deleted");return render()}
-  if(b.dataset.fphoto){const meal=fmeal();const file=await pickImage();if(!file)return;const img=await shrink(file);return runAI(img,"",meal)}
+  if(b.dataset.fphoto){return photoFlow(fmeal())}
+  if(b.dataset.fanalyze){return runAI(FS.img,document.getElementById("fs-hint").value.trim(),fmeal())}
+  if(b.dataset.frefine){const more=document.getElementById("fs-refine").value.trim();if(!more){toast("Type what to fix first");return}return runAI(FS.img,[FS.hint,more].filter(Boolean).join(". "),fmeal())}
+  if(b.dataset.faisave){const items=FS.items.filter(i=>i.on).map(i=>({name:i.name,g:i.g,per:i.per}));if(!items.length){toast("Tick at least one item");return}return fsOpen({mode:"savemeal",items,meal:fmeal(),name:(FS.hint||"").slice(0,40)})}
+  if(b.dataset.fpsave){const name=document.getElementById("fs-pname").value.trim();if(!name){toast("Give the preset a name");return}PRESETS.meals.push({id:uid(),name,items:clone(FS.items)});savePR();toast(`Saved “${name}”. Find it under Saved when you add food.`);FS=null;closeSheet();return render()}
+  if(b.dataset.pmeal){const x=PRESETS.meals.find(m=>m.id===b.dataset.pmeal),meal=fmeal();if(!x)return;(FOOD[foodDate]=FOOD[foodDate]||[]).push(...x.items.map(i=>({id:uid(),meal,name:i.name,g:i.g,per:i.per})));saveF();closedMeals[meal]=false;toast(`Logged ${x.name}`);FS=null;closeSheet();return render()}
+  if(b.dataset.pfood){const x=PRESETS.foods.find(f=>f.id===b.dataset.pfood);if(x)fsOpen({mode:"amount",name:x.name,g:R(x.g),meal:fmeal(),src:"My foods",per:x.per});return}
+  if(b.dataset.pdelm){PRESETS.meals=PRESETS.meals.filter(m=>m.id!==b.dataset.pdelm);savePR();toast("Preset deleted");return fsDraw()}
+  if(b.dataset.pdelf){PRESETS.foods=PRESETS.foods.filter(f=>f.id!==b.dataset.pdelf);savePR();toast("Removed from My foods");return fsDraw()}
+  if(b.dataset.ffav){const g=+document.getElementById("fs-g").value||FS.g;if(PRESETS.foods.some(f=>f.name===FS.name)){toast("Already in My foods");return}PRESETS.foods.push({id:uid(),name:FS.name,g,per:FS.per});savePR();toast("Saved to My foods");return}
+  if(b.dataset.fcreate){return fsOpen({mode:"create",meal:fmeal(),name:FS.q||""})}
+  if(b.dataset.fcsave){const val=id=>+(document.getElementById(id).value||"").replace(",",".")||0,name=document.getElementById("cf-name").value.trim(),g=val("cf-g")||100;if(!name){toast("Give the food a name");return}
+    const per={cal:val("cf-cal")/g*100,p:val("cf-p")/g*100,c:val("cf-c")/g*100,f:val("cf-f")/g*100},meal=fmeal();PRESETS.foods.push({id:uid(),name,g,per});savePR();
+    if(document.getElementById("cf-log").checked){(FOOD[foodDate]=FOOD[foodDate]||[]).push({id:uid(),meal,name,g,per});saveF();closedMeals[meal]=false}
+    toast(`Saved “${name}” to My foods`);FS=null;closeSheet();return render()}
   if(b.dataset.fbarcode){return scanBarcode(fmeal())}
   if(b.dataset.faitext){return runAI(null,FS.q,fmeal())}
   if(b.dataset.faiadd){const meal=fmeal(),add=FS.items.filter(i=>i.on);(FOOD[foodDate]=FOOD[foodDate]||[]).push(...add.map(i=>({id:Date.now().toString(36)+Math.random().toString(36).slice(2,6),meal,name:i.name,g:i.g,per:i.per})));saveF();closedMeals[meal]=false;toast(`Added ${add.length} item(s)`);FS=null;closeSheet();return render()}
-  if(b.dataset.fsuggest){const t=suggestTargets();["cal","p","c","f"].forEach(k=>{document.getElementById(`ns-${k}0`).value=t[k][0];document.getElementById(`ns-${k}1`).value=t[k][1]});return}
+  if(b.dataset.fsuggest){const t=suggestTargets();["cal","p","c","f"].forEach(k=>{document.getElementById(`ns-${k}`).value=t[k]});return}
   if(b.dataset.fresett){NUT=null;store.set("c1-nut",null);toast("Using suggested targets");FS=null;closeSheet();return render()}
-  if(b.dataset.fsaveset){const v=id=>+document.getElementById(id).value||0;NUT={};["cal","p","c","f"].forEach(k=>{const a=v(`ns-${k}0`),z=v(`ns-${k}1`);NUT[k]=[Math.min(a,z),Math.max(a,z)]});store.set("c1-nut",NUT);
+  if(b.dataset.fsaveset){const v=id=>+document.getElementById(id).value||0;NUT={};["cal","p","c","f"].forEach(k=>{NUT[k]=v(`ns-${k}`)});store.set("c1-nut",NUT);
     AIKEY=document.getElementById("ns-key").value.trim();store.set("c1-aikey",AIKEY);AIMODEL=document.getElementById("ns-model").value.trim()||"claude-haiku-5-5";store.set("c1-aimodel",AIMODEL);toast("Settings saved");FS=null;closeSheet();return render()}
 });
 document.getElementById("sheet").addEventListener("input",ev=>{
@@ -848,7 +893,7 @@ sheet.addEventListener("click",ev=>{
 sheet.addEventListener("change",ev=>{if(ev.target.dataset.shday){const d=ev.target.dataset.shday;setDay(d,ev.target.value);closeSheet();toast(ev.target.value==="rest"?"Changed to a rest day":`Changed to ${DD(d,ev.target.value).title}`);render()}});
 
 /* ---------- backup ---------- */
-function backupData(){return {app:"c1-workout",version:2,exported:new Date().toISOString(),sessions:S,log:LOG,prog:PROG,sched:SCHED,first:FIRST,unit:UNIT,bw:BW,sound:SOUND,food:FOOD,nut:NUT}}
+function backupData(){return {app:"c1-workout",version:2,exported:new Date().toISOString(),sessions:S,log:LOG,prog:PROG,sched:SCHED,first:FIRST,unit:UNIT,bw:BW,sound:SOUND,food:FOOD,nut:NUT,presets:PRESETS}}
 async function exportBackup(){
   const json=JSON.stringify(backupData(),null,1),name=`c1-workout-backup-${today()}.json`;
   try{
@@ -858,7 +903,7 @@ async function exportBackup(){
   try{const a=document.createElement("a");a.href=URL.createObjectURL(new Blob([json],{type:"application/json"}));a.download=name;document.body.appendChild(a);a.click();a.remove();store.set("c1-lastbackup",new Date().toISOString());toast("Backup downloaded");render()}
   catch(e){toast("Couldn’t save a file here. Use Copy backup text instead.")}
 }
-function applyImport(b){S=b.sessions||{};LOG=b.log||{};SCHED=b.sched||{};if(b.first){FIRST=b.first;store.set("c1-first",FIRST)}if(b.unit){UNIT=b.unit;store.set("c1-unit",UNIT)}if(b.bw){BW=b.bw;saveBW()}if(typeof b.sound==="boolean"){SOUND=b.sound;store.set("c1-sound",SOUND)}PROG=b.prog&&b.prog.weeks?b.prog:{start:mondayOf(FIRST),weeks:[b.plan||clone(DEFAULT_PLAN)]};editW=weekIdx(today());PLAN=PROG.weeks[editW];if(b.food){FOOD=b.food;saveF()}if(b.nut!==undefined){NUT=b.nut;store.set("c1-nut",NUT)}saveS();saveL();saveP();saveSch()}
+function applyImport(b){S=b.sessions||{};LOG=b.log||{};SCHED=b.sched||{};if(b.first){FIRST=b.first;store.set("c1-first",FIRST)}if(b.unit){UNIT=b.unit;store.set("c1-unit",UNIT)}if(b.bw){BW=b.bw;saveBW()}if(typeof b.sound==="boolean"){SOUND=b.sound;store.set("c1-sound",SOUND)}PROG=b.prog&&b.prog.weeks?b.prog:{start:mondayOf(FIRST),weeks:[b.plan||clone(DEFAULT_PLAN)]};editW=weekIdx(today());PLAN=PROG.weeks[editW];if(b.food){FOOD=b.food;saveF()}if(b.nut!==undefined){NUT=b.nut;store.set("c1-nut",NUT)}if(b.presets){PRESETS=b.presets;savePR()}saveS();saveL();saveP();saveSch()}
 
 /* ---------- live bits ---------- */
 function tickWorkout(){
@@ -891,7 +936,8 @@ app.addEventListener("click",async ev=>{
   if(b=q("[data-mealt]")){const m=b.dataset.mealt;closedMeals[m]=!closedMeals[m];return render()}
   if(b=q("[data-addmeal]"))return fsOpen({mode:"search",meal:b.dataset.addmeal,q:""});
   if(b=q("[data-fsearch]")){fsOpen({mode:"search",meal:defMeal(),q:""});const el=document.getElementById("fs-q");if(el)el.focus();return}
-  if(b=q("[data-fphoto]")){const meal=defMeal();const file=await pickImage();if(!file)return;const img=await shrink(file);return runAI(img,"",meal)}
+  if(b=q("[data-fphoto]"))return photoFlow(defMeal());
+  if(b=q("[data-savemeal]")){const m=b.dataset.savemeal,items=(FOOD[foodDate]||[]).filter(e=>e.meal===m).map(e=>({name:e.name,g:e.g,per:e.per}));if(!items.length)return;return fsOpen({mode:"savemeal",items,meal:m,name:MEALS.find(x=>x[0]===m)[1]})}
   if(b=q("[data-editfood]")){const e=(FOOD[foodDate]||[]).find(x=>x.id===b.dataset.editfood);if(e)fsOpen({mode:"amount",editId:e.id,name:e.name,g:R(e.g),meal:e.meal,per:e.per});return}
   if(b=q("[data-act=fsettings]"))return fsOpen({mode:"settings"});
   if(b=q("[data-act=fcopy]")){const y=FOOD[addDays(foodDate,-1)]||[];if(!y.length){toast("Nothing logged the day before");return}(FOOD[foodDate]=FOOD[foodDate]||[]).push(...y.map(e=>({...clone(e),id:Date.now().toString(36)+Math.random().toString(36).slice(2,6)})));saveF();toast(`Copied ${y.length} item(s) from the day before`);return render()}
