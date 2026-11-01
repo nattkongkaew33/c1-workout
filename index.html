@@ -77,6 +77,33 @@ ol.list li:first-child{border-top:0}
 .timer .lbl{font-size:12px;opacity:.75;max-width:160px}
 .timer button{font:600 13px var(--body);background:transparent;color:var(--bg);border:1px solid currentColor;border-radius:8px;padding:6px 12px;cursor:pointer}
 .timer.up .t{color:var(--accent)}
+.cal{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:12px}
+.cal-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:8px}
+.cal-head h2{font-family:var(--display);font-weight:800;font-size:26px;margin:0}
+.cal-head button{font:600 18px var(--body);width:40px;height:40px;border-radius:8px;border:1px solid var(--line);background:transparent;color:var(--ink);cursor:pointer}
+.cal-grid{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:4px}
+.cal-dow{font:600 11px var(--display);letter-spacing:.08em;text-transform:uppercase;color:var(--muted);text-align:center;padding:4px 0}
+.cal-day{aspect-ratio:1/1.05;max-width:100%;border:1px solid transparent;border-radius:8px;background:transparent;color:var(--ink);display:flex;flex-direction:column;align-items:center;justify-content:flex-start;gap:3px;padding:5px 2px;cursor:pointer;font:500 14px var(--body);font-variant-numeric:tabular-nums}
+.cal-day.has{background:var(--bg)}
+.cal-day.today{border-color:var(--muted)}
+.cal-day[aria-pressed="true"]{border-color:var(--accent);box-shadow:inset 0 0 0 1px var(--accent)}
+.cal-day.future{opacity:.45}
+.dots{display:flex;flex-wrap:wrap;justify-content:center;gap:2px}
+.dots i{font:700 9px var(--display);font-style:normal;letter-spacing:.03em;color:var(--card);background:var(--c);border-radius:3px;padding:0 3px;line-height:14px}
+.legend{display:flex;flex-wrap:wrap;gap:6px 14px;font-size:13px;color:var(--muted);margin:12px 0 0}
+.legend span{display:inline-flex;align-items:center;gap:6px;font-variant-numeric:tabular-nums}
+.legend span::before{content:"";width:10px;height:10px;border-radius:3px;background:var(--c)}
+.legend b{color:var(--ink)}
+.dayrec{margin-top:14px;background:var(--card);border:1px solid var(--line);border-radius:12px;padding:14px}
+.dayrec h3{font-family:var(--display);font-weight:700;font-size:22px;margin:0 0 4px}
+.dayrec p{margin:0 0 10px;font-size:13px;color:var(--muted)}
+.chips{display:flex;flex-wrap:wrap;gap:8px}
+.chip{font:600 15px var(--display);letter-spacing:.03em;min-width:84px;height:42px;padding:0 12px;border-radius:10px;border:1.5px solid var(--line);background:transparent;color:var(--ink);cursor:pointer;display:inline-flex;align-items:center;gap:8px;justify-content:center}
+.chip::before{content:"";width:10px;height:10px;border-radius:3px;background:var(--c)}
+.chip[aria-pressed="true"]{background:var(--c);border-color:var(--c);color:var(--card)}
+.chip[aria-pressed="true"]::before{background:var(--card)}
+.chip small{font:500 11px var(--body);opacity:.85}
+.cal-day:focus-visible,.chip:focus-visible,.cal-head button:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
 @media (prefers-reduced-motion:reduce){*{transition:none!important}}
 </style>
 </head>
@@ -91,7 +118,7 @@ ol.list li:first-child{border-top:0}
   </header>
   <nav class="week" id="week" aria-label="Week schedule"></nav>
   <main id="main"></main>
-  <div class="foot">
+  <div class="foot" id="foot">
     <span>Tap a set when you finish it. Progress is saved on this device.</span>
     <span id="resetArea"><button id="resetBtn" type="button">Reset this day</button></span>
   </div>
@@ -151,6 +178,21 @@ const KEY="c1w1-progress";
 let state={};
 try{state=JSON.parse(localStorage.getItem(KEY))||{}}catch(e){state={}}
 const save=()=>{try{localStorage.setItem(KEY,JSON.stringify(state))}catch(e){}};
+// workout log for the calendar: {"2026-11-01":{push:{s:12,m:true}}}
+const TYPE={"push-1":"push","push-2":"push",abs:"abs",pull:"pull",leg:"leg"};
+const TYPES=[["push","Push","--push"],["pull","Pull","--pull"],["leg","Leg","--leg"],["abs","Abs","--abs"]];
+const LOGKEY="c1-log";
+let log={};
+try{log=JSON.parse(localStorage.getItem(LOGKEY))||{}}catch(e){log={}}
+const saveLog=()=>{try{localStorage.setItem(LOGKEY,JSON.stringify(log))}catch(e){}};
+const ymd=d=>d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0");
+function setLog(date,type,entry){
+  log[date]=log[date]||{};
+  if(!entry||(!entry.s&&!entry.m))delete log[date][type];else log[date][type]=entry;
+  if(!Object.keys(log[date]).length)delete log[date];
+  saveLog();
+}
+let calY=new Date().getFullYear(),calM=new Date().getMonth(),selDate=ymd(new Date());
 const esc=s=>String(s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
 
 function total(d){return d.rest?0:d.blocks.reduce((a,b)=>a+b.ex.reduce((x,e)=>x+e.sets,0),0)}
@@ -161,11 +203,47 @@ function renderWeek(cur){
     const c=d.rest?"--line":d.blocks[0].c;
     const pct=d.rest?0:Math.round(doneCount(d)/total(d)*100);
     return `<a href="#${d.id}" class="${d.rest?"rest":""}" style="--c:var(${c})" aria-current="${d.id===cur}">
-      <small>${d.short}</small><span>${esc(d.title)}</span>${d.rest?"":`<div class="bar"><i style="width:${pct}%"></i></div>`}</a>`}).join("");
+      <small>${d.short}</small><span>${esc(d.title)}</span>${d.rest?"":`<div class="bar"><i style="width:${pct}%"></i></div>`}</a>`}).join("")
+    +`<a href="#calendar" style="--c:var(--accent)" aria-current="${cur==="calendar"}"><small>Log</small><span>Calendar</span></a>`;
+}
+
+function renderCalendar(){
+  renderWeek("calendar");
+  document.getElementById("foot").hidden=true;
+  document.getElementById("dayTitle").textContent="Calendar";
+  const first=new Date(calY,calM,1),off=(first.getDay()+6)%7,n=new Date(calY,calM+1,0).getDate();
+  const todayS=ymd(new Date());
+  const monthKey=`${calY}-${String(calM+1).padStart(2,"0")}`;
+  const counts={push:0,pull:0,leg:0,abs:0};let active=0;
+  for(const d in log)if(d.startsWith(monthKey)){active++;for(const t in log[d])counts[t]++}
+  document.getElementById("daySub").textContent=`${active} วันที่ออกกำลังกายในเดือนนี้`;
+  let cells=["Mon","Tue","Wed","Thu","Fri","Sat","Sun"].map(x=>`<div class="cal-dow">${x}</div>`).join("");
+  for(let i=0;i<off;i++)cells+="<div></div>";
+  for(let day=1;day<=n;day++){
+    const ds=`${monthKey}-${String(day).padStart(2,"0")}`,rec=log[ds]||{};
+    const dots=TYPES.filter(([t])=>rec[t]).map(([t,l,c])=>`<i style="--c:var(${c})">${l}</i>`).join("");
+    cells+=`<button type="button" class="cal-day${dots?" has":""}${ds===todayS?" today":""}${ds>todayS?" future":""}" data-date="${ds}" aria-pressed="${ds===selDate}" aria-label="${ds}">${day}<span class="dots">${dots}</span></button>`;
+  }
+  const sel=new Date(selDate+"T12:00:00"),rec=log[selDate]||{};
+  const label=sel.toLocaleDateString("en-GB",{weekday:"long",day:"numeric",month:"long",year:"numeric"});
+  const chips=TYPES.map(([t,l,c])=>{const e=rec[t];return `<button type="button" class="chip" data-type="${t}" style="--c:var(${c})" aria-pressed="${!!e}">${l}${e&&e.s?` <small>${e.s} เซ็ท</small>`:""}</button>`}).join("");
+  document.getElementById("main").innerHTML=`
+    <div class="cal">
+      <div class="cal-head"><button type="button" data-nav="-1" aria-label="Previous month">‹</button>
+        <h2>${first.toLocaleDateString("en-GB",{month:"long",year:"numeric"})}</h2>
+        <button type="button" data-nav="1" aria-label="Next month">›</button></div>
+      <div class="cal-grid">${cells}</div>
+      <div class="legend">${TYPES.map(([t,l,c])=>`<span style="--c:var(${c})">${l} <b>${counts[t]}</b></span>`).join("")}</div>
+    </div>
+    <div class="dayrec"><h3>${label}</h3>
+      <p>Ticked sets are recorded on the day you do them. Tap to add or remove a workout for this day.</p>
+      <div class="chips">${chips}</div></div>`;
 }
 
 function render(){
   let id=location.hash.slice(1);
+  if(id==="calendar")return renderCalendar();
+  document.getElementById("foot").hidden=false;
   let day=DAYS.find(d=>d.id===id&&!d.rest)||DAYS[0];
   renderWeek(day.id);
   document.getElementById("dayTitle").textContent=day.title;
@@ -191,11 +269,19 @@ function render(){
 }
 
 document.getElementById("main").addEventListener("click",ev=>{
+  const nav=ev.target.closest("[data-nav]");
+  if(nav){calM+=+nav.dataset.nav;if(calM<0){calM=11;calY--}if(calM>11){calM=0;calY++}return render()}
+  const cd=ev.target.closest(".cal-day");
+  if(cd){selDate=cd.dataset.date;return render()}
+  const chip=ev.target.closest(".chip");
+  if(chip){const t=chip.dataset.type,e=(log[selDate]||{})[t];setLog(selDate,t,e?null:{s:0,m:true});return render()}
   const btn=ev.target.closest(".sets button");if(!btn)return;
   const id=(DAYS.find(d=>d.id===location.hash.slice(1)&&!d.rest)||DAYS[0]).id;
   state[id]=state[id]||{};
   const on=!state[id][btn.dataset.k];
   state[id][btn.dataset.k]=on;save();
+  const tdy=ymd(new Date()),typ=TYPE[id],cur=(log[tdy]||{})[typ]||{s:0};
+  setLog(tdy,typ,{...cur,s:Math.max(0,(cur.s||0)+(on?1:-1))});
   if(on)startTimer(+btn.dataset.sec,btn.dataset.name);
   render();
 });
