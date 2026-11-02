@@ -7,21 +7,23 @@
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="C1 Workout">
-<meta name="theme-color" content="#11151b">
+<meta name="theme-color" content="#0e1222">
 <link rel="manifest" href="manifest.json">
 <link rel="apple-touch-icon" href="icon-180.png">
 <link rel="icon" href="icon-192.png">
 <style>:root{padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{-webkit-text-size-adjust:100%;background:#11151b}body{margin:0;-webkit-tap-highlight-color:transparent}[hidden]{display:none!important}</style>
 <title>C1 Week 1 Program</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700;800&family=IBM+Plex+Sans+Thai:wght@400;500;600;700&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Big+Shoulders+Display:wght@700;800;900&family=IBM+Plex+Sans+Thai:wght@400;500;600;700&family=IBM+Plex+Mono:wght@500;600&display=swap">
 <style>
 /* Layout: gym-floor dark UI. Week schedule → workout logger → calendar → progress → plan editor. Fixed bottom nav, rest timer above it, bottom sheet for day changes. Single dark theme by design. */
 :root{
-  --bg:#11151b; --card:#1a2029; --field:#10141a; --line:#2a323e; --ink:#e8ecf1; --muted:#8b95a5;
-  --blue:#4c8dff; --green:#45c28a; --red:#e8664f; --amber:#f0b43c;
-  --push:#e05a9c; --abs:#e8894a; --pull:#45b067; --leg:#3d9ae0; --other:#9b8cff;
-  --display:"Barlow Condensed","Arial Narrow",system-ui,sans-serif;
+  /* "Chalk & plates": indigo gym floor, chalk-white type, bumper-plate colours. --blue is the accent (bumper yellow). */
+  --bg:#0e1222; --card:#171c30; --card2:#1d2340; --field:#0b0f1c; --line:#262c46; --ink:#f2f0ea; --muted:#8e95b2;
+  --blue:#ffd23f; --on-acc:#1a1405; --green:#2ed48a; --red:#ff5a5f; --amber:#ffb84d;
+  --push:#ff5a5f; --abs:#ff9a3c; --pull:#2ed48a; --leg:#4c7dff; --other:#b49cff;
+  --display:"Big Shoulders Display","Arial Narrow",system-ui,sans-serif;
+  --mono:"IBM Plex Mono",ui-monospace,monospace;
   --body:"IBM Plex Sans Thai",system-ui,-apple-system,"Segoe UI",sans-serif;
   color-scheme:dark;
 }
@@ -42,7 +44,7 @@ h1{font-family:var(--display);font-weight:800;font-size:34px;line-height:1.05;ma
 h2.sec{font-family:var(--display);font-weight:800;font-size:22px;margin:22px 0 8px}
 .muted{color:var(--muted);font-size:14px}
 .btn{height:44px;padding:0 16px;border-radius:10px;border:1px solid var(--line);background:var(--card);font-weight:600;font-size:15px;cursor:pointer}
-.btn.primary{background:var(--blue);border-color:var(--blue);color:#06142e}
+.btn.primary{background:var(--blue);border-color:var(--blue);color:var(--on-acc)}
 .btn.danger{color:var(--red);border-color:color-mix(in srgb,var(--red) 50%,var(--line))}
 .btn.sm{height:36px;padding:0 12px;font-size:14px}
 input.txt,select.txt{background:var(--field);color:var(--ink);border:1px solid var(--line);border-radius:8px;padding:8px 10px;font:inherit;font-size:15px;width:100%;min-width:0}
@@ -71,7 +73,7 @@ input.txt,select.txt{background:var(--field);color:var(--ink);border:1px solid v
 .wtxt em{font-style:normal;font-size:13px;color:var(--muted)}
 .wtxt em b{color:var(--blue);font-weight:600}
 .moved{color:var(--amber);font-size:12px;font-weight:600}
-.startbtn{flex:none;background:var(--blue);color:#06142e;font-weight:700;border-radius:999px;padding:10px 16px;font-size:15px}
+.startbtn{flex:none;background:var(--blue);color:var(--on-acc);font-weight:700;border-radius:999px;padding:10px 16px;font-size:15px}
 
 /* workout */
 .whead{position:sticky;top:env(safe-area-inset-top,0px);z-index:4;background:var(--bg);margin:0 calc(-1 * max(16px,env(safe-area-inset-left,0px)));padding:8px max(16px,env(safe-area-inset-left,0px)) 10px;border-bottom:1px solid var(--line)}
@@ -81,7 +83,7 @@ input.txt,select.txt{background:var(--field);color:var(--ink);border:1px solid v
 .wt small{color:var(--muted);font-size:14px}
 .wt h1{font-size:30px}
 .finish{flex:none;border:2px solid var(--blue);color:var(--blue);background:transparent;border-radius:12px;padding:8px 14px;font-weight:700;font-size:15px;cursor:pointer}
-.startw{flex:none;border:0;background:var(--blue);color:#06142e;border-radius:12px;padding:10px 16px;font-weight:800;font-size:16px;cursor:pointer}
+.startw{flex:none;border:0;background:var(--blue);color:var(--on-acc);border-radius:12px;padding:10px 16px;font-weight:800;font-size:16px;cursor:pointer}
 .el.live{font-size:18px}
 .prb{color:var(--amber);font-weight:700;font-size:12px;white-space:nowrap}
 .bwrow{display:flex;gap:8px;align-items:center}
@@ -95,7 +97,7 @@ input.txt,select.txt{background:var(--field);color:var(--ink);border:1px solid v
 .rec small{display:block;color:var(--muted);font-size:12px}
 .wkchips{display:flex;flex-wrap:wrap;gap:6px}
 .wkchip{border:1px solid var(--line);background:var(--card);border-radius:999px;padding:7px 12px;font-weight:600;font-size:13px;cursor:pointer}
-.wkchip[aria-pressed="true"]{background:var(--blue);border-color:var(--blue);color:#06142e}
+.wkchip[aria-pressed="true"]{background:var(--blue);border-color:var(--blue);color:var(--on-acc)}
 .wkchip.add{border-style:dashed;color:var(--muted)}
 button.chipl{font:inherit;font-size:13px;color:var(--ink);cursor:pointer}
 .chipl.on{border-color:var(--green);color:var(--green)}
@@ -104,7 +106,7 @@ button.sn{border:0;color:inherit;cursor:pointer;font:inherit;font-weight:700}
 .rpebar{display:flex;flex-wrap:wrap;gap:6px;align-items:center;background:var(--field);border-radius:10px;padding:8px}
 .rpebar span{font-size:12px;font-weight:700;color:var(--muted);margin-right:2px}
 .rpebar button{width:38px;height:34px;border-radius:8px;border:1px solid var(--line);background:var(--card);font-weight:700;cursor:pointer}
-.rpebar button[aria-pressed="true"]{background:var(--blue);border-color:var(--blue);color:#06142e}
+.rpebar button[aria-pressed="true"]{background:var(--blue);border-color:var(--blue);color:var(--on-acc)}
 .rpebar small{flex-basis:100%;color:var(--muted);font-size:11px}
 .feel{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}
 .feel button{flex:1;min-width:58px;height:40px;border-radius:10px;border:1px solid var(--line);background:var(--field);font-weight:600;font-size:13px;cursor:pointer}
@@ -141,7 +143,7 @@ textarea.note{resize:vertical;min-height:52px;font:inherit}
 .mealh{display:flex;align-items:center;gap:8px;padding:12px 10px 12px 14px}
 .mealh button.t{flex:1;min-width:0;display:flex;align-items:center;gap:10px;border:0;background:transparent;font:700 21px var(--display);text-align:left;cursor:pointer;color:var(--ink);padding:0}
 .chipc,.chipp{font-size:13px;font-weight:600;border-radius:999px;padding:4px 10px;font-variant-numeric:tabular-nums;white-space:nowrap}
-.chipc{background:color-mix(in srgb,var(--blue) 22%,var(--card));color:#cfe0ff}
+.chipc{background:color-mix(in srgb,var(--blue) 16%,var(--card));color:var(--blue)}
 .chipp{background:color-mix(in srgb,var(--other) 28%,var(--card));color:#e4ddff}
 .addm{width:36px;height:36px;border:0;background:transparent;color:var(--blue);font-size:28px;cursor:pointer;line-height:1}
 .fitems{display:grid;gap:8px;padding:0 12px 12px}
@@ -283,14 +285,14 @@ details.pw summary small{font:500 13px var(--body);color:var(--muted);margin-lef
 .rowbtns{display:flex;flex-wrap:wrap;gap:8px}
 .seg{display:inline-flex;border:1px solid var(--line);border-radius:999px;overflow:hidden;background:var(--card)}
 .seg button{border:0;background:transparent;padding:6px 14px;font-weight:700;font-size:13px;color:var(--muted);cursor:pointer}
-.seg button[aria-pressed="true"]{background:var(--blue);color:#06142e}
+.seg button[aria-pressed="true"]{background:var(--blue);color:var(--on-acc)}
 .confirm{display:flex;flex-wrap:wrap;gap:8px;align-items:center;font-size:14px}
 
 /* fixed */
-.nav{position:fixed;left:0;right:0;bottom:0;z-index:6;background:#0c1015;border-top:1px solid var(--line);display:flex;justify-content:space-around;padding-block:6px calc(6px + env(safe-area-inset-bottom,0px));padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+.nav{position:fixed;left:0;right:0;bottom:0;z-index:6;background:color-mix(in srgb,var(--bg) 88%,transparent);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);border-top:1px solid var(--line);display:flex;justify-content:space-around;padding-block:6px calc(6px + env(safe-area-inset-bottom,0px));padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
 .nav a{display:flex;flex-direction:column;align-items:center;gap:2px;text-decoration:none;color:var(--muted);font-size:12px;font-weight:600;padding:4px 8px}
 .nav a[aria-current="page"]{color:var(--blue)}
-.timer{position:fixed;left:0;right:0;bottom:calc(58px + env(safe-area-inset-bottom,0px));z-index:5;background:var(--blue);color:#06142e;padding-block:10px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));display:flex;justify-content:center;gap:14px;align-items:center}
+.timer{position:fixed;left:0;right:0;bottom:calc(58px + env(safe-area-inset-bottom,0px));z-index:5;background:var(--blue);color:var(--on-acc);padding-block:10px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));display:flex;justify-content:center;gap:14px;align-items:center}
 .timer .t{font:800 32px var(--display);font-variant-numeric:tabular-nums;min-width:84px;text-align:center}
 .timer .lbl{font-size:12px;font-weight:600;max-width:150px}
 .timer button{font-weight:700;font-size:13px;background:transparent;border:1.5px solid currentColor;border-radius:8px;padding:6px 12px;cursor:pointer}
@@ -313,6 +315,100 @@ details.pw summary small{font:500 13px var(--body);color:var(--muted);margin-lef
 .scan .bar{position:absolute;left:16px;right:16px;bottom:calc(env(safe-area-inset-bottom,0px) + 24px);display:flex;gap:10px}
 .scan .bar button{flex:1;min-height:48px;border-radius:14px;border:0;font:600 15px var(--body);background:rgba(255,255,255,.18);color:#fff}
 .scan .bar button.pri{background:#fff;color:#000}
+/* ---------- v2 look: chalk & plates ---------- */
+body{font-size:15px;background:radial-gradient(120% 60% at 50% -10%,#1b2146 0%,var(--bg) 60%) fixed,var(--bg)}
+h1{font-weight:900;font-size:40px;letter-spacing:.005em;text-transform:uppercase;line-height:.95}
+h2.sec,.flh h2,.cal-head h2{font-weight:800;letter-spacing:.01em}
+.eyebrow{font:600 12px var(--body);letter-spacing:.12em;text-transform:uppercase;color:var(--muted)}
+.btn{border-radius:999px;height:46px;background:var(--card2)}
+.btn.sm{height:38px}
+.btn.primary{font-weight:700}
+input.txt,select.txt{border-radius:12px;padding:10px 12px;border-color:var(--line)}
+input.txt:focus,select.txt:focus{border-color:var(--blue);outline:none}
+.wcard,.ex,.meal,.ncard,.cal,.dayrec,.stat,.chartbox,.exp,.rec,.wkplan,details.pw,.empty{border-radius:20px;border-color:var(--line);background:var(--card)}
+.wcard{padding:14px 16px;border-width:1px;position:relative;overflow:hidden}
+.wcard:not(.rest)::before{content:"";position:absolute;left:0;top:14px;bottom:14px;width:4px;border-radius:0 4px 4px 0;background:var(--c,var(--line))}
+.wcard.st-today,.wcard.st-progress{border-color:color-mix(in srgb,var(--blue) 70%,var(--line));background:color-mix(in srgb,var(--blue) 6%,var(--card))}
+.wtxt strong{font-size:26px;font-weight:800}
+.ico{border-radius:14px}
+.startbtn{box-shadow:0 6px 18px -6px color-mix(in srgb,var(--blue) 70%,transparent)}
+.arrows button,.cal-head button{border-radius:999px;background:var(--card)}
+.wd span{font-size:24px;font-weight:800}
+.nav a{font-size:11px;letter-spacing:.02em;border-radius:14px;padding:6px 10px}
+.nav a[aria-current="page"]{background:color-mix(in srgb,var(--blue) 12%,transparent)}
+.toast{background:var(--blue);color:var(--on-acc);box-shadow:0 10px 30px -10px rgba(0,0,0,.6)}
+.sheet{background:var(--card);border-radius:26px 26px 0 0}
+.sheet::before{content:"";display:block;width:40px;height:5px;border-radius:3px;background:var(--line);margin:-6px auto 12px}
+.sheet h3{font-size:28px;font-weight:900;text-transform:uppercase}
+.timer{border-radius:22px 22px 0 0}
+.timer .t,.el,#pcount,.nbig b,.stat b,.fmac b{font-variant-numeric:tabular-nums}
+.timer .t{font:600 32px var(--mono)}
+.el{font-family:var(--mono);font-weight:600}
+/* plate ring: the signature. A bumper plate seen face-on; the coloured arc is progress. */
+.plate{position:relative;width:var(--sz);height:var(--sz);flex:none}
+.plate svg{display:block;width:100%;height:100%}
+.pl-body{fill:var(--field);stroke:var(--line);stroke-width:1.5}
+.pl-tick{stroke:var(--line);stroke-width:2;stroke-linecap:round}
+.pl-track{fill:none;stroke:color-mix(in srgb,var(--ink) 7%,transparent)}
+.pl-fill{fill:none;stroke-linecap:round;transition:stroke-dasharray .8s cubic-bezier(.2,.8,.2,1)}
+.pl-hub{fill:none;stroke:color-mix(in srgb,var(--ink) 10%,transparent);stroke-width:1.5;stroke-dasharray:2 4}
+.pl-in{position:absolute;inset:0;display:grid;place-content:center;text-align:center;line-height:1}
+.pl-in b{font:900 var(--big,40px) var(--display);font-variant-numeric:tabular-nums}
+.pl-in small{display:block;margin-top:4px;font-size:11px;color:var(--muted);letter-spacing:.04em}
+/* today hero */
+.hero{display:flex;align-items:center;gap:14px;margin:14px 0 10px;padding:18px;border-radius:24px;text-decoration:none;background:linear-gradient(145deg,color-mix(in srgb,var(--c) 18%,var(--card)) 0%,var(--card) 60%);border:1px solid color-mix(in srgb,var(--c) 40%,var(--line))}
+.hero .ht{flex:1;min-width:0;display:grid;gap:4px;justify-items:start}
+.hero small{font-size:12px;font-weight:600;letter-spacing:.1em;text-transform:uppercase;color:var(--c)}
+.hero strong{font:900 38px/0.95 var(--display);text-transform:uppercase;overflow-wrap:anywhere}
+.hero span.sub{color:var(--muted);font-size:14px}
+.hero .startbtn{margin-top:8px}
+.hero.rest{--c:var(--muted)}
+.mealtot .saveml{width:auto;height:auto;flex-basis:100%;text-align:left;font:600 13px var(--body);color:var(--amber);padding:6px 0 0;border-top:1px dashed var(--line);margin-top:4px}
+.sheet .inline #fs-meal{flex:0 0 112px}
+.hero .plate small{color:var(--muted);text-transform:none;letter-spacing:.02em;font-size:11px}
+.fhead{background:color-mix(in srgb,var(--bg) 85%,transparent);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);margin-top:4px}
+.fuel{display:grid;grid-template-columns:auto minmax(0,1fr) auto;align-items:center;gap:12px;padding:14px 16px;border-radius:18px;background:var(--card);border:1px solid var(--line);text-decoration:none;margin-bottom:6px}
+.fuel span{font-weight:600;font-size:14px}
+.fuel .fb{height:8px;border-radius:4px;background:var(--line);overflow:hidden}
+.fuel .fb i{display:block;height:100%;background:var(--blue);border-radius:4px}
+.fuel b{font:600 13px var(--mono);color:var(--muted);white-space:nowrap}
+.fuel b em{font-style:normal;color:var(--ink)}
+.wkh2{display:flex;align-items:end;justify-content:space-between;gap:10px;margin:22px 0 10px}
+.wkh2 h2{font:800 26px var(--display);text-transform:uppercase;margin:0;letter-spacing:.01em}
+.wkh2 small{display:block;color:var(--muted);font-size:13px}
+/* food */
+.ncard{padding:18px}
+.nring{display:flex;align-items:center;gap:18px}
+.nring .macros{flex:1;grid-template-columns:1fr;gap:12px}
+.nring .mac small{font-size:13px;font-weight:600;margin-bottom:5px;display:flex;justify-content:space-between}
+.nring .mac p{margin:4px 0 0}
+.mac .mb{height:8px}
+.mealh{padding:14px 10px 14px 16px;gap:6px}
+.mealh button.t{font:800 24px var(--display);text-transform:uppercase;letter-spacing:.01em}
+.chipc{font-family:var(--mono);font-size:12px;padding:5px 10px}
+.fitem{border-radius:14px;background:var(--field)}
+.foodbar div{background:var(--card2);box-shadow:0 12px 30px -12px rgba(0,0,0,.7)}
+/* workout logger: bigger targets for sweaty thumbs */
+.whead{background:color-mix(in srgb,var(--bg) 92%,transparent);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px)}
+.wt h1{font-size:32px}
+.pbar{height:10px;border-radius:5px}
+.pbar i{border-radius:5px}
+.exname{color:var(--ink);font-size:19px;font-weight:700}
+.thumb{border-radius:14px}
+table{border-spacing:0 6px}
+td input{height:52px;width:72px;border-radius:14px;font:600 20px var(--mono)}
+td input:focus{border-color:var(--blue);outline:none}
+.sn{width:36px;height:40px;border-radius:12px}
+.chk{width:46px;height:46px;border-color:color-mix(in srgb,var(--ink) 40%,transparent)}
+.chk[aria-pressed="true"]{box-shadow:0 0 0 4px color-mix(in srgb,var(--green) 22%,transparent)}
+tr.done td input{background:color-mix(in srgb,var(--green) 18%,var(--field));color:var(--green)}
+.exf button{border-radius:999px;background:var(--card2)}
+.ex.alldone{background:color-mix(in srgb,var(--green) 5%,var(--card))}
+/* progress */
+.stat{padding:14px}
+.stat b{font-size:36px;font-weight:900;color:var(--blue)}
+.stat:nth-child(2) b{color:var(--ink)}
+.stat:nth-child(3) b{color:var(--ink)}
 @media (prefers-reduced-motion:reduce){*{transition:none!important}}
 </style>
 </head>
@@ -482,6 +578,19 @@ async function refreshApp(btn){
   }catch(e){}
   const u=new URL(location.href);u.searchParams.set("r",Date.now());location.replace(u.toString());
 }
+function plate(pct,o={}){const sz=o.size||140,sw=o.stroke||14,c=sz/2,r=c-sw/2-9,C=2*Math.PI*r,p=Math.max(0,Math.min(1,pct||0));
+  const ticks=[...Array(32)].map((_,i)=>{const a=i/32*2*Math.PI,r1=c-3,r2=c-(i%8?5:8);return `<line class="pl-tick" x1="${(c+r1*Math.sin(a)).toFixed(1)}" y1="${(c-r1*Math.cos(a)).toFixed(1)}" x2="${(c+r2*Math.sin(a)).toFixed(1)}" y2="${(c-r2*Math.cos(a)).toFixed(1)}"/>`}).join("");
+  return `<div class="plate" style="--sz:${sz}px;--big:${o.big||Math.round(sz*.28)}px"><svg viewBox="0 0 ${sz} ${sz}" aria-hidden="true"><circle class="pl-body" cx="${c}" cy="${c}" r="${c-1}"/>${ticks}<circle class="pl-track" cx="${c}" cy="${c}" r="${r}" stroke-width="${sw}"/><circle class="pl-fill" cx="${c}" cy="${c}" r="${r}" stroke-width="${sw}" stroke="${o.color||"var(--blue)"}" stroke-dasharray="${(C*p).toFixed(1)} ${C.toFixed(1)}" transform="rotate(-90 ${c} ${c})"${p===0?' stroke-opacity="0"':""}/><circle class="pl-hub" cx="${c}" cy="${c}" r="${(r-sw/2-6).toFixed(1)}"/></svg><div class="pl-in">${o.inner||""}</div></div>`}
+const nSets=e=>Array.isArray(e.sets)?e.sets.length:(+e.sets||0);
+function todayHero(){
+  const td=today(),ts=S[td],live=ts&&started(ts),day=live?ts.day:planFor(td),dl=parse(td).toLocaleDateString("en-GB",{weekday:"short",day:"numeric",month:"short"});
+  const T=targetsFor(td),eat=sumMac(FOOD[td]||[]).cal,fp=Math.min(100,T.cal?eat/T.cal*100:0);
+  const fuel=`<a class="fuel" href="#food"><span>Food today</span><div class="fb"><i style="width:${fp}%"></i></div><b><em>${R(eat)}</em> / ${T.cal} cal</b></a>`;
+  if(!day&&!live)return `<a class="hero rest" href="#w-${td}"><div class="ht"><small>Today · ${dl}</small><strong>Rest day</strong><span class="sub">Recover, sleep well and hit your protein.</span></div>${plate(0,{size:104,stroke:10,inner:`<b style="font-size:26px">ZZZ</b>`})}</a>${fuel}`;
+  const P=DD(td,day)||{},type=live?typeOf(ts):P.type,title=live?titleOf(ts):P.title,ex=live?ts.ex:(P.ex||[]);
+  const total=ex.reduce((a,e)=>a+nSets(e),0),done=live?ts.ex.reduce((a,e)=>a+e.sets.filter(t=>t.d).length,0):0,fin=live&&ts.end;
+  const btn=fin?`<span class="sub" style="color:var(--green);font-weight:700">Done ✓ ${fmtDur(ts.end-ts.start)}</span>`:`<span class="startbtn" data-startnow="${td}">▶ ${live?"Continue":"Start workout"}</span>`;
+  return `<a class="hero" href="#w-${td}" style="--c:var(${TCOLOR[type]||"--other"})"><div class="ht"><small>Today · ${dl}</small><strong>${esc(title||"Workout")}</strong><span class="sub">${ex.length} exercises · ${total} sets</span>${btn}</div>${plate(total?done/total:0,{size:112,stroke:11,color:"var(--c)",inner:`<b>${done}</b><small>of ${total} sets</small>`})}</a>${fuel}`}
 function viewWeek(){
   const mon=addDays(mondayOf(today()),weekOff*7), dates=[...Array(7)].map((_,i)=>addDays(mon,i));
   const done=dates.filter(d=>S[d]&&S[d].end).length, planned=dates.filter(d=>planFor(d)||started(S[d])).length;
@@ -494,11 +603,11 @@ function viewWeek(){
     const P0=day&&DD(d,day), title=s&&started(s)?titleOf(s):P0.title, type=s&&started(s)?typeOf(s):P0.type, nEx=s&&started(s)?s.ex.length:P0.ex.length;
     const label={complete:"Complete ✓",missed:"Missed ⚠",progress:"In progress",today:"Today",upcoming:fshort(d),before:fshort(d)}[st];
     const extra=st==="complete"?`<em>${nEx} exercises · ${fmtDur(s.end-s.start)} · <b>Review</b></em>`:st==="progress"?`<em>${s.ex.reduce((a,x)=>a+x.sets.filter(t=>t.d).length,0)} sets logged</em>`:`<em>${nEx} exercises</em>`;
-    const btn=(st==="today"||(st==="progress"&&isT))?`<span class="startbtn" data-startnow="${d}">▶ ${st==="progress"?"Continue":"Start"}</span>`:"";
-    return `<div class="row">${wd}<a class="wcard st-${st}" href="#w-${d}"><span class="ico" style="--c:var(${TCOLOR[type]})">${icon}</span><span class="wtxt"><small>${label}</small>${moved}<strong>${esc(title)}</strong>${extra}</span>${btn}</a>${more}</div>`;
+    const btn=(!isT&&st==="progress")?`<span class="startbtn" data-startnow="${d}">▶ Continue</span>`:"";
+    return `<div class="row">${wd}<a class="wcard st-${st}" href="#w-${d}" style="--c:var(${TCOLOR[type]})"><span class="ico" style="--c:var(${TCOLOR[type]})">${icon}</span><span class="wtxt"><small>${label}</small>${moved}<strong>${esc(title)}</strong>${extra}</span>${btn}</a>${more}</div>`;
   }).join("");
-  app.innerHTML=`<div class="toprow"><div class="eyebrow">${esc(WP(mon).name)}</div>${refreshBtn}</div><h1>This Week’s Schedule</h1>
-    <div class="wkhead"><div class="rng">${fshort(dates[0])} – ${fshort(dates[6])}<small>${done} of ${planned} workouts done · tap ⋮ to move a day</small></div>
+  app.innerHTML=`<div class="toprow"><div class="eyebrow">${esc(WP(mon).name)}</div>${refreshBtn}</div><h1>Today</h1>${todayHero()}
+    <div class="wkhead wkh2"><div><h2>${weekOff?fshort(dates[0])+" – "+fshort(dates[6]):"This week"}</h2><small>${done} of ${planned} workouts done · ⋮ moves a day</small></div>
     <div class="arrows"><button type="button" data-wk="-1" aria-label="Previous week">‹</button><button type="button" data-wk="1" aria-label="Next week">›</button></div></div>${rows}`;
 }
 
@@ -674,7 +783,7 @@ let PRESETS=store.get("c1-presets",{foods:[],meals:[]});   // saved foods {id,na
 const savePR=()=>store.set("c1-presets",PRESETS);
 const uid=()=>Date.now().toString(36)+Math.random().toString(36).slice(2,6);
 const MEALS=[["breakfast","Breakfast"],["lunch","Lunch"],["dinner","Dinner"],["snack","Snacks"]];
-const MACROS=[["p","Protein","#b48cf2"],["c","Carbs","#4fd18b"],["f","Fat","#f5cf6b"]];
+const MACROS=[["p","Protein","#b49cff"],["c","Carbs","#2ed48a"],["f","Fat","#ff9a3c"]];
 // common foods, approx. per 100 g (cooked where relevant): name, kcal, protein, carbs, fat, usual grams
 const LOCAL=[["Chicken breast, cooked",165,31,0,3.6,150],["Chicken thigh, cooked",209,26,0,10.9,120],["Egg, whole",143,12.6,.7,9.5,50],["Egg white",52,10.9,.7,.2,33],["White rice, cooked",130,2.7,28,.3,150],["Jasmine rice, cooked",129,2.7,28,.3,150],["Brown rice, cooked",112,2.6,23.5,.9,150],["Sticky rice, cooked",97,2,21,.2,100],["Rice noodles, cooked",108,1.8,24,.2,150],["Pasta, cooked",158,5.8,31,.9,180],["Bread, white",265,9,49,3.2,30],["Oats, dry",389,16.9,66,6.9,40],["Salmon, cooked",206,22,0,12,120],["Tuna, canned in water",116,26,0,.8,100],["Shrimp, cooked",99,24,.2,.3,100],["Beef, lean, cooked",217,26,0,12,120],["Pork loin, cooked",196,27,0,9,120],["Tofu, firm",144,17.3,2.8,8.7,100],["Greek yogurt, plain nonfat",59,10.2,3.6,.4,170],["Milk, whole",61,3.2,4.8,3.3,240],["Whey protein powder",400,80,8,6,30],["Cheddar cheese",403,25,1.3,33,28],["Broccoli, steamed",35,2.4,7.2,.4,80],["Mixed vegetables, cooked",65,2.9,13,.2,100],["Sweet potato, baked",90,2,20.7,.2,150],["Potato, baked",93,2.5,21,.1,150],["Banana",89,1.1,22.8,.3,118],["Apple",52,.3,13.8,.2,180],["Avocado",160,2,8.5,14.7,70],["Almonds",579,21,22,50,28],["Peanut butter",588,25,20,50,32],["Olive oil",884,0,0,100,14],["Soy sauce",53,8,4.9,.6,15]];
 function suggestTargets(){const bw=bwLatest()||70,cal=Math.round(bw*33/10)*10,p=Math.round(bw*1.6),f=Math.round(bw*.6);return {cal,p,f,c:Math.max(0,Math.round((cal-p*4-f*9)/4))}}
@@ -717,18 +826,17 @@ function viewFood(){
   const lbl=d===today()?`Today, ${parse(d).toLocaleDateString("en-US",{month:"short",day:"numeric"})}`:parse(d).toLocaleDateString("en-US",{weekday:"short",month:"short",day:"numeric"});
   const big=rem?R(T.cal-tot.cal):R(tot.cal),pct=Math.min(100,tot.cal/T.cal*100);
   const macs=MACROS.map(([k,l,c])=>{const v=tot[k],ok=v>=T[k],shown=rem?Math.max(0,R(T[k]-v)):R(v);
-    return `<div class="mac" style="--c:${c}"><small>${l}</small><div class="mb"><i style="width:${Math.min(100,T[k]?v/T[k]*100:0)}%"></i></div><p>${ok?`<span class="ok">✓</span> `:""}<b>${shown}</b>${rem?"g left":` / ${T[k]}g+`}</p></div>`}).join("");
+    return `<div class="mac" style="--c:${c}"><small><span>${l}</span></small><div class="mb"><i style="width:${Math.min(100,T[k]?v/T[k]*100:0)}%"></i></div><p>${ok?`<span class="ok">✓</span> `:""}<b>${shown}</b>${rem?"g left":` / ${T[k]}g+`}</p></div>`}).join("");
   const prevD=addDays(d,-1),prev=FOOD[prevD]||[];
   const meals=MEALS.map(([m,l])=>{const items=list.filter(e=>e.meal===m),mt=sumMac(items),open=!closedMeals[m],py=prev.filter(e=>e.meal===m);
     const cp=!items.length&&py.length&&list.length?`<button type="button" class="copyy" data-copymeal="${m}">↺ Same as yesterday <small>· ${py.length} item${py.length>1?"s":""} · ${R(sumMac(py).cal)} cal</small></button>`:"";
-    return `<div class="meal"><div class="mealh"><button type="button" class="t" data-mealt="${m}" aria-expanded="${open}"><span style="font-size:16px;color:var(--muted)">${open?"⌃":"⌄"}</span>${l}</button><span class="chipc">${R(mt.cal)} Cal</span><span class="chipp">${R(mt.p)} P</span>${items.length?`<button type="button" class="saveml" data-savemeal="${m}" aria-label="Save ${l} as a meal preset">☆</button>`:""}<button type="button" class="addm" data-addmeal="${m}" aria-label="Add food to ${l}">+</button></div>
-      ${open&&items.length?`<div class="fitems">${items.map(e=>{const x=mac(e);return `<button type="button" class="fitem" data-editfood="${e.id}"><span>${esc(e.name)}<small>${esc(qtyText(e))}</small></span><span class="r">${R(x.cal)} cal<small>${R(x.p)}g protein</small></span></button>`}).join("")}</div><div class="mealtot"><span>Total <b>${R(mt.cal)} cal</b></span><span>Protein <b>${R(mt.p)}g</b></span><span>Carbs <b>${R(mt.c)}g</b></span><span>Fat <b>${R(mt.f)}g</b></span></div>`:""}${cp}</div>`}).join("");
+    return `<div class="meal"><div class="mealh"><button type="button" class="t" data-mealt="${m}" aria-expanded="${open}"><span style="font-size:16px;color:var(--muted)">${open?"⌃":"⌄"}</span>${l}</button><span class="chipc">${R(mt.cal)} cal · ${R(mt.p)}P</span><button type="button" class="addm" data-addmeal="${m}" aria-label="Add food to ${l}">+</button></div>
+      ${open&&items.length?`<div class="fitems">${items.map(e=>{const x=mac(e);return `<button type="button" class="fitem" data-editfood="${e.id}"><span>${esc(e.name)}<small>${esc(qtyText(e))}</small></span><span class="r">${R(x.cal)} cal<small>${R(x.p)}g protein</small></span></button>`}).join("")}</div><div class="mealtot"><span>Total <b>${R(mt.cal)} cal</b></span><span>Protein <b>${R(mt.p)}g</b></span><span>Carbs <b>${R(mt.c)}g</b></span><span>Fat <b>${R(mt.f)}g</b></span><button type="button" class="saveml" data-savemeal="${m}">☆ Save as meal</button></div>`:""}${cp}</div>`}).join("");
   const copyDay=!list.length&&prev.length?`<button type="button" class="btn copyday" data-copyday="1">↺ Copy yesterday’s food (${prev.length} items · ${R(sumMac(prev).cal)} cal)</button>`:"";
-  app.innerHTML=`<div class="fhead"><button type="button" data-fday="-1" aria-label="Previous day">‹</button><b>${lbl}</b><button type="button" data-fday="1" aria-label="Next day">›</button></div>
+  app.innerHTML=`<div class="eyebrow">Nutrition</div><h1>Food</h1><div class="fhead"><button type="button" data-fday="-1" aria-label="Previous day">‹</button><b>${lbl}</b><button type="button" data-fday="1" aria-label="Next day">›</button></div>
     <div class="ncard"><div class="dayk ${T.kind.train?"tr":""}">${T.kind.train?"🏋️ Training day":"😌 Rest day"}${T.kind.train?` · ${esc(T.kind.title)}`:""}${T.delta?` <span>${T.delta>0?"+":""}${T.delta} cal${T.delta>0?" (extra carbs)":" (fewer carbs)"}</span>`:""}</div><div class="ntog"><button type="button" data-fmode="consumed" aria-pressed="${!rem}">Consumed</button><button type="button" data-fmode="remaining" aria-pressed="${rem}">Remaining</button></div>
-      <div class="nbig"><b>${big}</b><span>${rem?"cal left":`/ ${T.cal} cal`}</span></div>
-      <div class="nbar"><i class="${tot.cal>T.cal?"over":""}" style="width:${pct}%"></i></div>
-      <div class="macros">${macs}</div>${NUT?"":`<p class="muted" style="margin:12px 0 0">Targets are suggested from your body weight${bwLatest()?"":" (70 kg until you log it)"}. Change them with ⚙.</p>`}</div>
+      <div class="nring">${plate(tot.cal/T.cal,{size:150,stroke:14,color:tot.cal>T.cal?"var(--red)":"var(--blue)",big:44,inner:`<b>${big}</b><small>${rem?"cal left":`of ${T.cal} cal`}</small>`})}
+      <div class="macros">${macs}</div></div>${NUT?"":`<p class="muted" style="margin:12px 0 0">Targets are suggested from your body weight${bwLatest()?"":" (70 kg until you log it)"}. Change them with ⚙.</p>`}</div>
     <div class="flh"><h2>Food Log</h2><span><button type="button" class="iconbtn" data-act="fsettings" aria-label="Nutrition settings"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg></button><button type="button" class="iconbtn" data-act="fcopy" aria-label="Copy yesterday's food to this day"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="8" y="8" width="12" height="13" rx="2"/><path d="M16 8V5a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v11a2 2 0 0 0 2 2h2"/></svg></button></span></div>
     ${copyDay}${meals}
     <div class="foodbar"><div><button type="button" class="s" data-fsearch="1">🔍 Search for a food</button><button type="button" class="cam" data-fscan="1" aria-label="Scan a barcode">${bcIcon}</button><button type="button" class="cam" data-fphoto="1" aria-label="Photo of your meal">${camIcon}</button></div></div>`;
