@@ -548,6 +548,8 @@ const toDisp=k=>{const v=parseFloat(k);if(k===""||k==null||!isFinite(v))return "
 const fromDisp=x=>{const v=parseFloat(String(x??"").replace(",","."));if(x===""||x==null||!isFinite(v))return "";return String(UNIT==="lb"?+(v/KG2LB).toFixed(4):v)};
 const unitSeg=()=>`<span class="seg" role="group" aria-label="Weight unit"><button type="button" data-unit="kg" aria-pressed="${UNIT==="kg"}">kg</button><button type="button" data-unit="lb" aria-pressed="${UNIT==="lb"}">lb</button></span>`;
 let BW=store.get("c1-bw",{});          // body weight log {date: kg}
+let STEPS=store.get("c1-steps",{});     // step count log {date: steps}
+const saveSteps=()=>store.set("c1-steps",STEPS);
 let SOUND=store.get("c1-sound",true);
 let THEME=store.get("c1-theme","dark");
 const applyTheme=()=>{document.documentElement.setAttribute("data-theme",THEME==="light"?"light":"dark");const mc=document.querySelector('meta[name="theme-color"]');if(mc)mc.setAttribute("content",THEME==="light"?"#f5f3ee":"#0e1222")};
@@ -782,7 +784,9 @@ function viewProgress(){
   app.innerHTML=`<div class="eyebrow">Your training</div><h1>Progress</h1>
     <div class="stats"><div class="stat"><b>${ds.filter(d=>d>=mon).length}</b><span>this week</span></div><div class="stat"><b>${ds.filter(d=>d.startsWith(mk)).length}</b><span>this month</span></div><div class="stat"><b>${sets}</b><span>sets logged</span></div></div>
     ${weekSummary()}
+    ${calSection()}
     ${bwSection()}
+    ${stepsSection()}
     <h2 class="sec">Workouts per week</h2><div class="chartbox"><svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Workouts per week, last 8 weeks">${bars}</svg></div>
     ${recSection(by)}
     <h2 class="sec">Exercises</h2><p class="muted" style="margin:-4px 0 10px">Line shows your top weight each session (or top reps for bodyweight moves).</p>
@@ -812,24 +816,54 @@ function shareText(date){
   if(s.feel)out+=`\n\nFeel: ${FEEL[s.feel-1]}`;if(s.wnote)out+=`\nNotes: ${s.wnote}`;
   return out;
 }
-/* Apple Health (iPhone app only): read body-weight samples and fill the weight log automatically. */
+/* Apple Health (iPhone app only): read body-weight and step-count samples and fill them in automatically. */
 const HK=(()=>{try{return window.Capacitor&&window.Capacitor.isNativePlatform&&window.Capacitor.isNativePlatform()&&window.Capacitor.Plugins&&window.Capacitor.Plugins.Health}catch(e){return null}})();
 let hkLast=store.get("c1-hklast",0),hkBusy=false,hkErr="";
-const hkNote=()=>hkErr?`Apple Health: ${hkErr}`:hkLast?`Weight syncs from Apple Health automatically · last checked ${new Date(hkLast).toLocaleTimeString([],{hour:"2-digit",minute:"2-digit"})}`:"Weight syncs from Apple Health automatically.";
+const hkNote=()=>hkErr?`Apple Health: ${hkErr}`:hkLast?`Syncs from Apple Health automatically · last checked ${new Date(hkLast).toLocaleTimeString([],{hour:"2-digit",minute:"2-digit"})}`:"Weight and steps sync from Apple Health automatically.";
 async function hkSync(manual){
   if(!HK||hkBusy)return;if(!manual&&Date.now()-hkLast<10*60*1000)return;hkBusy=true;
   try{const av=await HK.isAvailable();if(!av.available)throw new Error(av.reason||"not available on this device");
-    if(manual||!store.get("c1-hkasked",false)){await HK.requestAuthorization({read:["weight"]});store.set("c1-hkasked",true)}
+    if(manual||!store.get("c1-hkasked2",false)){await HK.requestAuthorization({read:["weight","steps"]});store.set("c1-hkasked2",true)}
     const r=await HK.readSamples({dataType:"weight",startDate:new Date(Date.now()-120*864e5).toISOString(),endDate:new Date().toISOString(),limit:500,ascending:true});
     const byDay={};(r.samples||[]).forEach(x=>{const kg=x.unit==="kilogram"?+x.value:(x.unit==="gram"?x.value/1000:+x.value);if(kg>20&&kg<400)byDay[ymd(new Date(x.startDate))]=Math.round(kg*10)/10});
     const before=bwLatest();let n=0;Object.entries(byDay).forEach(([d,kg])=>{if(BW[d]!==kg){BW[d]=kg;n++}});
-    if(n)saveBW();hkErr="";hkLast=Date.now();store.set("c1-hklast",hkLast);
-    if(manual)toast(n?`Synced ${n} weigh-in${n>1?"s":""} from Apple Health`:Object.keys(byDay).length?"Already up to date":"No weight found in Apple Health. Check Health → Sharing → Apps → C1 Workout");
+    if(n)saveBW();
+    let sN=0;
+    try{const sr=await HK.queryAggregated({dataType:"steps",startDate:new Date(Date.now()-30*864e5).toISOString(),endDate:new Date().toISOString(),bucket:"day",aggregation:"sum"});
+      (sr.samples||[]).forEach(s=>{const d=ymd(new Date(s.startDate)),v=Math.round(s.value||0);if(v>0&&STEPS[d]!==v){STEPS[d]=v;sN++}});
+      if(sN)saveSteps()}catch(e){}
+    hkErr="";hkLast=Date.now();store.set("c1-hklast",hkLast);
+    if(manual)toast(n||sN?`Synced from Apple Health`:Object.keys(byDay).length||Object.keys(STEPS).length?"Already up to date":"Nothing found in Apple Health. Check Health → Sharing → Apps → C1 Workout");
     else if(n&&bwLatest()!==before)toast(`Weight updated from Apple Health: ${toDisp(bwLatest())} ${UNIT}`);
-    if(n||manual)render()}
+    if(n||sN||manual)render()}
   catch(e){hkErr=(e&&e.message)||"couldn’t read";if(manual){toast("Apple Health: "+hkErr);render()}}
   finally{hkBusy=false}}
 if(HK){setTimeout(()=>hkSync(false),1500);document.addEventListener("visibilitychange",()=>{if(document.visibilityState==="visible")hkSync(false)})}
+function calSection(){
+  const t=today(),mon=mondayOf(t);
+  const dayCal=d=>Math.round(sumMac(FOOD[d]||[]).cal);
+  const logged=Object.keys(FOOD).some(d=>FOOD[d]&&FOOD[d].length&&dayCal(d)>0);
+  if(!logged)return "";
+  const N=14,days=[...Array(N)].map((_,i)=>addDays(t,-(N-1-i)));
+  const vals=days.map(dayCal),tgts=days.map(d=>targetsFor(d).cal);
+  const maxV=Math.max(100,...vals,...tgts);
+  const W=320,H=130,pl=28,pr=10,pt=10,pb=22,bw=(W-pl-pr)/N;
+  let bars=`<line x1="${pl}" y1="${H-pb}" x2="${W-pr}" y2="${H-pb}" stroke="var(--line)"/>`;
+  days.forEach((d,i)=>{const v=vals[i],h=(H-pt-pb)*v/maxV,x=pl+i*bw+bw*.15,cur=d===t,over=v>tgts[i]*1.05;
+    bars+=`<rect x="${x}" y="${H-pb-h}" width="${bw*.7}" height="${Math.max(h,0)}" rx="3" fill="${cur?"var(--blue)":over?"color-mix(in srgb,var(--red) 55%,var(--card))":"color-mix(in srgb,var(--blue) 40%,var(--card))"}"/>`;
+    if(i%2===0)bars+=`<text x="${x+bw*.35}" y="${H-6}" fill="var(--muted)" font-size="9" text-anchor="middle">${parse(d).getDate()}</text>`});
+  const tgtPts=days.map((d,i)=>`${(pl+i*bw+bw*.5).toFixed(1)},${(H-pb-(H-pt-pb)*tgts[i]/maxV).toFixed(1)}`).join(" ");
+  bars+=`<polyline points="${tgtPts}" fill="none" stroke="var(--amber)" stroke-width="1.5" stroke-dasharray="3 3"/>`;
+  const calc=m=>{let n=0,sum=0;for(let i=0;i<7;i++){const d=addDays(m,i);if(d>t)break;if(dayCal(d)>0){n++;sum+=dayCal(d)}}return {n,avg:n?Math.round(sum/n):0}};
+  const cur=calc(mon),prev=calc(addDays(mon,-7));
+  const pct=prev.avg?Math.round((cur.avg-prev.avg)/prev.avg*100):null;
+  return `<h2 class="sec">Calories</h2><div class="stats" style="margin-top:0">
+    <div class="stat"><b>${dayCal(t)||"–"}</b><span>today${targetsFor(t).cal?` / ${targetsFor(t).cal}`:""}</span></div>
+    <div class="stat"><b>${cur.avg||"–"}</b><span>avg/day this week</span></div>
+    <div class="stat"><b>${pct!==null?`${pct>0?"+":""}${pct}%`:"–"}</b><span>vs last week</span></div></div>
+    <div class="chartbox" style="margin-top:10px"><svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Daily calories, last 14 days">${bars}</svg></div>
+    <p class="muted" style="margin-top:6px;font-size:13px">Dashed line is your daily target. Days with no food logged show as 0.</p>`;
+}
 function bwSection(){
   const keys=Object.keys(BW).sort(),t=today(),last=keys.slice(-20);
   let chart="";
@@ -852,6 +886,25 @@ function bwSection(){
     ${HK?`<p class="muted" style="margin:6px 0 0;font-size:13px">${hkNote()}</p>`:""}
     <p style="margin:8px 0 0">${lv?`Latest <b>${toDisp(lv)} ${UNIT}</b>${ch!==null?` · ${ch>0?"+":""}${+ch.toFixed(1)} ${UNIT} in 30 days`:""}`:"Log your weight to see the trend. It also fills in body-weight targets like the seated row."}</p>
     ${chart}${list?`<div class="bwlist">${list}</div>`:""}</div>`;
+}
+function stepsSection(){
+  const t=today(),mon=mondayOf(t),keys=Object.keys(STEPS).sort(),last=keys.filter(k=>k>=addDays(t,-13)&&k<=t);
+  const N=14,days=[...Array(N)].map((_,i)=>addDays(t,-(N-1-i)));
+  const maxV=Math.max(1000,...days.map(d=>STEPS[d]||0));
+  const W=320,H=130,pl=28,pr=10,pt=10,pb=22,bw=(W-pl-pr)/N;
+  let bars=`<line x1="${pl}" y1="${H-pb}" x2="${W-pr}" y2="${H-pb}" stroke="var(--line)"/>`;
+  days.forEach((d,i)=>{const v=STEPS[d]||0,h=(H-pt-pb)*v/maxV,x=pl+i*bw+bw*.15,cur=d===t;
+    bars+=`<rect x="${x}" y="${H-pb-h}" width="${bw*.7}" height="${Math.max(h,0)}" rx="3" fill="${cur?"var(--blue)":"color-mix(in srgb,var(--blue) 40%,var(--card))"}"/>`;
+    if(i%2===0)bars+=`<text x="${x+bw*.35}" y="${H-6}" fill="var(--muted)" font-size="9" text-anchor="middle">${parse(d).getDate()}</text>`});
+  const calc=m=>{let n=0,sum=0;for(let i=0;i<7;i++){const d=addDays(m,i);if(d>t)break;if(STEPS[d]){n++;sum+=STEPS[d]}}return {n,avg:n?Math.round(sum/n):0}};
+  const cur=calc(mon),prev=calc(addDays(mon,-7));
+  const pct=prev.avg?Math.round((cur.avg-prev.avg)/prev.avg*100):null;
+  return `<h2 class="sec">Steps</h2><div class="dayrec" style="margin-top:0">
+    <div class="bwrow"><input class="txt" id="steps-input" inputmode="numeric" value="${STEPS[t]?STEPS[t]:""}" placeholder="e.g. 8000" aria-label="Today's steps"><button type="button" class="btn sm primary" data-act="savesteps">${STEPS[t]?"Update today":"Save today"}</button></div>
+    <div class="rowbtns" style="margin-top:8px">${HK?`<button type="button" class="btn sm" data-act="hksync">↻ Sync from Apple Health</button>`:""}</div>
+    ${HK?`<p class="muted" style="margin:6px 0 0;font-size:13px">${hkNote()}</p>`:""}
+    <div class="stats" style="margin-top:10px"><div class="stat"><b>${(STEPS[t]||0).toLocaleString("en-US")}</b><span>today</span></div><div class="stat"><b>${cur.avg?cur.avg.toLocaleString("en-US"):"–"}</b><span>avg/day this week</span></div><div class="stat"><b>${pct!==null?`${pct>0?"+":""}${pct}%`:"–"}</b><span>vs last week</span></div></div>
+    ${last.length?`<div class="chartbox" style="margin-top:10px"><svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Steps, last 14 days">${bars}</svg></div>`:`<p class="muted" style="margin-top:10px">${HK?"Sync from Apple Health or log a day manually.":"Log a day to start tracking steps."}</p>`}</div>`;
 }
 function recSection(by){
   const recs=Object.entries(by).map(([n,arr])=>{let best=null;arr.forEach(a=>a.sets.forEach(q=>{const w=parseFloat(q.w)||0,r=+q.r||0,k=w*1000+r;if(!best||k>best.k)best={k,w,r,d:a.d,timed:a.timed}}));return {n,...best}}).filter(r=>r.k>0).sort((a,b)=>b.d.localeCompare(a.d)).slice(0,12);
@@ -1336,7 +1389,7 @@ document.getElementById("sheet").addEventListener("click",ev=>{
 });
 document.getElementById("scrim").addEventListener("click",()=>{WS=null});
 /* ---------- backup ---------- */
-function backupData(){return {app:"c1-workout",version:2,exported:new Date().toISOString(),sessions:S,log:LOG,prog:PROG,sched:SCHED,first:FIRST,unit:UNIT,bw:BW,sound:SOUND,theme:THEME,food:FOOD,nut:NUT,presets:PRESETS,lib:LIB,clients:CLIENTS}}
+function backupData(){return {app:"c1-workout",version:2,exported:new Date().toISOString(),sessions:S,log:LOG,prog:PROG,sched:SCHED,first:FIRST,unit:UNIT,bw:BW,steps:STEPS,sound:SOUND,theme:THEME,food:FOOD,nut:NUT,presets:PRESETS,lib:LIB,clients:CLIENTS}}
 async function exportBackup(){
   const json=JSON.stringify(backupData(),null,1),name=`c1-workout-backup-${today()}.json`;
   try{
@@ -1346,7 +1399,7 @@ async function exportBackup(){
   try{const a=document.createElement("a");a.href=URL.createObjectURL(new Blob([json],{type:"application/json"}));a.download=name;document.body.appendChild(a);a.click();a.remove();store.set("c1-lastbackup",new Date().toISOString());toast("Backup downloaded");render()}
   catch(e){toast("Couldn’t save a file here. Use Copy backup text instead.")}
 }
-function applyImport(b){S=b.sessions||{};LOG=b.log||{};SCHED=b.sched||{};if(b.first){FIRST=b.first;store.set("c1-first",FIRST)}if(b.unit){UNIT=b.unit;store.set("c1-unit",UNIT)}if(b.bw){BW=b.bw;saveBW()}if(typeof b.sound==="boolean"){SOUND=b.sound;store.set("c1-sound",SOUND)}if(b.theme==="light"||b.theme==="dark"){THEME=b.theme;store.set("c1-theme",THEME);applyTheme()}PROG=b.prog&&b.prog.weeks?b.prog:{start:mondayOf(FIRST),weeks:[b.plan||clone(DEFAULT_PLAN)]};editW=weekIdx(today());PLAN=PROG.weeks[editW];if(b.food){FOOD=b.food;saveF()}if(b.nut!==undefined){NUT=b.nut;store.set("c1-nut",NUT)}if(b.presets){PRESETS=b.presets;savePR()}if(b.lib){LIB=b.lib;saveLib()}if(b.clients){CLIENTS=b.clients;saveCl()}saveS();saveL();saveP();saveSch()}
+function applyImport(b){S=b.sessions||{};LOG=b.log||{};SCHED=b.sched||{};if(b.first){FIRST=b.first;store.set("c1-first",FIRST)}if(b.unit){UNIT=b.unit;store.set("c1-unit",UNIT)}if(b.bw){BW=b.bw;saveBW()}if(b.steps){STEPS=b.steps;saveSteps()}if(typeof b.sound==="boolean"){SOUND=b.sound;store.set("c1-sound",SOUND)}if(b.theme==="light"||b.theme==="dark"){THEME=b.theme;store.set("c1-theme",THEME);applyTheme()}PROG=b.prog&&b.prog.weeks?b.prog:{start:mondayOf(FIRST),weeks:[b.plan||clone(DEFAULT_PLAN)]};editW=weekIdx(today());PLAN=PROG.weeks[editW];if(b.food){FOOD=b.food;saveF()}if(b.nut!==undefined){NUT=b.nut;store.set("c1-nut",NUT)}if(b.presets){PRESETS=b.presets;savePR()}if(b.lib){LIB=b.lib;saveLib()}if(b.clients){CLIENTS=b.clients;saveCl()}saveS();saveL();saveP();saveSch()}
 
 /* ---------- live bits ---------- */
 function tickWorkout(){
@@ -1397,6 +1450,7 @@ app.addEventListener("click",async ev=>{
   if(b=q("[data-startnow]"))pendingStart=b.dataset.startnow;
   if(b=q("[data-sheet]")){ev.preventDefault();return openSheet(b.dataset.sheet)}
   if(b=q("[data-act=savebw]")){const v=fromDisp(document.getElementById("bw-input").value);if(!v){toast("Type your weight first");return}BW[today()]=+v;saveBW();toast(`Saved ${toDisp(v)} ${UNIT}`);return render()}
+  if(b=q("[data-act=savesteps]")){const v=Math.round(+document.getElementById("steps-input").value||0);if(!v){toast("Type today’s steps first");return}STEPS[today()]=v;saveSteps();toast(`Saved ${v.toLocaleString("en-US")} steps`);return render()}
   if(b=q("[data-delbw]")){delete BW[b.dataset.delbw];saveBW();return render()}
   if(b=q("[data-sound]")){SOUND=b.dataset.sound==="1";store.set("c1-sound",SOUND);if(SOUND){audio();beep([880],.12)}toast(SOUND?"Rest sound on":"Rest sound off");return render()}
   if(b=q("[data-unit]")){if(UNIT!==b.dataset.unit){UNIT=b.dataset.unit;store.set("c1-unit",UNIT);toast(`Weights now shown in ${UNIT}`)}return render()}

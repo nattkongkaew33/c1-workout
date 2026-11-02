@@ -30,7 +30,7 @@ also wrapped as an iPhone app (Capacitor) that loads the live site.
 
 ## Data (localStorage, on the phone only)
 `c1-sessions` workouts, `c1-log`, `c1-prog` multi-week plan, `c1-sched` per-date overrides, `c1-first`,
-`c1-unit` kg/lb (weights stored in kg), `c1-bw` body weight {date: kg}, `c1-sound`, `c1-food` food log
+`c1-unit` kg/lb (weights stored in kg), `c1-bw` body weight {date: kg}, `c1-steps` step count {date: steps}, `c1-sound`, `c1-food` food log
 {date:[{id,meal,name,g,per(per 100 g),q,u,sv}]}, `c1-nut` targets, `c1-presets` saved foods/meals (foods can have `bc` barcode),
 `c1-dayadj` training/rest-day calorie shift, `c1-lib` exercise library, `c1-clients` coach plans, `c1-theme` dark/light,
 keys: `c1-aikey` (Claude), `c1-aimodel`, `c1-usdakey`, `c1-ytkey` (YouTube).
@@ -42,7 +42,8 @@ Changes must stay compatible with existing saved data (users' logs must survive 
   defaults to 1 serving as labelled; AI photo/label via Claude API from the browser; units (serving/g/oz/ml);
   auto meal by time (<200 cal = snack); recent foods; copy meal/day; training vs rest-day targets.
 - Coach tab: exercise library (+ auto most-viewed YouTube video via YouTube Data API) and AI client plans; never touches the user's own plan.
-- iPhone app only: rest-timer local notifications (`@capacitor/local-notifications`), Apple Health weight sync (`@capgo/capacitor-health`).
+- Progress tab: calories per day (with target) and weekly average; steps per day and weekly average.
+- iPhone app only: rest-timer local notifications (`@capacitor/local-notifications`), Apple Health sync for weight and steps (`@capgo/capacitor-health`; requests `read: ["weight","steps"]`, steps via `queryAggregated` bucketed by day).
 
 ## Rules
 - Never put API keys in code, commits or messages. The user pastes keys in the app (Food → ⚙, Coach → Library).
