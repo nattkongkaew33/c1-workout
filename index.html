@@ -386,7 +386,8 @@ input.txt:focus,select.txt:focus{border-color:var(--blue);outline:none}
 .liblist{display:grid;gap:6px}
 .libitem{display:flex;justify-content:space-between;align-items:center;gap:10px;text-align:left;padding:12px 14px;border-radius:14px;border:1px solid var(--line);background:var(--card);color:var(--ink);font:inherit;cursor:pointer}
 .libitem small{display:block;color:var(--muted);font-size:12px}
-.vtag{flex:none;font-size:12px;font-weight:700;color:var(--blue)}
+.librow{display:flex;gap:6px}.librow .libitem{flex:1;min-width:0}
+.vtag{flex:none;display:grid;place-items:center;min-width:72px;padding:0 10px;border-radius:14px;font-size:13px;font-weight:700;color:var(--on-acc);background:var(--blue);text-decoration:none}
 .cday{display:grid;gap:10px;grid-template-columns:minmax(0,1fr)}
 .cex,.cform,.cbody{grid-template-columns:minmax(0,1fr)}
 .ctitle,.cname,.cfocus,.cnote{width:100%;min-width:0}
@@ -402,6 +403,11 @@ input.txt:focus,select.txt:focus{border-color:var(--blue);outline:none}
 .cexf{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}
 .cexf label{display:grid;gap:3px;font-size:11px;font-weight:600;color:var(--muted)}
 .cexf .txt{padding:8px 10px;font:600 15px var(--mono)}
+.ytk summary{list-style:none;cursor:pointer;display:grid;gap:4px}.ytk summary::-webkit-details-marker{display:none}
+.ytk summary small{color:var(--muted);font-size:13px}
+.ytsteps{margin:0;padding-left:18px;display:grid;gap:4px;font-size:13px}
+.ytbar{margin:0;font-size:13px;color:var(--blue)}.ytbar.err{color:var(--red)}
+.ytinfo{margin:-4px 0 0;font-size:12px}
 .hero .plate small{color:var(--muted);text-transform:none;letter-spacing:.02em;font-size:11px}
 .fhead{background:color-mix(in srgb,var(--bg) 85%,transparent);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);margin-top:4px}
 .fuel{display:grid;grid-template-columns:auto minmax(0,1fr) auto;align-items:center;gap:12px;padding:14px 16px;border-radius:18px;background:var(--card);border:1px solid var(--line);text-decoration:none;margin-bottom:6px}
@@ -1393,7 +1399,26 @@ const MUSCLES=["Chest","Back","Shoulders","Biceps","Triceps","Legs","Glutes","Co
 const GOALS=["Build muscle","Lose fat","Get stronger","General fitness","Start training (beginner)","Sport / athletic"];
 const LEVELS=["Beginner","Intermediate","Advanced"];
 const EQUIPS=["Full gym","Dumbbells only","Home: dumbbells + bench","Bodyweight only","Resistance bands","Calisthenics (bars, rings)"];
-let coachTab="plans",libEdit=null,libQ="",coachBusy=false,coachErr="";
+let libPick=null,coachTab="plans",libEdit=null,libQ="",coachBusy=false,coachErr="",ytBusy=false,ytNote="";
+let YTKEY=store.get("c1-ytkey","");
+/* YouTube: take the 10 most relevant results for "<name> exercise form", then pick the one with the most views. */
+async function ytBest(name){
+  if(!YTKEY)throw new Error("Add a YouTube API key first.");
+  const q=encodeURIComponent(`${name} exercise form`),k=encodeURIComponent(YTKEY);
+  const sr=await fetch(`https://www.googleapis.com/youtube/v3/search?part=snippet&type=video&maxResults=10&videoEmbeddable=true&q=${q}&key=${k}`),sj=await sr.json();
+  if(!sr.ok)throw new Error((sj.error&&sj.error.message)||`YouTube search failed (${sr.status})`);
+  const ids=(sj.items||[]).map(i=>i.id&&i.id.videoId).filter(Boolean);if(!ids.length)return null;
+  const vr=await fetch(`https://www.googleapis.com/youtube/v3/videos?part=statistics,snippet&id=${ids.join(",")}&key=${k}`),vj=await vr.json();
+  if(!vr.ok)throw new Error((vj.error&&vj.error.message)||`YouTube lookup failed (${vr.status})`);
+  const best=(vj.items||[]).map(v=>({id:v.id,t:v.snippet.title,ch:v.snippet.channelTitle,views:+((v.statistics||{}).viewCount)||0})).sort((a,b)=>b.views-a.views)[0];
+  return best?{v:`https://youtu.be/${best.id}`,vt:best.t,vch:best.ch,vv:best.views}:null}
+const fmtViews=n=>n>=1e6?(n/1e6).toFixed(n>=1e7?0:1)+"M":n>=1e3?Math.round(n/1e3)+"K":String(n||0);
+async function ytFill(list,quiet){
+  if(!YTKEY||!list.length)return 0;ytBusy=true;let k=0,err="";
+  for(let i=0;i<list.length;i++){const x=list[i];ytNote=`Finding videos… ${i+1} of ${list.length}`;if(location.hash==="#coach"&&!libEdit)render();
+    try{const r=await ytBest(x.n);if(r){Object.assign(x,r);k++;saveLib()}}catch(e){err=e.message;break}}
+  ytBusy=false;ytNote=err?`Stopped: ${err}`:"";if(location.hash.startsWith("#coach")&&!libEdit)render();
+  if(!quiet||err)toast(err?"YouTube: "+err:`Added ${k} video${k===1?"":"s"}`);return k}
 let cDraft={name:"",goal:GOALS[0],level:LEVELS[0],days:"3",mins:"60",equip:EQUIPS[0],notes:"",libonly:false};
 const ytSearch=n=>`https://www.youtube.com/results?search_query=${encodeURIComponent(n+" exercise form")}`;
 const libFind=n=>LIB.find(x=>x.n.trim().toLowerCase()===String(n||"").trim().toLowerCase());
@@ -1417,11 +1442,18 @@ function viewCoach(h){
         <h3 class="csub">${libEdit==="new"?"Add exercise":"Edit exercise"}</h3>
         <label class="fl">Name<input class="txt" id="l-n" value="${esc(x.n)}" placeholder="e.g. Romanian deadlift"></label>
         <div class="grid2"><label class="fl">Muscle group<select class="txt" id="l-m">${optList(MUSCLES,x.m||"Other")}</select></label><label class="fl">Equipment<input class="txt" id="l-eq" value="${esc(x.eq||"")}" placeholder="e.g. Barbell"></label></div>
-        <label class="fl">Video link (optional)<input class="txt" id="l-v" inputmode="url" value="${esc(x.v||"")}" placeholder="https://youtu.be/…"></label>
+        <label class="fl">Video link${YTKEY?" (leave empty to auto-find the most-viewed)":" (optional)"}<input class="txt" id="l-v" inputmode="url" value="${esc(x.v||"")}" placeholder="https://youtu.be/…"></label>
+        ${x.vt?`<p class="muted ytinfo">▶ ${esc(x.vt)} · ${esc(x.vch||"")} · ${fmtViews(x.vv)} views</p>`:""}
+        ${YTKEY?`<button type="button" class="btn sm" data-ytone="1">▶ Find most-viewed video</button>`:""}
         <label class="fl">Coaching notes (optional)<input class="txt" id="l-note" value="${esc(x.note||"")}" placeholder="e.g. Hinge from hips, soft knees"></label>
         <div class="rowbtns"><button type="button" class="btn primary" data-lsave="1">Save exercise</button><button type="button" class="btn" data-lcancel="1">Cancel</button>${libEdit!=="new"?`<button type="button" class="btn danger" data-ldel="1">Delete</button>`:""}</div></div>`})():"";
-    body=`${form||`<div class="inline crow"><input class="txt" id="lib-q" placeholder="Search your library" value="${esc(libQ)}" autocomplete="off"><button type="button" class="btn primary" data-ladd="1">＋ Add</button></div>`}
-      ${groups.length?groups.map(([m,xs])=>`<p class="fsec">${esc(m)} · ${xs.length}</p><div class="liblist">${xs.map(x=>`<button type="button" class="libitem" data-ledit="${x.id}"><span>${esc(x.n)}<small>${esc([x.eq,x.note].filter(Boolean).join(" · "))}</small></span>${x.v?`<span class="vtag">▶ video</span>`:""}</button>`).join("")}</div>`).join(""):
+    const noVid=LIB.filter(x=>!x.v).length;
+    const yt=!YTKEY?`<details class="cform ytk"><summary><b>▶ Auto-add YouTube videos</b><small>Add a free YouTube API key and the app picks the most-viewed form video for each exercise.</small></summary>
+        <ol class="muted ytsteps"><li>Open console.cloud.google.com, create a project.</li><li>APIs &amp; Services → Library → enable <b>YouTube Data API v3</b>.</li><li>Credentials → Create credentials → API key. Restrict it to the YouTube Data API v3 and to websites <b>nattkongkaew33.github.io/*</b>.</li><li>Paste it here.</li></ol>
+        <div class="crow"><input class="txt" type="password" id="yt-key" placeholder="AIza…" autocomplete="off"><button type="button" class="btn primary" data-ytsave="1">Save</button></div></details>`
+      :(ytBusy?`<p class="ytbar">${esc(ytNote)}</p>`:`${ytNote?`<p class="ytbar err">${esc(ytNote)}</p>`:""}${noVid?`<button type="button" class="btn" data-ytall="1">▶ Find most-viewed videos for ${noVid} exercise${noVid>1?"s":""}</button>`:""}`);
+    body=`${form||`<div class="inline crow"><input class="txt" id="lib-q" placeholder="Search your library" value="${esc(libQ)}" autocomplete="off"><button type="button" class="btn primary" data-ladd="1">＋ Add</button></div>${yt}`}
+      ${groups.length?groups.map(([m,xs])=>`<p class="fsec">${esc(m)} · ${xs.length}</p><div class="liblist">${xs.map(x=>`<div class="librow"><button type="button" class="libitem" data-ledit="${x.id}"><span>${esc(x.n)}<small>${esc([x.eq,x.note].filter(Boolean).join(" · "))||"Tap to edit"}</small></span></button>${x.v?`<a class="vtag" href="${esc(x.v)}" target="_blank" rel="noopener" aria-label="Watch video for ${esc(x.n)}">▶ ${x.vv?fmtViews(x.vv):"Watch"}</a>`:""}</div>`).join("")}</div>`).join(""):
       (LIB.length?`<p class="muted">Nothing matches “${esc(libQ)}”.</p>`:`<div class="empty">Your library is empty. Add the exercises you coach with: name, muscle group, equipment and a video link. Claude uses them first when it writes plans, and you can add new exercises from any plan.</div>`)}`;
   }
   app.innerHTML=`<div class="eyebrow">For your clients</div><h1>Coach</h1><p class="muted" style="margin:6px 0 14px">Separate from your own C1 program; nothing here changes your workouts.</p>${seg}<div class="cbody">${body}</div>`;
@@ -1503,13 +1535,18 @@ app.addEventListener("click",async ev=>{
   if(b=q("[data-ctab]")){coachTab=b.dataset.ctab;libEdit=null;return render()}
   if(b=q("[data-ladd]")){libEdit="new";render();const n=document.getElementById("l-n");if(n)n.focus();return}
   if(b=q("[data-ledit]")){libEdit=b.dataset.ledit;render();window.scrollTo(0,0);return}
-  if(b=q("[data-lcancel]")){libEdit=null;return render()}
+  if(b=q("[data-lcancel]")){libEdit=null;libPick=null;return render()}
   if(b=q("[data-ldel]")){const x=LIB.find(e=>e.id===libEdit);if(x&&confirm(`Delete “${x.n}” from your library?`)){LIB=LIB.filter(e=>e.id!==libEdit);saveLib();libEdit=null;toast("Exercise deleted");render()}return}
   if(b=q("[data-lsave]")){const v=id=>document.getElementById(id).value.trim(),n=v("l-n");if(!n){toast("Give the exercise a name");return}
     const dup=libFind(n);if(dup&&dup.id!==libEdit){toast(`“${dup.n}” is already in your library`);return}
     const x={n,m:v("l-m"),eq:v("l-eq"),v:v("l-v"),note:v("l-note")};
-    if(libEdit==="new")LIB.push({id:uid(),...x});else Object.assign(LIB.find(e=>e.id===libEdit)||{},x);
-    LIB.sort((a,z)=>a.n.localeCompare(z.n));saveLib();libEdit=null;toast("Exercise saved");return render()}
+    if(libPick&&libPick.v===x.v)Object.assign(x,libPick);else if(!x.v)Object.assign(x,{vt:"",vch:"",vv:0});
+    let item;if(libEdit==="new"){item={id:uid(),...x};LIB.push(item)}else{item=LIB.find(e=>e.id===libEdit);if(item){const prev=item.v;Object.assign(item,x);if(prev!==x.v&&!(libPick&&libPick.v===x.v)){item.vt="";item.vch="";item.vv=0}}}
+    libPick=null;LIB.sort((a,z)=>a.n.localeCompare(z.n));saveLib();libEdit=null;toast("Exercise saved");render();if(item&&!item.v&&YTKEY)ytFill([item],true);return}
+  if(b=q("[data-ytsave]")){const v=document.getElementById("yt-key").value.trim();if(!v){toast("Paste your YouTube API key");return}YTKEY=v;store.set("c1-ytkey",YTKEY);toast("YouTube key saved");render();const miss=LIB.filter(x=>!x.v);if(miss.length)ytFill(miss);return}
+  if(b=q("[data-ytall]")){if(!ytBusy)ytFill(LIB.filter(x=>!x.v));return}
+  if(b=q("[data-ytone]")){const n=document.getElementById("l-n").value.trim();if(!n){toast("Type the exercise name first");return}b.disabled=true;b.textContent="Searching YouTube…";
+    try{const r=await ytBest(n);if(!r){toast("No video found");b.disabled=false;b.textContent="▶ Find most-viewed video";return}document.getElementById("l-v").value=r.v;libPick=r;b.textContent=`▶ ${fmtViews(r.vv)} views · ${r.vt.slice(0,40)}`;b.disabled=false}catch(e){toast(e.message);b.disabled=false;b.textContent="▶ Find most-viewed video"}return}
   if(b=q("[data-cgen]"))return coachGenerate();
   if(!c)return;
   if(b=q("[data-crevise]"))return coachRevise(c);
@@ -1521,7 +1558,7 @@ app.addEventListener("click",async ev=>{
   if(b=q("[data-caddx]")){c.days[+b.dataset.caddx].ex.push({n:"",m:"",sets:3,reps:"8–12",rest:"1:30",note:""});saveCl();render();const ins=document.querySelectorAll(`[data-cx^="${b.dataset.caddx}:"][data-cx$=":n"]`);if(ins.length)ins[ins.length-1].focus();return}
   if(b=q("[data-cdeld]")){const di=+b.dataset.cdeld;if(c.days.length<2){toast("Keep at least one day");return}if(confirm(`Remove ${c.days[di].title}?`)){c.days.splice(di,1);saveCl();render()}return}
   if(b=q("[data-caddd]")){c.days.push({title:`Day ${c.days.length+1}`,focus:"",ex:[]});saveCl();return render()}
-  if(b=q("[data-caddlib]")){let k=0;c.days.forEach(d=>d.ex.forEach(e=>{const n=e.n.trim();if(n&&!libFind(n)){LIB.push({id:uid(),n,m:MUSCLES.includes(e.m)?e.m:"Other",eq:"",v:"",note:""});k++}}));LIB.sort((a,z)=>a.n.localeCompare(z.n));saveLib();toast(`Added ${k} exercise${k>1?"s":""} to your library`);return render()}
+  if(b=q("[data-caddlib]")){let k=0;c.days.forEach(d=>d.ex.forEach(e=>{const n=e.n.trim();if(n&&!libFind(n)){LIB.push({id:uid(),n,m:MUSCLES.includes(e.m)?e.m:"Other",eq:"",v:"",note:""});k++}}));LIB.sort((a,z)=>a.n.localeCompare(z.n));saveLib();toast(`Added ${k} exercise${k>1?"s":""} to your library`);render();if(YTKEY)ytFill(LIB.filter(x=>!x.v),true);return}
 });
 app.addEventListener("input",ev=>{
   if(!location.hash.startsWith("#coach"))return;const el=ev.target;
