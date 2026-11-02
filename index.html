@@ -161,8 +161,10 @@ textarea.note{resize:vertical;min-height:52px;font:inherit}
 .fmac div{background:var(--field);border-radius:10px;padding:8px 4px}
 .fmac b{display:block;font:800 20px var(--display);font-variant-numeric:tabular-nums}
 .fmac span{font-size:11px;color:var(--muted)}
-.airow{display:grid;grid-template-columns:auto minmax(0,1fr) 64px auto;gap:8px;align-items:center;background:var(--field);border-radius:10px;padding:8px 10px}
+.airow{display:grid;grid-template-columns:auto minmax(0,1fr) 58px minmax(64px,auto);gap:8px;align-items:center;background:var(--field);border-radius:10px;padding:8px 10px}
 .airow .gu{color:var(--muted);font-size:14px}
+.airow select.gu{padding:6px 4px;max-width:110px}
+#fs-u{max-width:55%}
 .ainame{width:100%;background:transparent;border:0;border-bottom:1px dashed var(--line);color:var(--ink);font:inherit;font-weight:600;padding:2px 0}
 .hchips{display:flex;flex-wrap:wrap;gap:6px}
 .hchips button{border:1px solid var(--line);background:var(--field);color:var(--ink);border-radius:999px;padding:6px 12px;font:600 13px var(--body);cursor:pointer}
@@ -676,6 +678,17 @@ const targets=()=>{if(!NUT)return suggestTargets();const one=(v,i)=>Array.isArra
 const mac=e=>{const k=(+e.g||0)/100;return {cal:e.per.cal*k,p:e.per.p*k,c:e.per.c*k,f:e.per.f*k}};
 const sumMac=list=>list.reduce((a,e)=>{const m=mac(e);a.cal+=m.cal;a.p+=m.p;a.c+=m.c;a.f+=m.f;return a},{cal:0,p:0,c:0,f:0});
 const R=v=>Math.round(v);
+/* Units: entries always keep grams (g) for the math; q + u are what you entered (e.g. 2 slice). sv = the food's own serving unit {u,g[,v]} (v = no known weight). */
+const UNITS0=[{l:"g",g:1},{l:"oz",g:28.35},{l:"ml",g:1}];
+const nq=v=>+(+v||0).toFixed(2);
+function parseLabel(str){const m=String(str||"").trim().match(/^([\d.,]+(?:\s*\/\s*\d+)?)?\s*(.*)$/);let n=1;if(m&&m[1]){const f=m[1].split("/");n=parseFloat(f[0].replace(",","."))/(f[1]?+f[1]:1)||1}let u=((m&&m[2])||"").replace(/\(.*$/,"").replace(/\s+/g," ").trim();return {n,u:sing(u)}}
+const sing=u=>/^[a-z]+$/i.test(u)?(/(ss|sh|ch|x)es$/i.test(u)?u.slice(0,-2):/[^s]s$/i.test(u)?u.slice(0,-1):u):u;
+const plu=(u,q)=>q==1||!/^[a-z]+$/i.test(u)||/s$/i.test(u)?u:/(sh|ch|x)$/i.test(u)?u+"es":u+"s";
+function parseServ(str,grams){const {n,u:u0}=parseLabel(str);let g=+grams||0,u=u0;if(!g){const gm=String(str||"").match(/([\d.,]+)\s*(g|ml)\b/i);if(gm)g=parseFloat(gm[1].replace(",","."))}if(!g)return null;if(!u||/^(g|gr|grams?|ml|millilit(er|re)s?|oz)$/i.test(u))u="serving";return {u:u.slice(0,24),g:g/n}}
+const unitsFor=sv=>[...(sv?[{l:sv.u,g:sv.g,sv:1}]:[]),...(sv&&sv.v?[]:UNITS0)];
+const unitOpt=(U,cur)=>U.map((x,i)=>`<option value="${i}"${x.l===cur?" selected":""}>${esc(x.sv&&!x.v&&U.length>1?`${x.l} (${R(x.g)} g)`:x.l)}</option>`).join("");
+const qtyText=e=>e.u&&e.u!=="g"?`${nq(e.q)} ${plu(e.u,nq(e.q))}${e.sv&&e.sv.v?"":` · ${R(e.g)} g`}`:`${R(e.g)} g`;
+const withQ=(o,src)=>{if(src.u&&src.u!=="g"){o.q=src.q;o.u=src.u}if(src.sv)o.sv=src.sv;return o};
 const defMeal=()=>{const h=new Date().getHours()+new Date().getMinutes()/60;return h<10.5?"breakfast":h<15?"lunch":h<17?"snack":h<22?"dinner":"snack"};
 let foodDate=today(),foodMode="consumed",closedMeals={},FS=null,offTimer=null;
 const camIcon=`<svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M4 8h3l2-3h6l2 3h3v11H4z"/><circle cx="12" cy="13" r="3.5"/></svg>`;
@@ -688,7 +701,7 @@ function viewFood(){
     return `<div class="mac" style="--c:${c}"><small>${l}</small><div class="mb"><i style="width:${Math.min(100,T[k]?v/T[k]*100:0)}%"></i></div><p>${ok?`<span class="ok">✓</span> `:""}<b>${shown}</b>${rem?"g left":` / ${T[k]}g+`}</p></div>`}).join("");
   const meals=MEALS.map(([m,l])=>{const items=list.filter(e=>e.meal===m),mt=sumMac(items),open=!closedMeals[m];
     return `<div class="meal"><div class="mealh"><button type="button" class="t" data-mealt="${m}" aria-expanded="${open}"><span style="font-size:16px;color:var(--muted)">${open?"⌃":"⌄"}</span>${l}</button><span class="chipc">${R(mt.cal)} Cal</span><span class="chipp">${R(mt.p)} P</span>${items.length?`<button type="button" class="saveml" data-savemeal="${m}" aria-label="Save ${l} as a meal preset">☆</button>`:""}<button type="button" class="addm" data-addmeal="${m}" aria-label="Add food to ${l}">+</button></div>
-      ${open&&items.length?`<div class="fitems">${items.map(e=>{const x=mac(e);return `<button type="button" class="fitem" data-editfood="${e.id}"><span>${esc(e.name)}<small>${R(e.g)} g</small></span><span class="r">${R(x.cal)} cal<small>${R(x.p)}g protein</small></span></button>`}).join("")}</div><div class="mealtot"><span>Total <b>${R(mt.cal)} cal</b></span><span>Protein <b>${R(mt.p)}g</b></span><span>Carbs <b>${R(mt.c)}g</b></span><span>Fat <b>${R(mt.f)}g</b></span></div>`:""}</div>`}).join("");
+      ${open&&items.length?`<div class="fitems">${items.map(e=>{const x=mac(e);return `<button type="button" class="fitem" data-editfood="${e.id}"><span>${esc(e.name)}<small>${esc(qtyText(e))}</small></span><span class="r">${R(x.cal)} cal<small>${R(x.p)}g protein</small></span></button>`}).join("")}</div><div class="mealtot"><span>Total <b>${R(mt.cal)} cal</b></span><span>Protein <b>${R(mt.p)}g</b></span><span>Carbs <b>${R(mt.c)}g</b></span><span>Fat <b>${R(mt.f)}g</b></span></div>`:""}</div>`}).join("");
   app.innerHTML=`<div class="fhead"><button type="button" data-fday="-1" aria-label="Previous day">‹</button><b>${lbl}</b><button type="button" data-fday="1" aria-label="Next day">›</button></div>
     <div class="ncard"><div class="ntog"><button type="button" data-fmode="consumed" aria-pressed="${!rem}">Consumed</button><button type="button" data-fmode="remaining" aria-pressed="${rem}">Remaining</button></div>
       <div class="nbig"><b>${big}</b><span>${rem?"cal left":`/ ${T.cal} cal`}</span></div>
@@ -711,23 +724,25 @@ function fsDraw(){
     h=`<h3 id="sheetTitle">Add food</h3><div class="inline"><input class="txt" id="fs-q" placeholder="Search: chicken, rice, banana…" value="${esc(st.q||"")}" autocomplete="off" enterkeyhint="search">${mealSel(st.meal)}</div>
       <div class="rowbtns"><button type="button" class="btn sm" data-fphoto="1">📷 Photo of meal</button><button type="button" class="btn sm" data-fbarcode="1">Scan barcode</button><button type="button" class="btn sm" data-fcreate="1">＋ Create food</button>${q?`<button type="button" class="btn sm primary" data-faitext="1">✨ Ask AI: “${esc(st.q)}”</button>`:""}</div>
       <div class="fres">${saved}${loc.map((f,i)=>`<button type="button" data-flocal="${LOCAL.indexOf(f)}"><span>${esc(f[0])}<small>${f[1]} cal · ${f[2]}P ${f[3]}C ${f[4]}F per 100 g</small></span><span class="r">${R(f[1]*f[5]/100)} cal<small>${f[5]} g</small></span></button>`).join("")}
-      ${st.off?st.off.map((f,i)=>`<button type="button" data-foff="${i}"><span>${esc(f.name)}<small>${R(f.per.cal)} cal · ${R(f.per.p)}P ${R(f.per.c)}C ${R(f.per.f)}F per 100 g · Open Food Facts</small></span><span class="r">${f.g} g</span></button>`).join(""):""}
+      ${st.off?st.off.map((f,i)=>`<button type="button" data-foff="${i}"><span>${esc(f.name)}<small>${R(f.per.cal)} cal · ${R(f.per.p)}P ${R(f.per.c)}C ${R(f.per.f)}F per 100 g · Open Food Facts</small></span><span class="r">${f.sv?esc(`1 ${f.sv.u}`)+`<small>${R(f.sv.g)} g</small>`:"100 g"}</span></button>`).join(""):""}
       ${q&&st.offLoading?`<p class="muted">Searching Open Food Facts…</p>`:""}${q&&!loc.length&&st.off&&!st.off.length?`<p class="muted">No matches. Try “Ask AI”, or a simpler word.</p>`:""}</div>
       <button type="button" class="btn" data-fclose="1">Close</button>`;
   }else if(st.mode==="amount"){
+    const U=unitsFor(st.sv);if(st.q==null){if(st.sv&&(!st.g||Math.abs(st.g-st.sv.g)<0.5)){st.q=1;st.u=st.sv.u}else{st.q=R(st.g||100);st.u="g"}}
+    let ui=U.findIndex(x=>x.l===st.u);if(ui<0)ui=0;st.u=U[ui].l;st.g=st.q*U[ui].g;
     const g=+st.g||0,k=g/100,p=st.per;
     h=`<h3 id="sheetTitle">${esc(st.name)}</h3>
-      <div class="inline"><input class="txt" id="fs-g" inputmode="decimal" value="${esc(st.g)}" aria-label="Amount in grams"><span class="muted" style="align-self:center">g</span>${mealSel(st.meal)}</div>
+      <div class="inline"><input class="txt" id="fs-g" inputmode="decimal" value="${esc(nq(st.q))}" aria-label="Amount"><select class="txt" id="fs-u" aria-label="Unit">${unitOpt(U,st.u)}</select></div>${mealSel(st.meal)}
       <div class="fmac"><div><b id="fm-cal">${R(p.cal*k)}</b><span>cal</span></div><div><b id="fm-p">${R(p.p*k)}</b><span>protein g</span></div><div><b id="fm-c">${R(p.c*k)}</b><span>carbs g</span></div><div><b id="fm-f">${R(p.f*k)}</b><span>fat g</span></div></div>
-      <p class="muted" style="margin:0">${R(p.cal)} cal per 100 g${st.src?` · ${esc(st.src)}`:""}</p>
+      <p class="muted" style="margin:0" id="fm-note">${st.sv&&st.sv.v?`${R(p.cal)} cal per ${esc(st.sv.u)}`:`${R(p.cal)} cal per 100 g`}${st.u!=="g"&&!(st.sv&&st.sv.v)?` · ${R(g)} g`:""}${st.src?` · ${esc(st.src)}`:""}</p>
       <div class="rowbtns"><button type="button" class="btn primary" data-fsave="1">${st.editId?"Save":"Add to log"}</button>${st.editId?`<button type="button" class="btn danger" data-fdel="1">Delete</button>`:`<button type="button" class="btn" data-fback="1">Back</button>`}<button type="button" class="btn" data-ffav="1">☆ Save to My foods</button></div>
       <button type="button" class="btn" data-fclose="1">Close</button>`;
   }else if(st.mode==="ai"){
     h=`<h3 id="sheetTitle">${st.loading?"Looking at your food…":"Check the estimate"}</h3>
       ${st.img?`<img src="${st.img}" alt="Your meal" style="max-height:160px;border-radius:12px;object-fit:cover">`:""}
       ${st.loading?`<p class="muted">This takes a few seconds.</p>`:st.err?`<p style="color:var(--red)">${esc(st.err)}</p>`:`
-      <p class="muted" style="margin:0">Untick anything wrong and fix the grams; nutrition scales with the amount. Estimates from photos can be off by 20–30%.</p>
-      ${st.items.map((it,i)=>`<div class="airow"><input type="checkbox" data-aion="${i}" ${it.on?"checked":""} aria-label="Include ${esc(it.name)}"><span><input class="ainame" data-ainame="${i}" value="${esc(it.name)}" aria-label="Food name"><small>${R(it.per.cal*it.g/100)} cal · ${R(it.per.p*it.g/100)}P ${R(it.per.c*it.g/100)}C ${R(it.per.f*it.g/100)}F</small></span><input class="txt" inputmode="decimal" data-aig="${i}" value="${it.g}" aria-label="${esc(it.name)} grams"><span class="gu">g</span></div>`).join("")}
+      <p class="muted" style="margin:0">Untick anything wrong and fix the amounts; nutrition scales with the amount. Estimates from photos can be off by 20–30%.</p>
+      ${st.items.map((it,i)=>`<div class="airow"><input type="checkbox" data-aion="${i}" ${it.on?"checked":""} aria-label="Include ${esc(it.name)}"><span><input class="ainame" data-ainame="${i}" value="${esc(it.name)}" aria-label="Food name"><small>${R(it.per.cal*it.g/100)} cal · ${R(it.per.p*it.g/100)}P ${R(it.per.c*it.g/100)}C ${R(it.per.f*it.g/100)}F</small></span><input class="txt" inputmode="decimal" data-aig="${i}" value="${nq(it.q!=null?it.q:it.g)}" aria-label="${esc(it.name)} amount"><select class="txt gu" data-aiu="${i}" aria-label="${esc(it.name)} unit">${unitOpt(unitsFor(it.sv),it.u||"g")}</select></div>`).join("")}
       <p class="fsec">Meal total</p><div class="fmac" id="ai-tot">${aiTotHTML()}</div>
       ${mealSel(st.meal)}<div class="rowbtns"><button type="button" class="btn primary" data-faiadd="1">Add ${st.items.filter(i=>i.on).length} item(s)</button><button type="button" class="btn" data-faisave="1">★ Save as meal</button></div>
       <label class="fl">Not right? Tell the AI, or rename a food above<textarea class="txt note" id="fs-refine" rows="2" placeholder="e.g. That’s pork, not chicken. Rice is about 2 cups."></textarea></label>
@@ -743,14 +758,15 @@ function fsDraw(){
   }else if(st.mode==="savemeal"){
     const t=sumMac(st.items);
     h=`<h3 id="sheetTitle">Save meal preset</h3><label class="fl">Name<input class="txt" id="fs-pname" value="${esc(st.name||"")}" placeholder="e.g. Usual breakfast"></label>
-      <p class="muted" style="margin:0">${st.items.map(i=>`${esc(i.name)} ${R(i.g)} g`).join(" · ")}<br>${R(t.cal)} cal · ${R(t.p)}P ${R(t.c)}C ${R(t.f)}F</p>
+      <p class="muted" style="margin:0">${st.items.map(i=>`${esc(i.name)} ${esc(qtyText(i))}`).join(" · ")}<br>${R(t.cal)} cal · ${R(t.p)}P ${R(t.c)}C ${R(t.f)}F</p>
       <button type="button" class="btn primary" data-fpsave="1">Save preset</button><button type="button" class="btn" data-fclose="1">Cancel</button>`;
   }else if(st.mode==="create"){
     h=`<h3 id="sheetTitle">Create food</h3>
       <div class="rowbtns"><button type="button" class="btn sm primary" data-cfphoto="1">📷 Photo or label</button><button type="button" class="btn sm" data-cfbar="1">Scan barcode</button></div>
       <p class="muted" id="cf-status" style="margin:0">Take or upload a photo of the food or its nutrition label, or a barcode, to fill this in. You can edit every number after.</p>
       <label class="fl">Name<input class="txt" id="cf-name" placeholder="e.g. Mom’s chicken soup" value="${esc(st.name||"")}"></label>
-      <div class="grid2"><label class="fl">Serving (g)<input class="txt" inputmode="decimal" id="cf-g" value="100"></label><label class="fl">Calories per serving<input class="txt" inputmode="decimal" id="cf-cal"></label></div>
+      <div class="grid2"><label class="fl">Serving<input class="txt" id="cf-sv" value="1 serving" placeholder="e.g. 1 bar, 1 cup, 2 slices"></label><label class="fl">Weight (g or ml)<input class="txt" inputmode="decimal" id="cf-g" placeholder="optional"></label></div>
+      <div class="grid2"><label class="fl">Calories per serving<input class="txt" inputmode="decimal" id="cf-cal"></label><span></span></div>
       <div class="grid2"><label class="fl">Protein g<input class="txt" inputmode="decimal" id="cf-p"></label><label class="fl">Carbs g<input class="txt" inputmode="decimal" id="cf-c"></label></div>
       <div class="grid2"><label class="fl">Fat g<input class="txt" inputmode="decimal" id="cf-f"></label><label class="fl">Log it to${mealSel(st.meal)}</label></div>
       <label style="display:flex;gap:8px;align-items:center;font-size:14px"><input type="checkbox" id="cf-log" checked> Also add one serving to today’s log</label>
@@ -769,12 +785,12 @@ function fsDraw(){
   }
   sheet.innerHTML=`<div class="in">${h}</div>`;
 }
-function fsAmountLive(){const g=+(document.getElementById("fs-g")||{}).value||0,p=FS.per,k=g/100;FS.g=g;[["cal","cal"],["p","p"],["c","c"],["f","f"]].forEach(([id,key])=>{const el=document.getElementById("fm-"+id);if(el)el.textContent=R(p[key]*k)})}
+function fsAmountLive(){const U=unitsFor(FS.sv),u=U[+(document.getElementById("fs-u")||{}).value||0]||U[0],q=+String((document.getElementById("fs-g")||{}).value||"").replace(",",".")||0,g=q*u.g,p=FS.per,k=g/100;FS.q=q;FS.u=u.l;FS.g=g;[["cal","cal"],["p","p"],["c","c"],["f","f"]].forEach(([id,key])=>{const el=document.getElementById("fm-"+id);if(el)el.textContent=R(p[key]*k)})}
 async function offSearch(q){
   FS.offLoading=true;fsDraw();refocus();
-  try{const r=await fetch(`https://world.openfoodfacts.org/cgi/search.pl?search_terms=${encodeURIComponent(q)}&search_simple=1&action=process&json=1&page_size=12&fields=product_name,brands,nutriments,serving_quantity`);const j=await r.json();
+  try{const r=await fetch(`https://world.openfoodfacts.org/cgi/search.pl?search_terms=${encodeURIComponent(q)}&search_simple=1&action=process&json=1&page_size=12&fields=product_name,brands,nutriments,serving_quantity,serving_size`);const j=await r.json();
     if(!FS||FS.mode!=="search"||FS.q!==q)return;
-    FS.off=(j.products||[]).filter(p=>p.product_name&&p.nutriments&&p.nutriments["energy-kcal_100g"]!=null).slice(0,10).map(p=>({name:p.product_name+(p.brands?` · ${p.brands.split(",")[0]}`:""),g:R(+p.serving_quantity||100),per:{cal:+p.nutriments["energy-kcal_100g"]||0,p:+p.nutriments.proteins_100g||0,c:+p.nutriments.carbohydrates_100g||0,f:+p.nutriments.fat_100g||0}}));
+    FS.off=(j.products||[]).filter(p=>p.product_name&&p.nutriments&&p.nutriments["energy-kcal_100g"]!=null).slice(0,10).map(p=>({name:p.product_name+(p.brands?` · ${p.brands.split(",")[0]}`:""),g:R(+p.serving_quantity||100),sv:parseServ(p.serving_size,p.serving_quantity),per:{cal:+p.nutriments["energy-kcal_100g"]||0,p:+p.nutriments.proteins_100g||0,c:+p.nutriments.carbohydrates_100g||0,f:+p.nutriments.fat_100g||0}}));
   }catch(e){if(FS)FS.off=[]}
   if(FS&&FS.mode==="search"){FS.offLoading=false;fsDraw();refocus()}
 }
@@ -784,13 +800,13 @@ async function shrink(file,max=1024){const url=URL.createObjectURL(file);const i
 async function aiFood(img,text){
   if(!AIKEY)throw new Error("Add your Claude API key in ⚙ Nutrition settings first.");
   const content=[];if(img)content.push({type:"image",source:{type:"base64",media_type:"image/jpeg",data:img.split(",")[1]}});
-  content.push({type:"text",text:`${text?(img?`Notes from the user about this photo (trust them over what you see): "${text}"\n`:`Food described by the user: "${text}"\n`):""}Identify each separate food${img?" in this photo":""}, estimate its portion in grams (cooked weight) and the nutrition for that portion. Reply with JSON only, no other text, exactly like {"items":[{"name":"Chicken breast, grilled","grams":150,"cal":248,"protein":46,"carbs":0,"fat":5}]}. Use short English names.`});
+  content.push({type:"text",text:`${text?(img?`Notes from the user about this photo (trust them over what you see): "${text}"\n`:`Food described by the user: "${text}"\n`):""}Identify each separate food${img?" in this photo":""}, estimate its portion in grams (cooked weight) and the nutrition for that portion. Also give "portion" as people would say it, in the most natural unit for that food (e.g. "1 cup", "2 pieces", "1 bowl", "1 can", "1 slice"). Reply with JSON only, no other text, exactly like {"items":[{"name":"Chicken breast, grilled","portion":"1 piece","grams":150,"cal":248,"protein":46,"carbs":0,"fat":5}]}. Use short English names.`});
   const r=await fetch("https://api.anthropic.com/v1/messages",{method:"POST",headers:{"content-type":"application/json","x-api-key":AIKEY,"anthropic-version":"2023-06-01","anthropic-dangerous-direct-browser-access":"true"},body:JSON.stringify({model:AIMODEL,max_tokens:4000,messages:[{role:"user",content}]})});
   const j=await r.json().catch(()=>({}));
   if(!r.ok)throw new Error((j.error&&j.error.message)||`The AI request failed (${r.status}).`);
   const txt=(j.content||[]).filter(c=>c.type==="text").map(c=>c.text).join(""),m=txt.match(/\{[\s\S]*\}/);
   if(!m)throw new Error("The AI didn’t return an estimate. Try another photo.");
-  return (JSON.parse(m[0]).items||[]).map(it=>{const g=Math.max(1,+it.grams||100);return {on:true,name:it.name||"Food",orig:it.name||"Food",g:R(g),per:{cal:(+it.cal||0)/g*100,p:(+it.protein||0)/g*100,c:(+it.carbs||0)/g*100,f:(+it.fat||0)/g*100}}});
+  return (JSON.parse(m[0]).items||[]).map(it=>{const g=Math.max(1,+it.grams||100);const L=parseLabel(it.portion),sv=L.u&&!/^(g|grams?|ml|oz)$/i.test(L.u)?{u:L.u.slice(0,24),g:g/(L.n||1)}:null;return {on:true,name:it.name||"Food",orig:it.name||"Food",g:R(g),sv,q:sv?nq(L.n||1):R(g),u:sv?sv.u:"g",per:{cal:(+it.cal||0)/g*100,p:(+it.protein||0)/g*100,c:(+it.carbs||0)/g*100,f:(+it.fat||0)/g*100}}});
 }
 async function photoFlow(meal){const file=await pickImage();if(!file)return;const img=await shrink(file);fsOpen({mode:"aiprep",img,meal,hint:""});const el=document.getElementById("fs-hint");if(el)el.focus()}
 async function callClaude(content){
@@ -800,14 +816,14 @@ async function callClaude(content){
   const txt=(j.content||[]).filter(c=>c.type==="text").map(c=>c.text).join(""),m=txt.match(/\{[\s\S]*\}/);if(!m)throw new Error("The AI didn’t return numbers. Try a clearer photo.");return JSON.parse(m[0]);
 }
 async function aiLabel(img,hint){
-  return callClaude([{type:"image",source:{type:"base64",media_type:"image/jpeg",data:img.split(",")[1]}},{type:"text",text:`${hint?`The food is: "${hint}".\n`:""}This photo shows a food or its nutrition facts label. If a nutrition label is visible, read the values for one serving exactly as printed (convert kJ to kcal if needed). Otherwise estimate one typical serving of the food shown. Reply with JSON only, no other text: {"name":"...","serving_g":100,"cal":0,"protein":0,"carbs":0,"fat":0}`}]);
+  return callClaude([{type:"image",source:{type:"base64",media_type:"image/jpeg",data:img.split(",")[1]}},{type:"text",text:`${hint?`The food is: "${hint}".\n`:""}This photo shows a food or its nutrition facts label. If a nutrition label is visible, read the values for one serving exactly as printed (convert kJ to kcal if needed). Otherwise estimate one typical serving of the food shown. "serving" is the serving as people say it (e.g. "1 bar", "1 cup", "2 slices", "1 can"); serving_g is its weight in grams (or ml for drinks). Reply with JSON only, no other text: {"name":"...","serving":"1 cup","serving_g":100,"cal":0,"protein":0,"carbs":0,"fat":0}`}]);
 }
-function fillCF(o){const set=(id,v)=>{const el=document.getElementById(id);if(el&&v!=null&&v!=="")el.value=typeof v==="number"?+v.toFixed(1):v};const nm=document.getElementById("cf-name");if(nm&&!nm.value.trim()&&o.name)nm.value=o.name;set("cf-g",o.g);set("cf-cal",o.cal);set("cf-p",o.p);set("cf-c",o.c);set("cf-f",o.f)}
+function fillCF(o){const set=(id,v)=>{const el=document.getElementById(id);if(el&&v!=null&&v!=="")el.value=typeof v==="number"?+v.toFixed(1):v};const nm=document.getElementById("cf-name");if(nm&&!nm.value.trim()&&o.name)nm.value=o.name;set("cf-sv",o.sv);set("cf-g",o.g);set("cf-cal",o.cal);set("cf-p",o.p);set("cf-c",o.c);set("cf-f",o.f)}
 const cfStatus=t=>{const el=document.getElementById("cf-status");if(el)el.textContent=t};
 async function lookupOFF(code){
-  const j=await (await fetch(`https://world.openfoodfacts.org/api/v2/product/${encodeURIComponent(code)}.json?fields=product_name,brands,nutriments,serving_quantity`)).json(),p=j.product;
+  const j=await (await fetch(`https://world.openfoodfacts.org/api/v2/product/${encodeURIComponent(code)}.json?fields=product_name,brands,nutriments,serving_quantity,serving_size`)).json(),p=j.product;
   if(!p||!p.nutriments||p.nutriments["energy-kcal_100g"]==null)return {code};
-  return {code,name:(p.product_name||"Product")+(p.brands?` · ${p.brands.split(",")[0]}`:""),g:R(+p.serving_quantity||100),per:{cal:+p.nutriments["energy-kcal_100g"]||0,p:+p.nutriments.proteins_100g||0,c:+p.nutriments.carbohydrates_100g||0,f:+p.nutriments.fat_100g||0}}}
+  return {code,name:(p.product_name||"Product")+(p.brands?` · ${p.brands.split(",")[0]}`:""),g:R(+p.serving_quantity||100),sv:parseServ(p.serving_size,p.serving_quantity),serving:p.serving_size||"",per:{cal:+p.nutriments["energy-kcal_100g"]||0,p:+p.nutriments.proteins_100g||0,c:+p.nutriments.carbohydrates_100g||0,f:+p.nutriments.fat_100g||0}}}
 async function codeFromFile(file){await loadZX();const url=URL.createObjectURL(file);try{return (await new ZXing.BrowserMultiFormatReader().decodeFromImageUrl(url)).getText()}finally{URL.revokeObjectURL(url)}}
 /* Live camera scanner: resolves with the code as soon as one is seen, "photo" to fall back, or null on cancel. */
 function liveScan(){return new Promise(async done=>{
@@ -844,7 +860,7 @@ async function scanBarcode(meal){
   let code;try{code=await getBarcode()}catch(e){toast("Couldn’t read a barcode. Take a closer, sharper photo of it.");return}
   if(!code)return;toast(`Found ${code} — looking it up…`);
   try{const r=await lookupOFF(code);if(!r.per){toast(`Barcode ${code} isn’t in Open Food Facts yet`);return}
-    fsOpen({mode:"amount",name:r.name,g:r.g,meal,src:"barcode · Open Food Facts",per:r.per})}catch(e){toast("Couldn’t look up that barcode. Check your connection.")}
+    fsOpen({mode:"amount",name:r.name,g:r.sv?r.sv.g:100,sv:r.sv,meal,src:"barcode · Open Food Facts",per:r.per})}catch(e){toast("Couldn’t look up that barcode. Check your connection.")}
 }
 const MEATS=["Chicken","Pork","Beef","Fish","Shrimp","Duck","Tofu","Egg"];
 const hintChips=target=>`<div class="hchips" role="group" aria-label="Quick answers">${MEATS.map(m=>`<button type="button" data-hchip="${m}" data-target="${target}">${m}</button>`).join("")}</div>`;
@@ -854,36 +870,37 @@ const fmeal=()=>{const el=document.getElementById("fs-meal");return el?el.value:
 document.getElementById("sheet").addEventListener("click",async ev=>{
   if(!FS)return;const b=ev.target.closest("button");if(!b)return;
   if(b.dataset.fclose){FS=null;return closeSheet()}
-  if(b.dataset.flocal){const f=LOCAL[+b.dataset.flocal];return fsOpen({mode:"amount",name:f[0],g:f[5],meal:fmeal(),src:"approx. values",per:{cal:f[1],p:f[2],c:f[3],f:f[4]}})}
-  if(b.dataset.foff){const f=FS.off[+b.dataset.foff];return fsOpen({mode:"amount",name:f.name,g:f.g,meal:fmeal(),src:"Open Food Facts",per:f.per})}
+  if(b.dataset.flocal){const f=LOCAL[+b.dataset.flocal];return fsOpen({mode:"amount",name:f[0],g:f[5],sv:{u:"serving",g:f[5]},meal:fmeal(),src:"approx. values",per:{cal:f[1],p:f[2],c:f[3],f:f[4]}})}
+  if(b.dataset.foff){const f=FS.off[+b.dataset.foff];return fsOpen({mode:"amount",name:f.name,g:f.sv?f.sv.g:100,sv:f.sv,meal:fmeal(),src:"Open Food Facts",per:f.per})}
   if(b.dataset.fback){return fsOpen({mode:"search",meal:fmeal(),q:FS.q||""})}
-  if(b.dataset.fsave){const g=+document.getElementById("fs-g").value;if(!(g>0)){toast("Enter the amount in grams");return}const meal=fmeal();
-    if(FS.editId){const e=(FOOD[foodDate]||[]).find(x=>x.id===FS.editId);if(e){e.g=g;e.meal=meal}}else{(FOOD[foodDate]=FOOD[foodDate]||[]).push({id:Date.now().toString(36)+Math.random().toString(36).slice(2,5),meal,name:FS.name,g,per:FS.per})}
+  if(b.dataset.fsave){fsAmountLive();const g=FS.g;if(!(g>0)){toast("Enter the amount");return}const meal=fmeal();
+    if(FS.editId){const e=(FOOD[foodDate]||[]).find(x=>x.id===FS.editId);if(e){e.g=g;e.meal=meal;delete e.q;delete e.u;withQ(e,FS)}}else{(FOOD[foodDate]=FOOD[foodDate]||[]).push(withQ({id:Date.now().toString(36)+Math.random().toString(36).slice(2,5),meal,name:FS.name,g,per:FS.per},FS))}
     saveF();closedMeals[meal]=false;toast(FS.editId?"Saved":`Added to ${MEALS.find(m=>m[0]===meal)[1]}`);FS=null;closeSheet();return render()}
   if(b.dataset.fdel){FOOD[foodDate]=(FOOD[foodDate]||[]).filter(x=>x.id!==FS.editId);saveF();FS=null;closeSheet();toast("Deleted");return render()}
   if(b.dataset.fphoto){return photoFlow(fmeal())}
   if(b.dataset.fanalyze){return runAI(FS.img,document.getElementById("fs-hint").value.trim(),fmeal())}
   if(b.dataset.frefine){const fixes=FS.items.filter(i=>i.name.trim()&&i.name!==i.orig).map(i=>`"${i.orig}" is actually ${i.name}`).join(". "),more=[document.getElementById("fs-refine").value.trim(),fixes].filter(Boolean).join(". ");if(!more){toast("Type what to fix, tap a meat, or rename a food first");return}return runAI(FS.img,[FS.hint,more].filter(Boolean).join(". "),fmeal())}
   if(b.dataset.hchip){const el=document.getElementById(b.dataset.target);if(!el)return;const v=el.value.trim().replace(/\.?$/,"");el.value=(v?v+". ":"")+`The meat is ${b.dataset.hchip.toLowerCase()}`;el.focus();if(b.dataset.target==="fs-hint")FS.hint=el.value;return}
-  if(b.dataset.faisave){const items=FS.items.filter(i=>i.on).map(i=>({name:i.name,g:i.g,per:i.per}));if(!items.length){toast("Tick at least one item");return}return fsOpen({mode:"savemeal",items,meal:fmeal(),name:(FS.hint||"").slice(0,40)})}
+  if(b.dataset.faisave){const items=FS.items.filter(i=>i.on).map(i=>withQ({name:i.name,g:i.g,per:i.per},i));if(!items.length){toast("Tick at least one item");return}return fsOpen({mode:"savemeal",items,meal:fmeal(),name:(FS.hint||"").slice(0,40)})}
   if(b.dataset.fpsave){const name=document.getElementById("fs-pname").value.trim();if(!name){toast("Give the preset a name");return}PRESETS.meals.push({id:uid(),name,items:clone(FS.items)});savePR();toast(`Saved “${name}”. Find it under Saved when you add food.`);FS=null;closeSheet();return render()}
-  if(b.dataset.pmeal){const x=PRESETS.meals.find(m=>m.id===b.dataset.pmeal),meal=fmeal();if(!x)return;(FOOD[foodDate]=FOOD[foodDate]||[]).push(...x.items.map(i=>({id:uid(),meal,name:i.name,g:i.g,per:i.per})));saveF();closedMeals[meal]=false;toast(`Logged ${x.name}`);FS=null;closeSheet();return render()}
-  if(b.dataset.pfood){const x=PRESETS.foods.find(f=>f.id===b.dataset.pfood);if(x)fsOpen({mode:"amount",name:x.name,g:R(x.g),meal:fmeal(),src:"My foods",per:x.per});return}
+  if(b.dataset.pmeal){const x=PRESETS.meals.find(m=>m.id===b.dataset.pmeal),meal=fmeal();if(!x)return;(FOOD[foodDate]=FOOD[foodDate]||[]).push(...x.items.map(i=>withQ({id:uid(),meal,name:i.name,g:i.g,per:i.per},i)));saveF();closedMeals[meal]=false;toast(`Logged ${x.name}`);FS=null;closeSheet();return render()}
+  if(b.dataset.pfood){const x=PRESETS.foods.find(f=>f.id===b.dataset.pfood);if(x)fsOpen({mode:"amount",name:x.name,g:x.g,q:x.u?x.q:undefined,u:x.u,sv:x.sv,meal:fmeal(),src:"My foods",per:x.per});return}
   if(b.dataset.pdelm){PRESETS.meals=PRESETS.meals.filter(m=>m.id!==b.dataset.pdelm);savePR();toast("Preset deleted");return fsDraw()}
   if(b.dataset.pdelf){PRESETS.foods=PRESETS.foods.filter(f=>f.id!==b.dataset.pdelf);savePR();toast("Removed from My foods");return fsDraw()}
-  if(b.dataset.ffav){const g=+document.getElementById("fs-g").value||FS.g;if(PRESETS.foods.some(f=>f.name===FS.name)){toast("Already in My foods");return}PRESETS.foods.push({id:uid(),name:FS.name,g,per:FS.per});savePR();toast("Saved to My foods");return}
+  if(b.dataset.ffav){fsAmountLive();if(PRESETS.foods.some(f=>f.name===FS.name)){toast("Already in My foods");return}PRESETS.foods.push(withQ({id:uid(),name:FS.name,g:FS.g,per:FS.per},FS));savePR();toast("Saved to My foods");return}
   if(b.dataset.fcreate){return fsOpen({mode:"create",meal:fmeal(),name:FS.q||""})}
   if(b.dataset.cfphoto){const file=await pickImage();if(!file)return;const img=await shrink(file,1400);cfStatus("Reading your photo… this takes a few seconds.");
-    try{const r=await aiLabel(img,document.getElementById("cf-name").value.trim());fillCF({name:r.name,g:+r.serving_g||100,cal:+r.cal||0,p:+r.protein||0,c:+r.carbs||0,f:+r.fat||0});cfStatus("Filled in from your photo. Check the numbers and edit anything that’s off.")}catch(e){cfStatus(e.message)}return}
+    try{const r=await aiLabel(img,document.getElementById("cf-name").value.trim());fillCF({name:r.name,sv:r.serving||"1 serving",g:+r.serving_g||"",cal:+r.cal||0,p:+r.protein||0,c:+r.carbs||0,f:+r.fat||0});cfStatus("Filled in from your photo. Check the numbers and edit anything that’s off.")}catch(e){cfStatus(e.message)}return}
   if(b.dataset.cfbar){let code;try{code=await getBarcode()}catch(e){cfStatus("Couldn’t read a barcode. Take a closer, sharper photo of it.");return}if(!code)return;cfStatus(`Found ${code} — looking it up…`);
-    try{const r=await lookupOFF(code);if(!r.per){cfStatus(`Barcode ${r.code} isn’t in Open Food Facts yet. Try 📷 Photo or label instead.`);return}const k=r.g/100;fillCF({name:r.name,g:r.g,cal:r.per.cal*k,p:r.per.p*k,c:r.per.c*k,f:r.per.f*k});cfStatus("Filled in from the barcode (per serving). Edit anything you like.")}catch(e){cfStatus("Couldn’t look up that barcode. Check your connection.")}return}
-  if(b.dataset.fcsave){const val=id=>+(document.getElementById(id).value||"").replace(",",".")||0,name=document.getElementById("cf-name").value.trim(),g=val("cf-g")||100;if(!name){toast("Give the food a name");return}
-    const per={cal:val("cf-cal")/g*100,p:val("cf-p")/g*100,c:val("cf-c")/g*100,f:val("cf-f")/g*100},meal=fmeal();PRESETS.foods.push({id:uid(),name,g,per});savePR();
-    if(document.getElementById("cf-log").checked){(FOOD[foodDate]=FOOD[foodDate]||[]).push({id:uid(),meal,name,g,per});saveF();closedMeals[meal]=false}
+    try{const r=await lookupOFF(code);if(!r.per){cfStatus(`Barcode ${r.code} isn’t in Open Food Facts yet. Try 📷 Photo or label instead.`);return}const k=r.g/100;fillCF({name:r.name,sv:r.serving||"1 serving",g:r.g,cal:r.per.cal*k,p:r.per.p*k,c:r.per.c*k,f:r.per.f*k});cfStatus("Filled in from the barcode (per serving). Edit anything you like.")}catch(e){cfStatus("Couldn’t look up that barcode. Check your connection.")}return}
+  if(b.dataset.fcsave){const val=id=>+(document.getElementById(id).value||"").replace(",",".")||0,name=document.getElementById("cf-name").value.trim(),wt=val("cf-g");if(!name){toast("Give the food a name");return}
+    const L=parseLabel(document.getElementById("cf-sv").value),n=L.n||1,lbl=(L.u&&!/^(g|grams?)$/i.test(L.u))?L.u.slice(0,24):"serving",g=wt||100,sv=wt?{u:lbl,g:wt/n}:{u:lbl,g:100/n,v:1};
+    const per={cal:val("cf-cal")/g*100,p:val("cf-p")/g*100,c:val("cf-c")/g*100,f:val("cf-f")/g*100},meal=fmeal(),base={g,per,sv,q:n,u:lbl};PRESETS.foods.push({id:uid(),name,...base});savePR();
+    if(document.getElementById("cf-log").checked){(FOOD[foodDate]=FOOD[foodDate]||[]).push({id:uid(),meal,name,...base});saveF();closedMeals[meal]=false}
     toast(`Saved “${name}” to My foods`);FS=null;closeSheet();return render()}
   if(b.dataset.fbarcode){return scanBarcode(fmeal())}
   if(b.dataset.faitext){return runAI(null,FS.q,fmeal())}
-  if(b.dataset.faiadd){const meal=fmeal(),add=FS.items.filter(i=>i.on).map(i=>({...i,name:i.name.trim()||i.orig}));(FOOD[foodDate]=FOOD[foodDate]||[]).push(...add.map(i=>({id:Date.now().toString(36)+Math.random().toString(36).slice(2,6),meal,name:i.name,g:i.g,per:i.per})));saveF();closedMeals[meal]=false;toast(`Added ${add.length} item(s)`);FS=null;closeSheet();return render()}
+  if(b.dataset.faiadd){const meal=fmeal(),add=FS.items.filter(i=>i.on).map(i=>({...i,name:i.name.trim()||i.orig}));(FOOD[foodDate]=FOOD[foodDate]||[]).push(...add.map(i=>withQ({id:Date.now().toString(36)+Math.random().toString(36).slice(2,6),meal,name:i.name,g:i.g,per:i.per},i)));saveF();closedMeals[meal]=false;toast(`Added ${add.length} item(s)`);FS=null;closeSheet();return render()}
   if(b.dataset.fsuggest){const t=suggestTargets();["cal","p","c","f"].forEach(k=>{document.getElementById(`ns-${k}`).value=t[k]});return}
   if(b.dataset.fresett){NUT=null;store.set("c1-nut",null);toast("Using suggested targets");FS=null;closeSheet();return render()}
   if(b.dataset.fsaveset){const v=id=>+document.getElementById(id).value||0;NUT={};["cal","p","c","f"].forEach(k=>{NUT[k]=v(`ns-${k}`)});store.set("c1-nut",NUT);
@@ -893,10 +910,13 @@ document.getElementById("sheet").addEventListener("input",ev=>{
   if(!FS)return;const el=ev.target;
   if(el.id==="fs-q"){FS.q=el.value;FS.off=null;clearTimeout(offTimer);const q=el.value.trim();fsDraw();refocus();if(q.length>=3)offTimer=setTimeout(()=>offSearch(q),500)}
   else if(el.id==="fs-g")fsAmountLive();
-  else if(el.dataset.aig){const it=FS.items[+el.dataset.aig];it.g=Math.max(0,+el.value||0);const sm=el.parentElement.querySelector("small");if(sm)sm.textContent=`${R(it.per.cal*it.g/100)} cal · ${R(it.per.p*it.g/100)}P ${R(it.per.c*it.g/100)}C ${R(it.per.f*it.g/100)}F`;aiTotRefresh()}
+  else if(el.dataset.aig){const it=FS.items[+el.dataset.aig],U=unitsFor(it.sv),u=U.find(x=>x.l===(it.u||"g"))||U[0];it.q=Math.max(0,+String(el.value).replace(",",".")||0);it.g=it.q*u.g;const sm=el.parentElement.querySelector("small");if(sm)sm.textContent=`${R(it.per.cal*it.g/100)} cal · ${R(it.per.p*it.g/100)}P ${R(it.per.c*it.g/100)}C ${R(it.per.f*it.g/100)}F`;aiTotRefresh()}
   else if(el.dataset.ainame){FS.items[+el.dataset.ainame].name=el.value}
 });
-document.getElementById("sheet").addEventListener("change",ev=>{if(!FS)return;const el=ev.target;if(el.dataset.aion){FS.items[+el.dataset.aion].on=el.checked;aiTotRefresh()}else if(el.id==="fs-meal")FS.meal=el.value});
+document.getElementById("sheet").addEventListener("change",ev=>{if(!FS)return;const el=ev.target;
+  if(el.id==="fs-u"){const U=unitsFor(FS.sv),u=U[+el.value]||U[0];FS.q=nq(FS.g/u.g);FS.u=u.l;fsDraw();return}
+  if(el.dataset.aiu){const it=FS.items[+el.dataset.aiu],U=unitsFor(it.sv),u=U[+el.value]||U[0];it.q=nq(it.g/u.g);it.u=u.l;const inp=document.querySelector(`[data-aig="${el.dataset.aiu}"]`);if(inp)inp.value=it.q;return}
+  if(el.dataset.aion){FS.items[+el.dataset.aion].on=el.checked;aiTotRefresh()}else if(el.id==="fs-meal")FS.meal=el.value});
 document.getElementById("scrim").addEventListener("click",()=>{FS=null});
 function viewPlan(){
   const opts=sel=>`<option value="">Rest</option>`+Object.entries(PLAN.days).map(([id,P])=>`<option value="${id}"${id===sel?" selected":""}>${esc(P.title)}</option>`).join("");
@@ -1046,8 +1066,8 @@ app.addEventListener("click",async ev=>{
   if(b=q("[data-addmeal]"))return fsOpen({mode:"search",meal:b.dataset.addmeal,q:""});
   if(b=q("[data-fsearch]")){fsOpen({mode:"search",meal:defMeal(),q:""});const el=document.getElementById("fs-q");if(el)el.focus();return}
   if(b=q("[data-fphoto]"))return photoFlow(defMeal());
-  if(b=q("[data-savemeal]")){const m=b.dataset.savemeal,items=(FOOD[foodDate]||[]).filter(e=>e.meal===m).map(e=>({name:e.name,g:e.g,per:e.per}));if(!items.length)return;return fsOpen({mode:"savemeal",items,meal:m,name:MEALS.find(x=>x[0]===m)[1]})}
-  if(b=q("[data-editfood]")){const e=(FOOD[foodDate]||[]).find(x=>x.id===b.dataset.editfood);if(e)fsOpen({mode:"amount",editId:e.id,name:e.name,g:R(e.g),meal:e.meal,per:e.per});return}
+  if(b=q("[data-savemeal]")){const m=b.dataset.savemeal,items=(FOOD[foodDate]||[]).filter(e=>e.meal===m).map(e=>withQ({name:e.name,g:e.g,per:e.per},e));if(!items.length)return;return fsOpen({mode:"savemeal",items,meal:m,name:MEALS.find(x=>x[0]===m)[1]})}
+  if(b=q("[data-editfood]")){const e=(FOOD[foodDate]||[]).find(x=>x.id===b.dataset.editfood);if(e)fsOpen({mode:"amount",editId:e.id,name:e.name,g:e.g,q:e.u?e.q:R(e.g),u:e.u||"g",sv:e.sv,meal:e.meal,per:e.per});return}
   if(b=q("[data-act=fsettings]"))return fsOpen({mode:"settings"});
   if(b=q("[data-act=fcopy]")){const y=FOOD[addDays(foodDate,-1)]||[];if(!y.length){toast("Nothing logged the day before");return}(FOOD[foodDate]=FOOD[foodDate]||[]).push(...y.map(e=>({...clone(e),id:Date.now().toString(36)+Math.random().toString(36).slice(2,6)})));saveF();toast(`Copied ${y.length} item(s) from the day before`);return render()}
   if(b=q("[data-startnow]"))pendingStart=b.dataset.startnow;
