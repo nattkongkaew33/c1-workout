@@ -33,6 +33,11 @@ a{color:inherit}
 button{font-family:inherit;color:inherit}
 button:focus-visible,a:focus-visible,input:focus-visible,select:focus-visible{outline:2px solid var(--blue);outline-offset:2px}
 .eyebrow{font:600 13px var(--body);color:var(--muted)}
+.toprow{display:flex;align-items:center;justify-content:space-between;gap:10px}
+.refresh{display:inline-flex;align-items:center;gap:6px;min-height:36px;padding:0 12px;border-radius:999px;border:1px solid var(--line,#2a2f36);background:transparent;color:var(--muted);font:600 13px var(--body);cursor:pointer}
+.refresh svg{width:16px;height:16px}
+.refresh.spin svg{animation:rspin .8s linear infinite}
+@keyframes rspin{to{transform:rotate(360deg)}}
 h1{font-family:var(--display);font-weight:800;font-size:34px;line-height:1.05;margin:2px 0 0;text-wrap:balance}
 h2.sec{font-family:var(--display);font-weight:800;font-size:22px;margin:22px 0 8px}
 .muted{color:var(--muted);font-size:14px}
@@ -292,6 +297,15 @@ details.pw summary small{font:500 13px var(--body);color:var(--muted);margin-lef
 .sheet .opt>span{font-size:13px;font-weight:600;color:var(--muted)}
 .sheet .inline{display:flex;gap:8px}
 .sheet .inline .txt{flex:1}
+.scan{position:fixed;inset:0;z-index:100;background:#000;display:flex;flex-direction:column}
+.scan video{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
+.scan .frame{position:absolute;left:8%;right:8%;top:32%;height:22%;border:3px solid #fff;border-radius:16px;box-shadow:0 0 0 100vmax rgba(0,0,0,.45)}
+.scan .frame::after{content:"";position:absolute;left:6%;right:6%;top:50%;height:2px;background:#ff4d4d;animation:scanline 1.6s ease-in-out infinite alternate}
+@keyframes scanline{from{transform:translateY(-40px)}to{transform:translateY(40px)}}
+.scan .msg{position:absolute;left:16px;right:16px;top:calc(env(safe-area-inset-top,0px) + 24px);color:#fff;text-align:center;font:600 16px var(--body)}
+.scan .bar{position:absolute;left:16px;right:16px;bottom:calc(env(safe-area-inset-bottom,0px) + 24px);display:flex;gap:10px}
+.scan .bar button{flex:1;min-height:48px;border-radius:14px;border:0;font:600 15px var(--body);background:rgba(255,255,255,.18);color:#fff}
+.scan .bar button.pri{background:#fff;color:#000}
 @media (prefers-reduced-motion:reduce){*{transition:none!important}}
 </style>
 </head>
@@ -452,6 +466,15 @@ function status(d){
 const chosen={}; let weekOff=0, calY=new Date().getFullYear(), calM=new Date().getMonth(), selDate=today(), openPw=null, pendingImport=null, confirmReset=false, rpeOpen=null, swapOpen=null, confirmDelW=false;
 
 /* ---------- views ---------- */
+const refreshBtn=`<button type="button" class="refresh" data-act="refresh" aria-label="Refresh the app to get the latest version"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 11a8 8 0 1 0-2.3 5.7M20 4v7h-7"/></svg>Refresh</button>`;
+async function refreshApp(btn){
+  if(btn){btn.classList.add("spin");btn.disabled=true}
+  try{
+    if("serviceWorker" in navigator){const regs=await navigator.serviceWorker.getRegistrations();await Promise.all(regs.map(r=>r.update().catch(()=>{})))}
+    if(window.caches){const ks=await caches.keys();await Promise.all(ks.map(k=>caches.delete(k)))}
+  }catch(e){}
+  const u=new URL(location.href);u.searchParams.set("r",Date.now());location.replace(u.toString());
+}
 function viewWeek(){
   const mon=addDays(mondayOf(today()),weekOff*7), dates=[...Array(7)].map((_,i)=>addDays(mon,i));
   const done=dates.filter(d=>S[d]&&S[d].end).length, planned=dates.filter(d=>planFor(d)||started(S[d])).length;
@@ -467,7 +490,7 @@ function viewWeek(){
     const btn=(st==="today"||(st==="progress"&&isT))?`<span class="startbtn" data-startnow="${d}">▶ ${st==="progress"?"Continue":"Start"}</span>`:"";
     return `<div class="row">${wd}<a class="wcard st-${st}" href="#w-${d}"><span class="ico" style="--c:var(${TCOLOR[type]})">${icon}</span><span class="wtxt"><small>${label}</small>${moved}<strong>${esc(title)}</strong>${extra}</span>${btn}</a>${more}</div>`;
   }).join("");
-  app.innerHTML=`<div class="eyebrow">${esc(WP(mon).name)}</div><h1>This Week’s Schedule</h1>
+  app.innerHTML=`<div class="toprow"><div class="eyebrow">${esc(WP(mon).name)}</div>${refreshBtn}</div><h1>This Week’s Schedule</h1>
     <div class="wkhead"><div class="rng">${fshort(dates[0])} – ${fshort(dates[6])}<small>${done} of ${planned} workouts done · tap ⋮ to move a day</small></div>
     <div class="arrows"><button type="button" data-wk="-1" aria-label="Previous week">‹</button><button type="button" data-wk="1" aria-label="Next week">›</button></div></div>${rows}`;
 }
@@ -781,21 +804,47 @@ async function aiLabel(img,hint){
 }
 function fillCF(o){const set=(id,v)=>{const el=document.getElementById(id);if(el&&v!=null&&v!=="")el.value=typeof v==="number"?+v.toFixed(1):v};const nm=document.getElementById("cf-name");if(nm&&!nm.value.trim()&&o.name)nm.value=o.name;set("cf-g",o.g);set("cf-cal",o.cal);set("cf-p",o.p);set("cf-c",o.c);set("cf-f",o.f)}
 const cfStatus=t=>{const el=document.getElementById("cf-status");if(el)el.textContent=t};
-async function decodeBarcode(file){await loadZX();const url=URL.createObjectURL(file);try{const res=await new ZXing.BrowserMultiFormatReader().decodeFromImageUrl(url);const code=res.getText();
+async function lookupOFF(code){
   const j=await (await fetch(`https://world.openfoodfacts.org/api/v2/product/${encodeURIComponent(code)}.json?fields=product_name,brands,nutriments,serving_quantity`)).json(),p=j.product;
   if(!p||!p.nutriments||p.nutriments["energy-kcal_100g"]==null)return {code};
-  return {code,name:(p.product_name||"Product")+(p.brands?` · ${p.brands.split(",")[0]}`:""),g:R(+p.serving_quantity||100),per:{cal:+p.nutriments["energy-kcal_100g"]||0,p:+p.nutriments.proteins_100g||0,c:+p.nutriments.carbohydrates_100g||0,f:+p.nutriments.fat_100g||0}}}finally{URL.revokeObjectURL(url)}}
+  return {code,name:(p.product_name||"Product")+(p.brands?` · ${p.brands.split(",")[0]}`:""),g:R(+p.serving_quantity||100),per:{cal:+p.nutriments["energy-kcal_100g"]||0,p:+p.nutriments.proteins_100g||0,c:+p.nutriments.carbohydrates_100g||0,f:+p.nutriments.fat_100g||0}}}
+async function codeFromFile(file){await loadZX();const url=URL.createObjectURL(file);try{return (await new ZXing.BrowserMultiFormatReader().decodeFromImageUrl(url)).getText()}finally{URL.revokeObjectURL(url)}}
+/* Live camera scanner: resolves with the code as soon as one is seen, "photo" to fall back, or null on cancel. */
+function liveScan(){return new Promise(async done=>{
+  if(!(navigator.mediaDevices&&navigator.mediaDevices.getUserMedia))return done("photo");
+  const ov=document.createElement("div");ov.className="scan";ov.setAttribute("role","dialog");ov.setAttribute("aria-label","Barcode scanner");
+  ov.innerHTML=`<video playsinline muted autoplay></video><div class="frame"></div><div class="msg" aria-live="polite">Starting camera…</div><div class="bar"><button type="button" data-x="photo">Use a photo</button><button type="button" class="pri" data-x="cancel">Cancel</button></div>`;
+  document.body.appendChild(ov);const video=ov.querySelector("video"),msg=ov.querySelector(".msg");let reader=null,stream=null,fin=false,raf=0;
+  const end=v=>{if(fin)return;fin=true;cancelAnimationFrame(raf);try{reader&&reader.reset()}catch(e){}if(stream)stream.getTracks().forEach(t=>t.stop());ov.remove();done(v)};
+  ov.addEventListener("click",e=>{const b=e.target.closest("[data-x]");if(b)end(b.dataset.x==="photo"?"photo":null)});
+  const hit=code=>{if(navigator.vibrate)navigator.vibrate(60);end(code)};
+  try{
+    stream=await navigator.mediaDevices.getUserMedia({video:{facingMode:{ideal:"environment"},width:{ideal:1280},height:{ideal:720}},audio:false});
+    if(fin){stream.getTracks().forEach(t=>t.stop());return}
+    video.srcObject=stream;await video.play().catch(()=>{});msg.textContent="Point at the barcode — it scans automatically";
+    if("BarcodeDetector" in window){
+      const det=new BarcodeDetector({formats:["ean_13","ean_8","upc_a","upc_e","code_128"]});
+      const loop=async()=>{if(fin)return;try{const r=await det.detect(video);if(r.length)return hit(r[0].rawValue)}catch(e){}raf=requestAnimationFrame(loop)};loop();
+    }else{
+      await loadZX();if(fin)return;
+      const hints=new Map();hints.set(ZXing.DecodeHintType.POSSIBLE_FORMATS,[ZXing.BarcodeFormat.EAN_13,ZXing.BarcodeFormat.EAN_8,ZXing.BarcodeFormat.UPC_A,ZXing.BarcodeFormat.UPC_E,ZXing.BarcodeFormat.CODE_128]);
+      reader=new ZXing.BrowserMultiFormatReader(hints,250);
+      reader.decodeFromStream(stream,video,(res)=>{if(res&&!fin)hit(res.getText())});
+    }
+  }catch(e){msg.textContent="Camera isn’t available. Allow camera access in Settings, or use a photo.";}
+})}
+async function getBarcode(){
+  const r=await liveScan();if(r!=="photo")return r;
+  const file=await pickImage();if(!file)return null;
+  try{return await codeFromFile(file)}catch(e){throw new Error("nocode")}}
 async function runAI(img,text,meal){fsOpen({mode:"ai",loading:true,img,meal,items:[],hint:text||""});try{const items=await aiFood(img,text);if(FS&&FS.mode==="ai"){FS.loading=false;FS.items=items;if(!items.length)FS.err="No food found in that photo.";fsDraw()}}catch(e){if(FS&&FS.mode==="ai"){FS.loading=false;FS.err=e.message;fsDraw()}}}
 let zxingP=null;
 function loadZX(){return zxingP||(zxingP=new Promise((ok,no)=>{const s=document.createElement("script");s.src="https://cdn.jsdelivr.net/npm/@zxing/library@0.21.3/umd/index.min.js";s.onload=ok;s.onerror=()=>{zxingP=null;no()};document.head.appendChild(s)}))}
 async function scanBarcode(meal){
-  const file=await pickImage();if(!file)return;
-  toast("Reading barcode…");
-  try{await loadZX();const url=URL.createObjectURL(file);const res=await new ZXing.BrowserMultiFormatReader().decodeFromImageUrl(url);URL.revokeObjectURL(url);
-    const code=res.getText();const j=await (await fetch(`https://world.openfoodfacts.org/api/v2/product/${encodeURIComponent(code)}.json?fields=product_name,brands,nutriments,serving_quantity`)).json();
-    const p=j.product;if(!p||!p.nutriments||p.nutriments["energy-kcal_100g"]==null){toast(`Barcode ${code} isn’t in Open Food Facts yet`);return}
-    fsOpen({mode:"amount",name:(p.product_name||"Product")+(p.brands?` · ${p.brands.split(",")[0]}`:""),g:R(+p.serving_quantity||100),meal,src:"barcode · Open Food Facts",per:{cal:+p.nutriments["energy-kcal_100g"]||0,p:+p.nutriments.proteins_100g||0,c:+p.nutriments.carbohydrates_100g||0,f:+p.nutriments.fat_100g||0}});
-  }catch(e){toast("Couldn’t read a barcode. Take a closer, sharper photo of it.")}
+  let code;try{code=await getBarcode()}catch(e){toast("Couldn’t read a barcode. Take a closer, sharper photo of it.");return}
+  if(!code)return;toast(`Found ${code} — looking it up…`);
+  try{const r=await lookupOFF(code);if(!r.per){toast(`Barcode ${code} isn’t in Open Food Facts yet`);return}
+    fsOpen({mode:"amount",name:r.name,g:r.g,meal,src:"barcode · Open Food Facts",per:r.per})}catch(e){toast("Couldn’t look up that barcode. Check your connection.")}
 }
 const MEATS=["Chicken","Pork","Beef","Fish","Shrimp","Duck","Tofu","Egg"];
 const hintChips=target=>`<div class="hchips" role="group" aria-label="Quick answers">${MEATS.map(m=>`<button type="button" data-hchip="${m}" data-target="${target}">${m}</button>`).join("")}</div>`;
@@ -826,8 +875,8 @@ document.getElementById("sheet").addEventListener("click",async ev=>{
   if(b.dataset.fcreate){return fsOpen({mode:"create",meal:fmeal(),name:FS.q||""})}
   if(b.dataset.cfphoto){const file=await pickImage();if(!file)return;const img=await shrink(file,1400);cfStatus("Reading your photo… this takes a few seconds.");
     try{const r=await aiLabel(img,document.getElementById("cf-name").value.trim());fillCF({name:r.name,g:+r.serving_g||100,cal:+r.cal||0,p:+r.protein||0,c:+r.carbs||0,f:+r.fat||0});cfStatus("Filled in from your photo. Check the numbers and edit anything that’s off.")}catch(e){cfStatus(e.message)}return}
-  if(b.dataset.cfbar){const file=await pickImage();if(!file)return;cfStatus("Reading barcode…");
-    try{const r=await decodeBarcode(file);if(!r.per){cfStatus(`Barcode ${r.code} isn’t in Open Food Facts yet. Try 📷 Photo or label instead.`);return}const k=r.g/100;fillCF({name:r.name,g:r.g,cal:r.per.cal*k,p:r.per.p*k,c:r.per.c*k,f:r.per.f*k});cfStatus("Filled in from the barcode (per serving). Edit anything you like.")}catch(e){cfStatus("Couldn’t read a barcode. Take a closer, sharper photo of it.")}return}
+  if(b.dataset.cfbar){let code;try{code=await getBarcode()}catch(e){cfStatus("Couldn’t read a barcode. Take a closer, sharper photo of it.");return}if(!code)return;cfStatus(`Found ${code} — looking it up…`);
+    try{const r=await lookupOFF(code);if(!r.per){cfStatus(`Barcode ${r.code} isn’t in Open Food Facts yet. Try 📷 Photo or label instead.`);return}const k=r.g/100;fillCF({name:r.name,g:r.g,cal:r.per.cal*k,p:r.per.p*k,c:r.per.c*k,f:r.per.f*k});cfStatus("Filled in from the barcode (per serving). Edit anything you like.")}catch(e){cfStatus("Couldn’t look up that barcode. Check your connection.")}return}
   if(b.dataset.fcsave){const val=id=>+(document.getElementById(id).value||"").replace(",",".")||0,name=document.getElementById("cf-name").value.trim(),g=val("cf-g")||100;if(!name){toast("Give the food a name");return}
     const per={cal:val("cf-cal")/g*100,p:val("cf-p")/g*100,c:val("cf-c")/g*100,f:val("cf-f")/g*100},meal=fmeal();PRESETS.foods.push({id:uid(),name,g,per});savePR();
     if(document.getElementById("cf-log").checked){(FOOD[foodDate]=FOOD[foodDate]||[]).push({id:uid(),meal,name,g,per});saveF();closedMeals[meal]=false}
@@ -1024,6 +1073,7 @@ app.addEventListener("click",async ev=>{
   if(b=q("[data-addex]")){const id=b.dataset.addex;D(id).ex.push({n:"New exercise",reps:"8–12 ครั้ง",sets:3,rest:"1:30",v:"",note:""});saveP();openPw=id;render();const el=document.getElementById(`pe-${id}-${D(id).ex.length-1}-n`);if(el){el.focus();el.select()}return}
   if(b=q("[data-delday]")){const id=b.dataset.delday;if(Object.keys(PLAN.days).length<2){toast("Keep at least one workout");return}delete PLAN.days[id];PLAN.week=PLAN.week.map(w=>w===id?null:w);for(const d in SCHED)if(SCHED[d]===id)delete SCHED[d];saveP();saveSch();toast("Workout deleted");return render()}
   if(b=q("[data-newday]")){const id="w"+Date.now().toString(36);PLAN.days[id]={title:"New workout",type:"other",warm:"",ex:[{n:"New exercise",reps:"8–12 ครั้ง",sets:3,rest:"1:30",v:"",note:""}]};saveP();openPw=id;return render()}
+  if(b=q("[data-act=refresh]"))return refreshApp(b);
   if(b=q("[data-act=export]"))return exportBackup();
   if(b=q("[data-act=copy]")){const json=JSON.stringify(backupData());try{await navigator.clipboard.writeText(json);store.set("c1-lastbackup",new Date().toISOString());toast("Backup copied — paste it into Notes or a file");render()}catch(e){toast("Copy isn’t allowed here. Use Export backup.")}return}
   if(b=q("[data-act=doimport]")){applyImport(pendingImport);pendingImport=null;toast("Backup restored");return render()}
