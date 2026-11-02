@@ -152,6 +152,7 @@ textarea.note{resize:vertical;min-height:52px;font:inherit}
 .foodbar{position:fixed;left:0;right:0;bottom:calc(58px + env(safe-area-inset-bottom,0px));z-index:5;padding-block:8px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));background:linear-gradient(transparent,var(--bg) 35%)}
 .foodbar div{max-width:600px;margin:0 auto;display:flex;align-items:center;gap:6px;background:var(--card);border:1px solid var(--line);border-radius:999px;padding:4px 6px 4px 16px}
 .foodbar button.s{flex:1;border:0;background:transparent;text-align:left;font:inherit;font-size:16px;color:var(--muted);padding:10px 0;cursor:pointer}
+.bcbtn{display:grid;place-items:center;padding:0 10px;color:var(--blue)}
 .foodbar button.cam{width:44px;height:44px;border:0;background:transparent;color:var(--blue);cursor:pointer;display:grid;place-items:center}
 .fres{display:grid;gap:6px;max-height:42vh;overflow:auto}
 .fres button{display:flex;justify-content:space-between;gap:10px;text-align:left;border:1px solid var(--line);background:var(--field);border-radius:10px;padding:10px 12px;cursor:pointer;color:var(--ink);font:inherit}
@@ -689,7 +690,17 @@ const unitsFor=sv=>[...(sv?[{l:sv.u,g:sv.g,sv:1}]:[]),...(sv&&sv.v?[]:UNITS0)];
 const unitOpt=(U,cur)=>U.map((x,i)=>`<option value="${i}"${x.l===cur?" selected":""}>${esc(x.sv&&!x.v&&U.length>1?`${x.l} (${R(x.g)} g)`:x.l)}</option>`).join("");
 const qtyText=e=>e.u&&e.u!=="g"?`${nq(e.q)} ${plu(e.u,nq(e.q))}${e.sv&&e.sv.v?"":` · ${R(e.g)} g`}`:`${R(e.g)} g`;
 const withQ=(o,src)=>{if(src.u&&src.u!=="g"){o.q=src.q;o.u=src.u}if(src.sv)o.sv=src.sv;return o};
-const defMeal=()=>{const h=new Date().getHours()+new Date().getMinutes()/60;return h<10.5?"breakfast":h<15?"lunch":h<17?"snack":h<22?"dinner":"snack"};
+/* Auto meal: by time of day (4–11 breakfast, 11–16 lunch, 16–4 dinner); anything under SNACK_CAL goes to Snacks. Off once you pick a meal yourself. */
+const SNACK_CAL=200;let autoMeal=false;
+const defMeal=()=>{const h=new Date().getHours()+new Date().getMinutes()/60;return h>=4&&h<11?"breakfast":h>=11&&h<16?"lunch":"dinner"};
+const autoFor=cal=>cal>0&&cal<SNACK_CAL?"snack":defMeal();
+function autoSync(){if(!autoMeal||!FS)return;let cal=0;
+  if(FS.mode==="amount")cal=FS.per.cal*(+FS.g||0)/100;
+  else if(FS.mode==="ai")cal=sumMac((FS.items||[]).filter(i=>i.on)).cal;
+  else if(FS.mode==="create"){const el=document.getElementById("cf-cal");cal=el?+String(el.value).replace(",",".")||0:0}
+  const m=autoFor(cal),el=document.getElementById("fs-meal");FS.meal=m;if(el)el.value=m;
+  const n=document.getElementById("fs-autonote");if(n)n.textContent=`Auto: ${MEALS.find(x=>x[0]===m)[1]}${m==="snack"?` (under ${SNACK_CAL} cal)`:" (by time of day)"}. Change it if you like.`}
+const bcIcon=`<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M3 7V5a2 2 0 0 1 2-2h2M17 3h2a2 2 0 0 1 2 2v2M21 17v2a2 2 0 0 1-2 2h-2M7 21H5a2 2 0 0 1-2-2v-2M7 8v8M10 8v8M13 8v8M17 8v8"/></svg>`;
 let foodDate=today(),foodMode="consumed",closedMeals={},FS=null,offTimer=null;
 const camIcon=`<svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M4 8h3l2-3h6l2 3h3v11H4z"/><circle cx="12" cy="13" r="3.5"/></svg>`;
 
@@ -709,19 +720,19 @@ function viewFood(){
       <div class="macros">${macs}</div>${NUT?"":`<p class="muted" style="margin:12px 0 0">Targets are suggested from your body weight${bwLatest()?"":" (70 kg until you log it)"}. Change them with ⚙.</p>`}</div>
     <div class="flh"><h2>Food Log</h2><span><button type="button" class="iconbtn" data-act="fsettings" aria-label="Nutrition settings"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg></button><button type="button" class="iconbtn" data-act="fcopy" aria-label="Copy yesterday's food to this day"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="8" y="8" width="12" height="13" rx="2"/><path d="M16 8V5a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v11a2 2 0 0 0 2 2h2"/></svg></button></span></div>
     ${meals}
-    <div class="foodbar"><div><button type="button" class="s" data-fsearch="1">🔍 Search for a food</button><button type="button" class="cam" data-fphoto="1" aria-label="Photo of your meal">${camIcon}</button></div></div>`;
+    <div class="foodbar"><div><button type="button" class="s" data-fsearch="1">🔍 Search for a food</button><button type="button" class="cam" data-fscan="1" aria-label="Scan a barcode">${bcIcon}</button><button type="button" class="cam" data-fphoto="1" aria-label="Photo of your meal">${camIcon}</button></div></div>`;
 }
 
 /* food sheet: search · amount · AI review · settings */
 function fsOpen(st){FS=st;fsDraw();sheet.hidden=false;scrim.hidden=false}
-function mealSel(cur){return `<select class="txt" id="fs-meal">${MEALS.map(([m,l])=>`<option value="${m}"${m===cur?" selected":""}>${l}</option>`).join("")}</select>`}
+function mealSel(cur){return `<select class="txt" id="fs-meal" aria-label="Meal">${MEALS.map(([m,l])=>`<option value="${m}"${m===cur?" selected":""}>${l}</option>`).join("")}</select>${autoMeal&&FS&&/^(amount|ai|create)$/.test(FS.mode)?`<p class="muted" id="fs-autonote" style="margin:0;font-size:13px"></p>`:""}`}
 function fsDraw(){
   const st=FS;let h="";
   if(st.mode==="search"){
     const q=(st.q||"").trim().toLowerCase(),loc=LOCAL.filter(f=>!q||q.split(/\s+/).every(w=>f[0].toLowerCase().includes(w))).slice(0,q?20:12);
     const sm=PRESETS.meals.filter(x=>!q||x.name.toLowerCase().includes(q)),sf=PRESETS.foods.filter(x=>!q||x.name.toLowerCase().includes(q));
     const saved=(sm.length||sf.length)?`<p class="fsec">Saved</p>${sm.map(x=>{const t=sumMac(x.items);return `<div class="prow"><button type="button" data-pmeal="${x.id}"><span>★ ${esc(x.name)}<small>Meal · ${x.items.length} items · ${R(t.p)}P ${R(t.c)}C ${R(t.f)}F</small></span><span class="r">${R(t.cal)} cal<small>tap to log</small></span></button><button type="button" class="px" data-pdelm="${x.id}" aria-label="Delete ${esc(x.name)}">✕</button></div>`}).join("")}${sf.map(x=>{const t=mac(x);return `<div class="prow"><button type="button" data-pfood="${x.id}"><span>☆ ${esc(x.name)}<small>My food · ${R(t.p)}P ${R(t.c)}C ${R(t.f)}F</small></span><span class="r">${R(t.cal)} cal<small>${R(x.g)} g</small></span></button><button type="button" class="px" data-pdelf="${x.id}" aria-label="Delete ${esc(x.name)}">✕</button></div>`}).join("")}<p class="fsec">Foods</p>`:"";
-    h=`<h3 id="sheetTitle">Add food</h3><div class="inline"><input class="txt" id="fs-q" placeholder="Search: chicken, rice, banana…" value="${esc(st.q||"")}" autocomplete="off" enterkeyhint="search">${mealSel(st.meal)}</div>
+    h=`<h3 id="sheetTitle">Add food</h3><div class="inline"><input class="txt" id="fs-q" placeholder="Search: chicken, rice, banana…" value="${esc(st.q||"")}" autocomplete="off" enterkeyhint="search"><button type="button" class="btn sm bcbtn" data-fbarcode="1" aria-label="Scan a barcode">${bcIcon}</button>${mealSel(st.meal)}</div>
       <div class="rowbtns"><button type="button" class="btn sm" data-fphoto="1">📷 Photo of meal</button><button type="button" class="btn sm" data-fbarcode="1">Scan barcode</button><button type="button" class="btn sm" data-fcreate="1">＋ Create food</button>${q?`<button type="button" class="btn sm primary" data-faitext="1">✨ Ask AI: “${esc(st.q)}”</button>`:""}</div>
       <div class="fres">${saved}${loc.map((f,i)=>`<button type="button" data-flocal="${LOCAL.indexOf(f)}"><span>${esc(f[0])}<small>${f[1]} cal · ${f[2]}P ${f[3]}C ${f[4]}F per 100 g</small></span><span class="r">${R(f[1]*f[5]/100)} cal<small>${f[5]} g</small></span></button>`).join("")}
       ${st.off?st.off.map((f,i)=>`<button type="button" data-foff="${i}"><span>${esc(f.name)}<small>${R(f.per.cal)} cal · ${R(f.per.p)}P ${R(f.per.c)}C ${R(f.per.f)}F per 100 g · Open Food Facts</small></span><span class="r">${f.sv?esc(`1 ${f.sv.u}`)+`<small>${R(f.sv.g)} g</small>`:"100 g"}</span></button>`).join(""):""}
@@ -796,9 +807,9 @@ function fsDraw(){
       <div class="rowbtns"><button type="button" class="btn primary" data-fsaveset="1">Save</button>${NUT?`<button type="button" class="btn" data-fresett="1">Use suggested targets</button>`:""}</div>
       <button type="button" class="btn" data-fclose="1">Close</button>`;
   }
-  sheet.innerHTML=`<div class="in">${h}</div>`;
+  sheet.innerHTML=`<div class="in">${h}</div>`;autoSync();
 }
-function fsAmountLive(){const U=unitsFor(FS.sv),u=U[+(document.getElementById("fs-u")||{}).value||0]||U[0],q=+String((document.getElementById("fs-g")||{}).value||"").replace(",",".")||0,g=q*u.g,p=FS.per,k=g/100;FS.q=q;FS.u=u.l;FS.g=g;[["cal","cal"],["p","p"],["c","c"],["f","f"]].forEach(([id,key])=>{const el=document.getElementById("fm-"+id);if(el)el.textContent=R(p[key]*k)})}
+function fsAmountLive(){setTimeout(autoSync);const U=unitsFor(FS.sv),u=U[+(document.getElementById("fs-u")||{}).value||0]||U[0],q=+String((document.getElementById("fs-g")||{}).value||"").replace(",",".")||0,g=q*u.g,p=FS.per,k=g/100;FS.q=q;FS.u=u.l;FS.g=g;[["cal","cal"],["p","p"],["c","c"],["f","f"]].forEach(([id,key])=>{const el=document.getElementById("fm-"+id);if(el)el.textContent=R(p[key]*k)})}
 async function offSearch(q){
   FS.offLoading=true;fsDraw();refocus();
   try{const r=await fetch(`https://world.openfoodfacts.org/cgi/search.pl?search_terms=${encodeURIComponent(q)}&search_simple=1&action=process&json=1&page_size=12&fields=product_name,brands,nutriments,serving_quantity,serving_size`);const j=await r.json();
@@ -910,7 +921,7 @@ async function findBarcode(code,meal){
 const MEATS=["Chicken","Pork","Beef","Fish","Shrimp","Duck","Tofu","Egg"];
 const hintChips=target=>`<div class="hchips" role="group" aria-label="Quick answers">${MEATS.map(m=>`<button type="button" data-hchip="${m}" data-target="${target}">${m}</button>`).join("")}</div>`;
 function aiTotHTML(){const on=FS.items.filter(i=>i.on),t=sumMac(on);return `<div><b>${R(t.cal)}</b><span>cal</span></div><div><b>${R(t.p)}</b><span>protein g</span></div><div><b>${R(t.c)}</b><span>carbs g</span></div><div><b>${R(t.f)}</b><span>fat g</span></div>`}
-function aiTotRefresh(){const el=document.getElementById("ai-tot");if(el)el.innerHTML=aiTotHTML();const ad=document.querySelector("[data-faiadd]");if(ad)ad.textContent=`Add ${FS.items.filter(i=>i.on).length} item(s)`}
+function aiTotRefresh(){setTimeout(autoSync);const el=document.getElementById("ai-tot");if(el)el.innerHTML=aiTotHTML();const ad=document.querySelector("[data-faiadd]");if(ad)ad.textContent=`Add ${FS.items.filter(i=>i.on).length} item(s)`}
 const fmeal=()=>{const el=document.getElementById("fs-meal");return el?el.value:(FS&&FS.meal)||defMeal()};
 document.getElementById("sheet").addEventListener("click",async ev=>{
   if(!FS)return;const b=ev.target.closest("button");if(!b)return;
@@ -928,7 +939,7 @@ document.getElementById("sheet").addEventListener("click",async ev=>{
   if(b.dataset.hchip){const el=document.getElementById(b.dataset.target);if(!el)return;const v=el.value.trim().replace(/\.?$/,"");el.value=(v?v+". ":"")+`The meat is ${b.dataset.hchip.toLowerCase()}`;el.focus();if(b.dataset.target==="fs-hint")FS.hint=el.value;return}
   if(b.dataset.faisave){const items=FS.items.filter(i=>i.on).map(i=>withQ({name:i.name,g:i.g,per:i.per},i));if(!items.length){toast("Tick at least one item");return}return fsOpen({mode:"savemeal",items,meal:fmeal(),name:(FS.hint||"").slice(0,40)})}
   if(b.dataset.fpsave){const name=document.getElementById("fs-pname").value.trim();if(!name){toast("Give the preset a name");return}PRESETS.meals.push({id:uid(),name,items:clone(FS.items)});savePR();toast(`Saved “${name}”. Find it under Saved when you add food.`);FS=null;closeSheet();return render()}
-  if(b.dataset.pmeal){const x=PRESETS.meals.find(m=>m.id===b.dataset.pmeal),meal=fmeal();if(!x)return;(FOOD[foodDate]=FOOD[foodDate]||[]).push(...x.items.map(i=>withQ({id:uid(),meal,name:i.name,g:i.g,per:i.per},i)));saveF();closedMeals[meal]=false;toast(`Logged ${x.name}`);FS=null;closeSheet();return render()}
+  if(b.dataset.pmeal){const x=PRESETS.meals.find(m=>m.id===b.dataset.pmeal);if(!x)return;const meal=autoMeal?autoFor(sumMac(x.items).cal):fmeal();(FOOD[foodDate]=FOOD[foodDate]||[]).push(...x.items.map(i=>withQ({id:uid(),meal,name:i.name,g:i.g,per:i.per},i)));saveF();closedMeals[meal]=false;toast(`Logged ${x.name}`);FS=null;closeSheet();return render()}
   if(b.dataset.pfood){const x=PRESETS.foods.find(f=>f.id===b.dataset.pfood);if(x)fsOpen({mode:"amount",name:x.name,g:x.g,q:x.u?x.q:undefined,u:x.u,sv:x.sv,meal:fmeal(),src:"My foods",per:x.per});return}
   if(b.dataset.pdelm){PRESETS.meals=PRESETS.meals.filter(m=>m.id!==b.dataset.pdelm);savePR();toast("Preset deleted");return fsDraw()}
   if(b.dataset.pdelf){PRESETS.foods=PRESETS.foods.filter(f=>f.id!==b.dataset.pdelf);savePR();toast("Removed from My foods");return fsDraw()}
@@ -956,6 +967,7 @@ document.getElementById("sheet").addEventListener("click",async ev=>{
 });
 document.getElementById("sheet").addEventListener("input",ev=>{
   if(!FS)return;const el=ev.target;
+  if(el.id==="cf-cal")autoSync();
   if(el.id==="fs-q"){FS.q=el.value;FS.off=null;clearTimeout(offTimer);const q=el.value.trim();fsDraw();refocus();if(q.length>=3)offTimer=setTimeout(()=>offSearch(q),500)}
   else if(el.id==="fs-g")fsAmountLive();
   else if(el.dataset.aig){const it=FS.items[+el.dataset.aig],U=unitsFor(it.sv),u=U.find(x=>x.l===(it.u||"g"))||U[0];it.q=Math.max(0,+String(el.value).replace(",",".")||0);it.g=it.q*u.g;const sm=el.parentElement.querySelector("small");if(sm)sm.textContent=`${R(it.per.cal*it.g/100)} cal · ${R(it.per.p*it.g/100)}P ${R(it.per.c*it.g/100)}C ${R(it.per.f*it.g/100)}F`;aiTotRefresh()}
@@ -964,7 +976,7 @@ document.getElementById("sheet").addEventListener("input",ev=>{
 document.getElementById("sheet").addEventListener("change",ev=>{if(!FS)return;const el=ev.target;
   if(el.id==="fs-u"){const U=unitsFor(FS.sv),u=U[+el.value]||U[0];FS.q=nq(FS.g/u.g);FS.u=u.l;fsDraw();return}
   if(el.dataset.aiu){const it=FS.items[+el.dataset.aiu],U=unitsFor(it.sv),u=U[+el.value]||U[0];it.q=nq(it.g/u.g);it.u=u.l;const inp=document.querySelector(`[data-aig="${el.dataset.aiu}"]`);if(inp)inp.value=it.q;return}
-  if(el.dataset.aion){FS.items[+el.dataset.aion].on=el.checked;aiTotRefresh()}else if(el.id==="fs-meal")FS.meal=el.value});
+  if(el.dataset.aion){FS.items[+el.dataset.aion].on=el.checked;aiTotRefresh()}else if(el.id==="fs-meal"){FS.meal=el.value;autoMeal=false;const n=document.getElementById("fs-autonote");if(n)n.remove()}});
 document.getElementById("scrim").addEventListener("click",()=>{FS=null});
 function viewPlan(){
   const opts=sel=>`<option value="">Rest</option>`+Object.entries(PLAN.days).map(([id,P])=>`<option value="${id}"${id===sel?" selected":""}>${esc(P.title)}</option>`).join("");
@@ -1111,11 +1123,12 @@ app.addEventListener("click",async ev=>{
   if(b=q("[data-fday]")){foodDate=addDays(foodDate,+b.dataset.fday);return render()}
   if(b=q("[data-fmode]")){foodMode=b.dataset.fmode;return render()}
   if(b=q("[data-mealt]")){const m=b.dataset.mealt;closedMeals[m]=!closedMeals[m];return render()}
-  if(b=q("[data-addmeal]"))return fsOpen({mode:"search",meal:b.dataset.addmeal,q:""});
-  if(b=q("[data-fsearch]")){fsOpen({mode:"search",meal:defMeal(),q:""});const el=document.getElementById("fs-q");if(el)el.focus();return}
-  if(b=q("[data-fphoto]"))return photoFlow(defMeal());
+  if(b=q("[data-addmeal]")){autoMeal=false;return fsOpen({mode:"search",meal:b.dataset.addmeal,q:""})}
+  if(b=q("[data-fscan]")){autoMeal=true;return scanBarcode(defMeal())}
+  if(b=q("[data-fsearch]")){autoMeal=true;fsOpen({mode:"search",meal:defMeal(),q:""});const el=document.getElementById("fs-q");if(el)el.focus();return}
+  if(b=q("[data-fphoto]")){autoMeal=true;return photoFlow(defMeal())}
   if(b=q("[data-savemeal]")){const m=b.dataset.savemeal,items=(FOOD[foodDate]||[]).filter(e=>e.meal===m).map(e=>withQ({name:e.name,g:e.g,per:e.per},e));if(!items.length)return;return fsOpen({mode:"savemeal",items,meal:m,name:MEALS.find(x=>x[0]===m)[1]})}
-  if(b=q("[data-editfood]")){const e=(FOOD[foodDate]||[]).find(x=>x.id===b.dataset.editfood);if(e)fsOpen({mode:"amount",editId:e.id,name:e.name,g:e.g,q:e.u?e.q:R(e.g),u:e.u||"g",sv:e.sv,meal:e.meal,per:e.per});return}
+  if(b=q("[data-editfood]")){const e=(FOOD[foodDate]||[]).find(x=>x.id===b.dataset.editfood);if(e){autoMeal=false;fsOpen({mode:"amount",editId:e.id,name:e.name,g:e.g,q:e.u?e.q:R(e.g),u:e.u||"g",sv:e.sv,meal:e.meal,per:e.per})}return}
   if(b=q("[data-act=fsettings]"))return fsOpen({mode:"settings"});
   if(b=q("[data-act=fcopy]")){const y=FOOD[addDays(foodDate,-1)]||[];if(!y.length){toast("Nothing logged the day before");return}(FOOD[foodDate]=FOOD[foodDate]||[]).push(...y.map(e=>({...clone(e),id:Date.now().toString(36)+Math.random().toString(36).slice(2,6)})));saveF();toast(`Copied ${y.length} item(s) from the day before`);return render()}
   if(b=q("[data-startnow]"))pendingStart=b.dataset.startnow;
