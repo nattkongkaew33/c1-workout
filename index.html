@@ -824,14 +824,27 @@ async function lookupOFF(code){
   const j=await (await fetch(`https://world.openfoodfacts.org/api/v2/product/${encodeURIComponent(code)}.json?fields=product_name,brands,nutriments,serving_quantity,serving_size`)).json(),p=j.product;
   if(!p||!p.nutriments||p.nutriments["energy-kcal_100g"]==null)return {code};
   return {code,name:(p.product_name||"Product")+(p.brands?` · ${p.brands.split(",")[0]}`:""),g:R(+p.serving_quantity||100),sv:parseServ(p.serving_size,p.serving_quantity),serving:p.serving_size||"",per:{cal:+p.nutriments["energy-kcal_100g"]||0,p:+p.nutriments.proteins_100g||0,c:+p.nutriments.carbohydrates_100g||0,f:+p.nutriments.fat_100g||0}}}
-async function codeFromFile(file){await loadZX();const url=URL.createObjectURL(file);try{return (await new ZXing.BrowserMultiFormatReader().decodeFromImageUrl(url)).getText()}finally{URL.revokeObjectURL(url)}}
+/* Decode a barcode at any angle: try the picture straight, turned 90°, and both diagonals (upside-down is covered by each). */
+let zxR=null,zxC=null;
+function zxReader(){if(!zxR){const h=new Map();h.set(ZXing.DecodeHintType.POSSIBLE_FORMATS,[ZXing.BarcodeFormat.EAN_13,ZXing.BarcodeFormat.EAN_8,ZXing.BarcodeFormat.UPC_A,ZXing.BarcodeFormat.UPC_E,ZXing.BarcodeFormat.CODE_128]);h.set(ZXing.DecodeHintType.TRY_HARDER,true);zxR=new ZXing.MultiFormatReader();zxR.setHints(h)}return zxR}
+const BC_ANG=[0,90,45,135,22.5,67.5,112.5,157.5];
+function decodeAt(src,sw,sh,ang,max){
+  if(!zxC)zxC=document.createElement("canvas");const cv=zxC,cx=cv.getContext("2d",{willReadFrequently:true});
+  const sc=Math.min(1,max/Math.max(sw,sh)),w=sw*sc,h=sh*sc,rad=ang*Math.PI/180,c=Math.abs(Math.cos(rad)),s=Math.abs(Math.sin(rad));
+  cv.width=Math.ceil(w*c+h*s);cv.height=Math.ceil(w*s+h*c);cx.fillStyle="#fff";cx.fillRect(0,0,cv.width,cv.height);
+  cx.save();cx.translate(cv.width/2,cv.height/2);cx.rotate(rad);cx.drawImage(src,-w/2,-h/2,w,h);cx.restore();
+  try{const r=zxReader().decode(new ZXing.BinaryBitmap(new ZXing.HybridBinarizer(new ZXing.HTMLCanvasElementLuminanceSource(cv))));return r?r.getText():null}catch(e){return null}finally{zxReader().reset()}}
+async function codeFromFile(file){await loadZX();const url=URL.createObjectURL(file);try{
+  const img=await new Promise((ok,no)=>{const i=new Image();i.onload=()=>ok(i);i.onerror=no;i.src=url});
+  for(const max of [1000,1600])for(const a of BC_ANG){const c=decodeAt(img,img.naturalWidth,img.naturalHeight,a,max);if(c)return c}
+  throw new Error("nocode")}finally{URL.revokeObjectURL(url)}}
 /* Live camera scanner: resolves with the code as soon as one is seen, "photo" to fall back, or null on cancel. */
 function liveScan(){return new Promise(async done=>{
   if(!(navigator.mediaDevices&&navigator.mediaDevices.getUserMedia))return done("photo");
   const ov=document.createElement("div");ov.className="scan";ov.setAttribute("role","dialog");ov.setAttribute("aria-label","Barcode scanner");
   ov.innerHTML=`<video playsinline muted autoplay></video><div class="frame"></div><div class="msg" aria-live="polite">Starting camera…</div><div class="bar"><button type="button" data-x="photo">Use a photo</button><button type="button" class="pri" data-x="cancel">Cancel</button></div>`;
   document.body.appendChild(ov);const video=ov.querySelector("video"),msg=ov.querySelector(".msg");let reader=null,stream=null,fin=false,raf=0;
-  const end=v=>{if(fin)return;fin=true;cancelAnimationFrame(raf);try{reader&&reader.reset()}catch(e){}if(stream)stream.getTracks().forEach(t=>t.stop());ov.remove();done(v)};
+  const end=v=>{if(fin)return;fin=true;cancelAnimationFrame(raf);clearTimeout(raf);try{reader&&reader.reset()}catch(e){}if(stream)stream.getTracks().forEach(t=>t.stop());ov.remove();done(v)};
   ov.addEventListener("click",e=>{const b=e.target.closest("[data-x]");if(b)end(b.dataset.x==="photo"?"photo":null)});
   const hit=code=>{if(navigator.vibrate)navigator.vibrate(60);end(code)};
   try{
@@ -842,10 +855,10 @@ function liveScan(){return new Promise(async done=>{
       const det=new BarcodeDetector({formats:["ean_13","ean_8","upc_a","upc_e","code_128"]});
       const loop=async()=>{if(fin)return;try{const r=await det.detect(video);if(r.length)return hit(r[0].rawValue)}catch(e){}raf=requestAnimationFrame(loop)};loop();
     }else{
-      await loadZX();if(fin)return;
-      const hints=new Map();hints.set(ZXing.DecodeHintType.POSSIBLE_FORMATS,[ZXing.BarcodeFormat.EAN_13,ZXing.BarcodeFormat.EAN_8,ZXing.BarcodeFormat.UPC_A,ZXing.BarcodeFormat.UPC_E,ZXing.BarcodeFormat.CODE_128]);
-      reader=new ZXing.BrowserMultiFormatReader(hints,250);
-      reader.decodeFromStream(stream,video,(res)=>{if(res&&!fin)hit(res.getText())});
+      await loadZX();if(fin)return;let ai=0;
+      const tick=()=>{if(fin)return;const vw=video.videoWidth,vh=video.videoHeight;
+        if(vw){for(let k=0;k<2;k++){const c=decodeAt(video,vw,vh,BC_ANG[ai++%8],800);if(c)return hit(c)}}
+        raf=setTimeout(tick,60)};tick();
     }
   }catch(e){msg.textContent="Camera isn’t available. Allow camera access in Settings, or use a photo.";}
 })}
