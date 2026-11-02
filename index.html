@@ -56,6 +56,10 @@ input.txt,select.txt{background:var(--field);color:var(--ink);border:1px solid v
 .arrows{display:flex;gap:6px}
 .arrows button{width:40px;height:40px;border-radius:10px;border:1px solid var(--line);background:var(--card);font-size:18px;cursor:pointer}
 .row{display:grid;grid-template-columns:44px minmax(0,1fr) 36px;gap:8px;align-items:center;margin-bottom:10px}
+.row .wcard{-webkit-touch-callout:none;-webkit-user-drag:none;-webkit-user-select:none;user-select:none;transition:transform .15s,box-shadow .15s,border-color .15s}
+.row.lift .wcard{pointer-events:none;position:relative;z-index:3;transition:none;box-shadow:0 18px 40px -12px rgba(0,0,0,.8);border-color:var(--blue)}
+.row.dropto .wcard{border-color:var(--blue);border-style:dashed;background:color-mix(in srgb,var(--blue) 10%,var(--card))}
+body.dragging{overflow:hidden;-webkit-user-select:none;user-select:none}
 .wd{text-align:center;color:var(--muted);font:600 13px var(--body);line-height:1.2}
 .wd span{display:block;font:700 20px var(--display);color:var(--ink)}
 .wd.on,.wd.on span{color:var(--blue)}
@@ -646,15 +650,15 @@ function viewWeek(){
     const moved=(d in SCHED)&&!started(s)?`<span class="moved">Changed</span>`:"";
     const wd=`<div class="wd${isT?" on":""}">${WDN[i]}<span>${parse(d).getDate()}</span></div>`;
     const more=`<button type="button" class="more" data-sheet="${d}" aria-label="Change ${fshort(d)}">${dotsIcon}</button>`;
-    if(st==="rest")return `<div class="row">${wd}<a class="wcard rest" href="#w-${d}"><span class="ico" style="--c:var(--muted)">${restIcon}</span><span class="wtxt">${moved}<strong>Rest Day</strong></span></a>${more}</div>`;
+    if(st==="rest")return `<div class="row" data-day="${d}">${wd}<a class="wcard rest" href="#w-${d}"><span class="ico" style="--c:var(--muted)">${restIcon}</span><span class="wtxt">${moved}<strong>Rest Day</strong></span></a>${more}</div>`;
     const P0=day&&DD(d,day), title=s&&started(s)?titleOf(s):P0.title, type=s&&started(s)?typeOf(s):P0.type, nEx=s&&started(s)?s.ex.length:P0.ex.length;
     const label={complete:"Complete ✓",missed:"Missed ⚠",progress:"In progress",today:"Today",upcoming:fshort(d),before:fshort(d)}[st];
     const extra=st==="complete"?`<em>${nEx} exercises · ${fmtDur(s.end-s.start)} · <b>Review</b></em>`:st==="progress"?`<em>${s.ex.reduce((a,x)=>a+x.sets.filter(t=>t.d).length,0)} sets logged</em>`:`<em>${nEx} exercises</em>`;
     const btn=(!isT&&st==="progress")?`<span class="startbtn" data-startnow="${d}">▶ Continue</span>`:"";
-    return `<div class="row">${wd}<a class="wcard st-${st}" href="#w-${d}" style="--c:var(${TCOLOR[type]})"><span class="ico" style="--c:var(${TCOLOR[type]})">${icon}</span><span class="wtxt"><small>${label}</small>${moved}<strong>${esc(title)}</strong>${extra}</span>${btn}</a>${more}</div>`;
+    return `<div class="row" data-day="${d}">${wd}<a class="wcard st-${st}" href="#w-${d}" style="--c:var(${TCOLOR[type]})"><span class="ico" style="--c:var(${TCOLOR[type]})">${icon}</span><span class="wtxt"><small>${label}</small>${moved}<strong>${esc(title)}</strong>${extra}</span>${btn}</a>${more}</div>`;
   }).join("");
   app.innerHTML=`<div class="toprow"><div class="eyebrow">${esc(WP(mon).name)}</div>${refreshBtn}</div><h1>Today</h1>${todayHero()}
-    <div class="wkhead wkh2"><div><h2>${weekOff?fshort(dates[0])+" – "+fshort(dates[6]):"This week"}</h2><small>${done} of ${planned} workouts done · ⋮ moves a day</small></div>
+    <div class="wkhead wkh2"><div><h2>${weekOff?fshort(dates[0])+" – "+fshort(dates[6]):"This week"}</h2><small>${done} of ${planned} workouts done · hold &amp; drag to swap days</small></div>
     <div class="arrows"><button type="button" data-wk="-1" aria-label="Previous week">‹</button><button type="button" data-wk="1" aria-label="Next week">›</button></div></div>${rows}`;
 }
 
@@ -1236,6 +1240,35 @@ function openSheet(d){
   const f=sheet.querySelector("select,input,a");if(f)f.focus();
 }
 function closeSheet(){sheet.hidden=true;scrim.hidden=true}
+function swapDays(a,to){const pa=planFor(a)||"rest",pb=planFor(to)||"rest";setDay(to,pa);setDay(a,pb);
+  toast(pa==="rest"&&pb==="rest"?"Both are rest days":pa==="rest"?`${DD(a,pb).title} moved to ${fshort(a)}`:pb==="rest"?`${DD(to,pa).title} moved to ${fshort(to)}`:`Swapped ${DD(to,pa).title} and ${DD(a,pb).title}`)}
+/* Hold a day for half a second, then drag it onto another day to swap them. */
+function initDrag(){let hold=null,drag=null,sx=0,sy=0,justDragged=false,scrollT=null;
+  const rowAt=(x,y)=>{if(y==null)return null;let best=null,bd=1e9;document.querySelectorAll(".row[data-day]").forEach(r=>{if(drag&&r===drag.row)return;const b=r.getBoundingClientRect(),d=y<b.top?b.top-y:y>b.bottom?y-b.bottom:0;if(d<bd){bd=d;best=r}});return bd<=24?best:null};
+  const clear=()=>{clearTimeout(hold);hold=null};
+  const end=(x,y,cancel)=>{clear();clearInterval(scrollT);if(!drag)return;const {row,card,from}=drag,t=cancel?null:rowAt(x,y);drag=null;document.body.classList.remove("dragging");
+    card.style.transform="";row.classList.remove("lift");document.querySelectorAll(".row.dropto").forEach(r=>r.classList.remove("dropto"));
+    justDragged=true;setTimeout(()=>justDragged=false,400);
+    const to=t&&t.dataset.day;if(!to||to===from)return;
+    if(started(S[to])){toast(`${fshort(to)} already has a logged workout`);return}
+    swapDays(from,to);try{navigator.vibrate&&navigator.vibrate(20)}catch(e){}render()};
+  app.addEventListener("pointerdown",ev=>{const card=ev.target.closest(".row[data-day] .wcard");if(!card||ev.button>0)return;const row=card.closest(".row"),from=row.dataset.day;
+    sx=ev.clientX;sy=ev.clientY;clear();
+    hold=setTimeout(()=>{hold=null;if(started(S[from])){toast("Logged workouts can’t be moved");return}
+      drag={row,card,from,y0:sy,sc:window.scrollY};row.classList.add("lift");document.body.classList.add("dragging");try{navigator.vibrate&&navigator.vibrate(15)}catch(e){}
+      scrollT=setInterval(()=>{if(!drag)return;const h=innerHeight;if(drag.cy<70)scrollBy(0,-6);else if(drag.cy>h-110)scrollBy(0,6);move(drag.cx,drag.cy)},30)},450)});
+  const move=(x,y)=>{if(!drag)return;drag.cx=x;drag.cy=y;drag.card.style.transform=`translateY(${y-drag.y0+window.scrollY-drag.sc}px) scale(1.03)`;
+    const t=rowAt(x,y);document.querySelectorAll(".row.dropto").forEach(r=>{if(r!==t)r.classList.remove("dropto")});if(t&&t!==drag.row)t.classList.add("dropto")};
+  app.addEventListener("pointermove",ev=>{if(hold&&(Math.abs(ev.clientX-sx)>8||Math.abs(ev.clientY-sy)>8))clear();if(drag){ev.preventDefault();move(ev.clientX,ev.clientY)}});
+  document.addEventListener("touchmove",ev=>{if(drag){ev.preventDefault();const t=ev.touches[0];move(t.clientX,t.clientY)}},{passive:false});
+  document.addEventListener("touchend",()=>{if(drag)end(drag.cx,drag.cy);else clear()});
+  document.addEventListener("touchcancel",()=>{if(drag)end(drag.cx,drag.cy);else clear()});
+  app.addEventListener("pointerup",ev=>{if(drag&&ev.pointerType==="mouse")end(ev.clientX,ev.clientY);else clear()});
+  app.addEventListener("pointercancel",ev=>{if(drag&&ev.pointerType==="mouse")end(0,0,true);else clear()});
+  app.addEventListener("contextmenu",ev=>{if(ev.target.closest(".row[data-day]"))ev.preventDefault()});
+  app.addEventListener("dragstart",ev=>{if(ev.target.closest&&ev.target.closest(".row[data-day]"))ev.preventDefault()});
+  app.addEventListener("click",ev=>{if(justDragged&&ev.target.closest(".row[data-day]")){ev.preventDefault();ev.stopImmediatePropagation()}},true);
+}
 function setDay(d,val){const b=basePlan(d)&&DD(d,basePlan(d))?basePlan(d):"rest";if(val===b)delete SCHED[d];else SCHED[d]=val;if(S[d]&&!started(S[d]))delete S[d];saveSch();saveS()}
 scrim.onclick=closeSheet;
 document.addEventListener("keydown",e=>{if(e.key==="Escape"&&!sheet.hidden)closeSheet()});
@@ -1248,9 +1281,7 @@ sheet.addEventListener("click",ev=>{
     const a=b.dataset.shmove,to=document.getElementById("sh-to").value;
     if(!to||to===a){toast("Pick a different date");return}
     if(started(S[to])){toast(`${fshort(to)} already has a logged workout`);return}
-    const pa=planFor(a)||"rest",pb=planFor(to)||"rest";
-    setDay(to,pa);setDay(a,pb);closeSheet();
-    toast(pa==="rest"?`Swapped with ${fshort(to)}`:`${DD(to,pa).title} moved to ${fshort(to)}`);
+    closeSheet();swapDays(a,to);
     if(mondayOf(to)!==mondayOf(addDays(mondayOf(today()),weekOff*7))&&location.hash!=="#calendar")weekOff=Math.round((parse(mondayOf(to))-parse(mondayOf(today())))/6048e5);
     return render();
   }
@@ -1613,6 +1644,7 @@ function render(){
   else if(h.startsWith("coach"))viewCoach(h);
   else viewWeek();
 }
+initDrag();
 window.addEventListener("hashchange",()=>{closeSheet();FS=null;WS=null;rpeOpen=null;swapOpen=null;render();window.scrollTo(0,0)});
 render();
 </script>
