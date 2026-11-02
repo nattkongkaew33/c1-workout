@@ -790,6 +790,24 @@ function shareText(date){
   if(s.feel)out+=`\n\nFeel: ${FEEL[s.feel-1]}`;if(s.wnote)out+=`\nNotes: ${s.wnote}`;
   return out;
 }
+/* Apple Health (iPhone app only): read body-weight samples and fill the weight log automatically. */
+const HK=(()=>{try{return window.Capacitor&&window.Capacitor.isNativePlatform&&window.Capacitor.isNativePlatform()&&window.Capacitor.Plugins&&window.Capacitor.Plugins.Health}catch(e){return null}})();
+let hkLast=store.get("c1-hklast",0),hkBusy=false,hkErr="";
+const hkNote=()=>hkErr?`Apple Health: ${hkErr}`:hkLast?`Weight syncs from Apple Health automatically · last checked ${new Date(hkLast).toLocaleTimeString([],{hour:"2-digit",minute:"2-digit"})}`:"Weight syncs from Apple Health automatically.";
+async function hkSync(manual){
+  if(!HK||hkBusy)return;if(!manual&&Date.now()-hkLast<10*60*1000)return;hkBusy=true;
+  try{const av=await HK.isAvailable();if(!av.available)throw new Error(av.reason||"not available on this device");
+    if(manual||!store.get("c1-hkasked",false)){await HK.requestAuthorization({read:["weight"]});store.set("c1-hkasked",true)}
+    const r=await HK.readSamples({dataType:"weight",startDate:new Date(Date.now()-120*864e5).toISOString(),endDate:new Date().toISOString(),limit:500,ascending:true});
+    const byDay={};(r.samples||[]).forEach(x=>{const kg=x.unit==="kilogram"?+x.value:(x.unit==="gram"?x.value/1000:+x.value);if(kg>20&&kg<400)byDay[ymd(new Date(x.startDate))]=Math.round(kg*10)/10});
+    const before=bwLatest();let n=0;Object.entries(byDay).forEach(([d,kg])=>{if(BW[d]!==kg){BW[d]=kg;n++}});
+    if(n)saveBW();hkErr="";hkLast=Date.now();store.set("c1-hklast",hkLast);
+    if(manual)toast(n?`Synced ${n} weigh-in${n>1?"s":""} from Apple Health`:Object.keys(byDay).length?"Already up to date":"No weight found in Apple Health. Check Health → Sharing → Apps → C1 Workout");
+    else if(n&&bwLatest()!==before)toast(`Weight updated from Apple Health: ${toDisp(bwLatest())} ${UNIT}`);
+    if(n||manual)render()}
+  catch(e){hkErr=(e&&e.message)||"couldn’t read";if(manual){toast("Apple Health: "+hkErr);render()}}
+  finally{hkBusy=false}}
+if(HK){setTimeout(()=>hkSync(false),1500);document.addEventListener("visibilitychange",()=>{if(document.visibilityState==="visible")hkSync(false)})}
 function bwSection(){
   const keys=Object.keys(BW).sort(),t=today(),last=keys.slice(-20);
   let chart="";
@@ -808,7 +826,8 @@ function bwSection(){
   const list=keys.slice(-6).reverse().map(k=>`<span>${fshort(k)} · ${toDisp(BW[k])} ${UNIT}<button type="button" data-delbw="${k}" aria-label="Delete ${fshort(k)}">✕</button></span>`).join("");
   return `<h2 class="sec">Body weight</h2><div class="dayrec" style="margin-top:0">
     <div class="bwrow"><input class="txt" id="bw-input" inputmode="decimal" value="${esc(toDisp(BW[t]))}" placeholder="${esc(lv?toDisp(lv):UNIT)}" aria-label="Today's body weight in ${UNIT}"><span class="muted">${UNIT}</span><button type="button" class="btn sm primary" data-act="savebw">${BW[t]?"Update today":"Save today"}</button></div>
-    <div class="rowbtns" style="margin-top:8px"><button type="button" class="btn sm" data-act="pastebw">Paste from Health</button></div>
+    <div class="rowbtns" style="margin-top:8px">${HK?`<button type="button" class="btn sm" data-act="hksync">↻ Sync from Apple Health</button>`:`<button type="button" class="btn sm" data-act="pastebw">Paste from Health</button>`}</div>
+    ${HK?`<p class="muted" style="margin:6px 0 0;font-size:13px">${hkNote()}</p>`:""}
     <p style="margin:8px 0 0">${lv?`Latest <b>${toDisp(lv)} ${UNIT}</b>${ch!==null?` · ${ch>0?"+":""}${+ch.toFixed(1)} ${UNIT} in 30 days`:""}`:"Log your weight to see the trend. It also fills in body-weight targets like the seated row."}</p>
     ${chart}${list?`<div class="bwlist">${list}</div>`:""}</div>`;
 }
@@ -1334,6 +1353,7 @@ app.addEventListener("click",async ev=>{
   if(b=q("[data-act=delweek]")){confirmDelW=true;return render()}
   if(b=q("[data-act=nodelweek]")){confirmDelW=false;return render()}
   if(b=q("[data-act=dodelweek]")){PROG.weeks.splice(editW,1);editW=Math.min(editW,PROG.weeks.length-1);PLAN=PROG.weeks[editW];confirmDelW=false;saveP();toast("Week deleted");return render()}
+  if(b=q("[data-act=hksync]")){hkSync(true);return}
   if(b=q("[data-act=pastebw]")){try{const txt=await navigator.clipboard.readText();const m=String(txt).replace(",",".").match(/(\d+(?:\.\d+)?)\s*(kg|lb|lbs|pound)?/i);if(!m)throw 0;const u=m[2]?(m[2].toLowerCase().startsWith("k")?"kg":"lb"):UNIT;const kg=u==="kg"?+m[1]:+m[1]/KG2LB;if(!(kg>20&&kg<400))throw 0;BW[today()]=+kg.toFixed(3);saveBW();toast(`Saved ${toDisp(kg)} ${UNIT} from Health`);return render()}catch(e){toast("No weight found. Run your Health shortcut first, then tap Paste.");return}}
   if(b=q("[data-mv]")){const [id,i,dir]=b.dataset.mv.split(":"),ex=D(id).ex,a=+i,c=a+ +dir;if(c<0||c>=ex.length)return;[ex[a],ex[c]]=[ex[c],ex[a]];saveP();openPw=id;return render()}
   if(b=q("[data-del]")){const [id,i]=b.dataset.del.split(":");D(id).ex.splice(+i,1);saveP();openPw=id;return render()}
