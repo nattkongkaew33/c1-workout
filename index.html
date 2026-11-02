@@ -1288,9 +1288,16 @@ function beep(freqs,len=.18,gap=.08,vol=.5){if(!SOUND)return;const a=audio();if(
 function restDone(){beep([880,880,1175],.22,.1,.6);try{navigator.vibrate&&navigator.vibrate([300,120,300])}catch(e){}}
 function draw(){left=Math.ceil((restEnd-Date.now())/1000);document.getElementById("timerT").textContent=(left<0?"+":"")+fmtDur(Math.abs(left)*1000);tEl.classList.toggle("up",left<=0);
   if(left<=0&&!alerted){alerted=true;restDone()}else if(left>0&&left<=3&&lastBeep!==left){lastBeep=left;beep([660],.08,0,.35)}}
-function startTimer(sec,name){restEnd=Date.now()+sec*1000;alerted=false;lastBeep=null;document.getElementById("timerLbl").textContent="Rest · "+name;tEl.hidden=false;draw();clearInterval(tick);tick=setInterval(draw,250)}
-document.getElementById("timerAdd").onclick=()=>{restEnd+=30000;if(restEnd>Date.now()){alerted=false;lastBeep=null}draw()};
-document.getElementById("timerStop").onclick=()=>{clearInterval(tick);tEl.hidden=true};
+/* Inside the iPhone app (Capacitor), also schedule a real notification so the rest alert fires with the screen locked. */
+const NATIVE=!!(window.Capacitor&&window.Capacitor.isNativePlatform&&window.Capacitor.isNativePlatform());
+const LN=NATIVE&&window.Capacitor.Plugins&&window.Capacitor.Plugins.LocalNotifications;let restName="";
+async function restNotify(){if(!LN)return;try{await LN.cancel({notifications:[{id:7001}]});if(restEnd<=Date.now()+1000||!SOUND)return;
+  const perm=await LN.checkPermissions();if(perm.display!=="granted"){const r=await LN.requestPermissions();if(r.display!=="granted")return}
+  await LN.schedule({notifications:[{id:7001,title:"Rest over",body:`Next set: ${restName}`,schedule:{at:new Date(restEnd),allowWhileIdle:true},sound:"default"}]})}catch(e){}}
+async function restCancel(){if(LN)try{await LN.cancel({notifications:[{id:7001}]})}catch(e){}}
+function startTimer(sec,name){restEnd=Date.now()+sec*1000;restName=name;alerted=false;lastBeep=null;document.getElementById("timerLbl").textContent="Rest · "+name;tEl.hidden=false;draw();clearInterval(tick);tick=setInterval(draw,250);restNotify()}
+document.getElementById("timerAdd").onclick=()=>{restEnd+=30000;if(restEnd>Date.now()){alerted=false;lastBeep=null}draw();restNotify()};
+document.getElementById("timerStop").onclick=()=>{clearInterval(tick);tEl.hidden=true;restCancel()};
 let toastT;function toast(m){const t=document.getElementById("toast");t.textContent=m;t.hidden=false;clearTimeout(toastT);toastT=setTimeout(()=>t.hidden=true,2600)}
 
 /* ---------- events ---------- */
