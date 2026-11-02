@@ -364,7 +364,10 @@ input.txt:focus,select.txt:focus{border-color:var(--blue);outline:none}
 .hero .startbtn{margin-top:8px}
 .hero.rest{--c:var(--muted)}
 .mealtot .saveml{width:auto;height:auto;flex-basis:100%;text-align:left;font:600 13px var(--body);color:var(--amber);padding:6px 0 0;border-top:1px dashed var(--line);margin-top:4px}
-.sheet .inline #fs-meal{flex:0 0 112px}
+.mealseg{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:4px;background:var(--field);border:1px solid var(--line);border-radius:999px;padding:4px}
+.mealseg button{border:0;background:transparent;border-radius:999px;padding:9px 2px;font:600 13px var(--body);color:var(--muted);cursor:pointer;white-space:nowrap}
+.mealseg button[aria-pressed="true"]{background:var(--blue);color:var(--on-acc)}
+.fl .mealseg{margin-top:2px}
 .hero .plate small{color:var(--muted);text-transform:none;letter-spacing:.02em;font-size:11px}
 .fhead{background:color-mix(in srgb,var(--bg) 85%,transparent);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);margin-top:4px}
 .fuel{display:grid;grid-template-columns:auto minmax(0,1fr) auto;align-items:center;gap:12px;padding:14px 16px;border-radius:18px;background:var(--card);border:1px solid var(--line);text-decoration:none;margin-bottom:6px}
@@ -815,7 +818,7 @@ function autoSync(){if(!autoMeal||!FS)return;let cal=0;
   if(FS.mode==="amount")cal=FS.per.cal*(+FS.g||0)/100;
   else if(FS.mode==="ai")cal=sumMac((FS.items||[]).filter(i=>i.on)).cal;
   else if(FS.mode==="create"){const el=document.getElementById("cf-cal");cal=el?+String(el.value).replace(",",".")||0:0}
-  const m=autoFor(cal),el=document.getElementById("fs-meal");FS.meal=m;if(el)el.value=m;
+  const m=autoFor(cal);FS.meal=m;setMealUI(m);
   const n=document.getElementById("fs-autonote");if(n)n.textContent=`Auto: ${MEALS.find(x=>x[0]===m)[1]}${m==="snack"?` (under ${SNACK_CAL} cal)`:" (by time of day)"}. Change it if you like.`}
 const bcIcon=`<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M3 7V5a2 2 0 0 1 2-2h2M17 3h2a2 2 0 0 1 2 2v2M21 17v2a2 2 0 0 1-2 2h-2M7 21H5a2 2 0 0 1-2-2v-2M7 8v8M10 8v8M13 8v8M17 8v8"/></svg>`;
 let foodDate=today(),foodMode="consumed",closedMeals={},FS=null,offTimer=null;
@@ -848,14 +851,15 @@ function recentFoods(){const cut=addDays(today(),-30),seen=new Map();
   Object.keys(FOOD).filter(k=>k>=cut).sort().reverse().forEach(k=>(FOOD[k]||[]).slice().reverse().forEach(e=>{const key=e.name.trim().toLowerCase();const r=seen.get(key);if(r)r.n++;else seen.set(key,{...e,n:1,last:k})}));
   return [...seen.values()].sort((a,b)=>b.n-a.n||(a.last<b.last?1:-1)).slice(0,8)}
 function fsOpen(st){FS=st;fsDraw();sheet.hidden=false;scrim.hidden=false}
-function mealSel(cur){return `<select class="txt" id="fs-meal" aria-label="Meal">${MEALS.map(([m,l])=>`<option value="${m}"${m===cur?" selected":""}>${l}</option>`).join("")}</select>${autoMeal&&FS&&/^(amount|ai|create)$/.test(FS.mode)?`<p class="muted" id="fs-autonote" style="margin:0;font-size:13px"></p>`:""}`}
+function setMealUI(m){const el=document.getElementById("fs-meal");if(el)el.value=m;document.querySelectorAll("#sheet [data-mealpick]").forEach(b=>b.setAttribute("aria-pressed",String(b.dataset.mealpick===m)))}
+function mealSel(cur){return `<div class="mealseg" role="group" aria-label="Meal"><input type="hidden" id="fs-meal" value="${cur}">${MEALS.map(([m,l])=>`<button type="button" data-mealpick="${m}" aria-pressed="${m===cur}">${l}</button>`).join("")}</div>${autoMeal&&FS&&/^(amount|ai|create)$/.test(FS.mode)?`<p class="muted" id="fs-autonote" style="margin:0;font-size:13px"></p>`:""}`}
 function fsDraw(){
   const st=FS;let h="";
   if(st.mode==="search"){
     const q=(st.q||"").trim().toLowerCase(),loc=LOCAL.filter(f=>!q||q.split(/\s+/).every(w=>f[0].toLowerCase().includes(w))).slice(0,q?20:12);
     const sm=PRESETS.meals.filter(x=>!q||x.name.toLowerCase().includes(q)),sf=PRESETS.foods.filter(x=>!q||x.name.toLowerCase().includes(q));
     const saved=(sm.length||sf.length)?`<p class="fsec">Saved</p>${sm.map(x=>{const t=sumMac(x.items);return `<div class="prow"><button type="button" data-pmeal="${x.id}"><span>★ ${esc(x.name)}<small>Meal · ${x.items.length} items · ${R(t.p)}P ${R(t.c)}C ${R(t.f)}F</small></span><span class="r">${R(t.cal)} cal<small>tap to log</small></span></button><button type="button" class="px" data-pdelm="${x.id}" aria-label="Delete ${esc(x.name)}">✕</button></div>`}).join("")}${sf.map(x=>{const t=mac(x);return `<div class="prow"><button type="button" data-pfood="${x.id}"><span>☆ ${esc(x.name)}<small>My food · ${R(t.p)}P ${R(t.c)}C ${R(t.f)}F</small></span><span class="r">${R(t.cal)} cal<small>${R(x.g)} g</small></span></button><button type="button" class="px" data-pdelf="${x.id}" aria-label="Delete ${esc(x.name)}">✕</button></div>`}).join("")}<p class="fsec">Foods</p>`:"";
-    h=`<h3 id="sheetTitle">Add food</h3><div class="inline"><input class="txt" id="fs-q" placeholder="Search: chicken, rice, banana…" value="${esc(st.q||"")}" autocomplete="off" enterkeyhint="search"><button type="button" class="btn sm bcbtn" data-fbarcode="1" aria-label="Scan a barcode">${bcIcon}</button>${mealSel(st.meal)}</div>
+    h=`<h3 id="sheetTitle">Add food</h3><div class="inline"><input class="txt" id="fs-q" placeholder="Search: chicken, rice, banana…" value="${esc(st.q||"")}" autocomplete="off" enterkeyhint="search"><button type="button" class="btn sm bcbtn" data-fbarcode="1" aria-label="Scan a barcode">${bcIcon}</button></div>${mealSel(st.meal)}
       <div class="rowbtns"><button type="button" class="btn sm" data-fphoto="1">📷 Photo of meal</button><button type="button" class="btn sm" data-fbarcode="1">Scan barcode</button><button type="button" class="btn sm" data-fcreate="1">＋ Create food</button>${q?`<button type="button" class="btn sm primary" data-faitext="1">✨ Ask AI: “${esc(st.q)}”</button>`:""}</div>
       <div class="fres">${!q&&recentFoods().length?`<p class="fsec">Recent</p>${recentFoods().map((e,i)=>{const x=mac(e);return `<button type="button" data-frecent="${i}"><span>↺ ${esc(e.name)}<small>${esc(qtyText(e))}${e.n>1?` · logged ${e.n}×`:""}</small></span><span class="r">${R(x.cal)} cal<small>${R(x.p)}g protein</small></span></button>`}).join("")}`:""}${saved}${q?"":`<p class="fsec">Common foods</p>`}${loc.map((f,i)=>`<button type="button" data-flocal="${LOCAL.indexOf(f)}"><span>${esc(f[0])}<small>${f[1]} cal · ${f[2]}P ${f[3]}C ${f[4]}F per 100 g</small></span><span class="r">${R(f[1]*f[5]/100)} cal<small>${f[5]} g</small></span></button>`).join("")}
       ${st.off?st.off.map((f,i)=>`<button type="button" data-foff="${i}"><span>${esc(f.name)}<small>${R(f.per.cal)} cal · ${R(f.per.p)}P ${R(f.per.c)}C ${R(f.per.f)}F per 100 g · Open Food Facts</small></span><span class="r">${f.sv?esc(`1 ${f.sv.u}`)+`<small>${R(f.sv.g)} g</small>`:"100 g"}</span></button>`).join(""):""}
@@ -904,7 +908,7 @@ function fsDraw(){
       <div class="grid2"><label class="fl">Serving<input class="txt" id="cf-sv" value="1 serving" placeholder="e.g. 1 bar, 1 cup, 2 slices"></label><label class="fl">Weight (g or ml)<input class="txt" inputmode="decimal" id="cf-g" placeholder="optional"></label></div>
       <div class="grid2"><label class="fl">Calories per serving<input class="txt" inputmode="decimal" id="cf-cal"></label><span></span></div>
       <div class="grid2"><label class="fl">Protein g<input class="txt" inputmode="decimal" id="cf-p"></label><label class="fl">Carbs g<input class="txt" inputmode="decimal" id="cf-c"></label></div>
-      <div class="grid2"><label class="fl">Fat g<input class="txt" inputmode="decimal" id="cf-f"></label><label class="fl">Log it to${mealSel(st.meal)}</label></div>
+      <div class="grid2"><label class="fl">Fat g<input class="txt" inputmode="decimal" id="cf-f"></label><span></span></div><div class="fl">Log it to${mealSel(st.meal)}</div>
       <label style="display:flex;gap:8px;align-items:center;font-size:14px"><input type="checkbox" id="cf-log" checked> Also add one serving to today’s log</label>
       <button type="button" class="btn primary" data-fcsave="1">Save to My foods</button><button type="button" class="btn" data-fclose="1">Cancel</button>`;
   }else if(st.mode==="bcmiss"){
@@ -1053,6 +1057,8 @@ const fmeal=()=>{const el=document.getElementById("fs-meal");return el?el.value:
 document.getElementById("sheet").addEventListener("click",async ev=>{
   if(!FS)return;const b=ev.target.closest("button");if(!b)return;
   if(b.dataset.fclose){FS=null;return closeSheet()}
+  if(b.dataset.mealpick){const m=b.dataset.mealpick;autoMeal=false;const n=document.getElementById("fs-autonote");if(n)n.remove();FS.meal=m;setMealUI(m);
+    if(FS.mode==="amount"&&FS.editId){const e=(FOOD[foodDate]||[]).find(x=>x.id===FS.editId);if(e&&e.meal!==m){e.meal=m;saveF();closedMeals[m]=false;render();toast(`Moved to ${MEALS.find(x=>x[0]===m)[1]}`)}}return}
   if(b.dataset.flocal){const f=LOCAL[+b.dataset.flocal];return fsOpen({mode:"amount",name:f[0],g:f[5],sv:{u:"serving",g:f[5]},meal:fmeal(),src:"approx. values",per:{cal:f[1],p:f[2],c:f[3],f:f[4]}})}
   if(b.dataset.frecent){const e=recentFoods()[+b.dataset.frecent];if(e)fsOpen({mode:"amount",name:e.name,g:e.g,q:e.u?e.q:R(e.g),u:e.u||"g",sv:e.sv,meal:fmeal(),src:"Recent",per:e.per});return}
   if(b.dataset.foff){const f=FS.off[+b.dataset.foff];return fsOpen({mode:"amount",name:f.name,g:f.sv?f.sv.g:100,sv:f.sv,meal:fmeal(),src:"Open Food Facts",per:f.per})}
