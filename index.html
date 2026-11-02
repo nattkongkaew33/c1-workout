@@ -368,6 +368,40 @@ input.txt:focus,select.txt:focus{border-color:var(--blue);outline:none}
 .mealseg button{border:0;background:transparent;border-radius:999px;padding:9px 2px;font:600 13px var(--body);color:var(--muted);cursor:pointer;white-space:nowrap}
 .mealseg button[aria-pressed="true"]{background:var(--blue);color:var(--on-acc)}
 .fl .mealseg{margin-top:2px}
+/* coach */
+.nav{padding-left:max(6px,env(safe-area-inset-left,0px));padding-right:max(6px,env(safe-area-inset-right,0px))}
+.nav a{padding:6px 6px}
+.cseg{grid-template-columns:1fr 1fr;margin-bottom:14px}
+.cbody{display:grid;gap:10px}
+.cbig{width:100%;display:flex;align-items:center;justify-content:center;text-decoration:none;height:52px;font-size:16px}
+.ccard{display:flex;align-items:center;gap:12px;justify-content:space-between;padding:16px;border-radius:20px;background:var(--card);border:1px solid var(--line);text-decoration:none}
+.ccard strong{display:block;font:800 26px/1 var(--display);text-transform:uppercase}
+.ccard small{display:block;color:var(--muted);font-size:13px;margin-top:4px}
+.ccard>span{font-size:26px;color:var(--muted)}
+.cform{display:grid;gap:12px;background:var(--card);border:1px solid var(--line);border-radius:20px;padding:16px}
+.csub{font:800 22px var(--display);text-transform:uppercase;margin:0}
+.cchk{display:flex;gap:10px;align-items:center;font-size:14px}
+.cchk input{width:20px;height:20px;accent-color:var(--blue)}
+.crow{display:flex;gap:8px}.crow .txt{flex:1}
+.liblist{display:grid;gap:6px}
+.libitem{display:flex;justify-content:space-between;align-items:center;gap:10px;text-align:left;padding:12px 14px;border-radius:14px;border:1px solid var(--line);background:var(--card);color:var(--ink);font:inherit;cursor:pointer}
+.libitem small{display:block;color:var(--muted);font-size:12px}
+.vtag{flex:none;font-size:12px;font-weight:700;color:var(--blue)}
+.cday{display:grid;gap:10px;grid-template-columns:minmax(0,1fr)}
+.cex,.cform,.cbody{grid-template-columns:minmax(0,1fr)}
+.ctitle,.cname,.cfocus,.cnote{width:100%;min-width:0}
+.cdh{display:flex;gap:8px;align-items:center}
+.ctitle{flex:1;min-width:0;background:transparent;border:0;border-bottom:1px dashed var(--line);color:var(--ink);font:800 24px var(--display);text-transform:uppercase;padding:2px 0}
+.cfocus,.cnote{background:transparent;border:0;border-bottom:1px dashed var(--line);color:var(--muted);font:inherit;font-size:14px;padding:4px 0;width:100%}
+.cex{display:grid;gap:8px;background:var(--field);border-radius:14px;padding:10px 12px}
+.cexh{display:flex;gap:8px;align-items:center}
+.cnum{flex:none;width:26px;height:26px;border-radius:8px;display:grid;place-items:center;background:var(--card2);font-weight:700;font-size:13px}
+.cname{flex:1;min-width:0;background:transparent;border:0;color:var(--ink);font:600 16px var(--body);padding:4px 0}
+.vlink{flex:none;width:34px;height:34px;border-radius:999px;display:grid;place-items:center;background:color-mix(in srgb,var(--blue) 16%,transparent);color:var(--blue);text-decoration:none;font-size:13px}
+.xbtn{flex:none;width:30px;height:30px;border:0;background:transparent;color:var(--muted);cursor:pointer}
+.cexf{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}
+.cexf label{display:grid;gap:3px;font-size:11px;font-weight:600;color:var(--muted)}
+.cexf .txt{padding:8px 10px;font:600 15px var(--mono)}
 .hero .plate small{color:var(--muted);text-transform:none;letter-spacing:.02em;font-size:11px}
 .fhead{background:color-mix(in srgb,var(--bg) 85%,transparent);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);margin-top:4px}
 .fuel{display:grid;grid-template-columns:auto minmax(0,1fr) auto;align-items:center;gap:12px;padding:14px 16px;border-radius:18px;background:var(--card);border:1px solid var(--line);text-decoration:none;margin-bottom:6px}
@@ -434,6 +468,7 @@ tr.done td input{background:color-mix(in srgb,var(--green) 18%,var(--field));col
   <a href="#calendar" data-tab="calendar"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 10h18M8 3v4M16 3v4"/></svg>Calendar</a>
   <a href="#progress" data-tab="progress"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 20h18M5 16l4-5 4 3 6-8"/></svg>Progress</a>
   <a href="#plan" data-tab="plan"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M8 6h12M8 12h12M8 18h12M4 6h.01M4 12h.01M4 18h.01"/></svg>Plan</a>
+  <a href="#coach" data-tab="coach"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="4" width="14" height="17" rx="2"/><path d="M9 4V3h6v1M9 11h6M9 15h4"/></svg>Coach</a>
 </nav>
 
 <script>
@@ -964,9 +999,9 @@ async function aiFood(img,text){
   return (JSON.parse(m[0]).items||[]).map(it=>{const g=Math.max(1,+it.grams||100);const L=parseLabel(it.portion),sv=L.u&&!/^(g|grams?|ml|oz)$/i.test(L.u)?{u:L.u.slice(0,24),g:g/(L.n||1)}:null;return {on:true,name:it.name||"Food",orig:it.name||"Food",g:R(g),sv,q:sv?nq(L.n||1):R(g),u:sv?sv.u:"g",per:{cal:(+it.cal||0)/g*100,p:(+it.protein||0)/g*100,c:(+it.carbs||0)/g*100,f:(+it.fat||0)/g*100}}});
 }
 async function photoFlow(meal){const file=await pickImage();if(!file)return;const img=await shrink(file);fsOpen({mode:"aiprep",img,meal,hint:""});const el=document.getElementById("fs-hint");if(el)el.focus()}
-async function callClaude(content){
+async function callClaude(content,mt){
   if(!AIKEY)throw new Error("Add your Claude API key in ⚙ Nutrition settings first.");
-  const r=await fetch("https://api.anthropic.com/v1/messages",{method:"POST",headers:{"content-type":"application/json","x-api-key":AIKEY,"anthropic-version":"2023-06-01","anthropic-dangerous-direct-browser-access":"true"},body:JSON.stringify({model:AIMODEL,max_tokens:4000,messages:[{role:"user",content}]})});
+  const r=await fetch("https://api.anthropic.com/v1/messages",{method:"POST",headers:{"content-type":"application/json","x-api-key":AIKEY,"anthropic-version":"2023-06-01","anthropic-dangerous-direct-browser-access":"true"},body:JSON.stringify({model:AIMODEL,max_tokens:mt||4000,messages:[{role:"user",content}]})});
   const j=await r.json().catch(()=>({}));if(!r.ok)throw new Error((j.error&&j.error.message)||`The AI request failed (${r.status}).`);
   const txt=(j.content||[]).filter(c=>c.type==="text").map(c=>c.text).join(""),m=txt.match(/\{[\s\S]*\}/);if(!m)throw new Error("The AI didn’t return numbers. Try a clearer photo.");return JSON.parse(m[0]);
 }
@@ -1218,7 +1253,7 @@ document.getElementById("sheet").addEventListener("click",ev=>{
 });
 document.getElementById("scrim").addEventListener("click",()=>{WS=null});
 /* ---------- backup ---------- */
-function backupData(){return {app:"c1-workout",version:2,exported:new Date().toISOString(),sessions:S,log:LOG,prog:PROG,sched:SCHED,first:FIRST,unit:UNIT,bw:BW,sound:SOUND,food:FOOD,nut:NUT,presets:PRESETS}}
+function backupData(){return {app:"c1-workout",version:2,exported:new Date().toISOString(),sessions:S,log:LOG,prog:PROG,sched:SCHED,first:FIRST,unit:UNIT,bw:BW,sound:SOUND,food:FOOD,nut:NUT,presets:PRESETS,lib:LIB,clients:CLIENTS}}
 async function exportBackup(){
   const json=JSON.stringify(backupData(),null,1),name=`c1-workout-backup-${today()}.json`;
   try{
@@ -1228,7 +1263,7 @@ async function exportBackup(){
   try{const a=document.createElement("a");a.href=URL.createObjectURL(new Blob([json],{type:"application/json"}));a.download=name;document.body.appendChild(a);a.click();a.remove();store.set("c1-lastbackup",new Date().toISOString());toast("Backup downloaded");render()}
   catch(e){toast("Couldn’t save a file here. Use Copy backup text instead.")}
 }
-function applyImport(b){S=b.sessions||{};LOG=b.log||{};SCHED=b.sched||{};if(b.first){FIRST=b.first;store.set("c1-first",FIRST)}if(b.unit){UNIT=b.unit;store.set("c1-unit",UNIT)}if(b.bw){BW=b.bw;saveBW()}if(typeof b.sound==="boolean"){SOUND=b.sound;store.set("c1-sound",SOUND)}PROG=b.prog&&b.prog.weeks?b.prog:{start:mondayOf(FIRST),weeks:[b.plan||clone(DEFAULT_PLAN)]};editW=weekIdx(today());PLAN=PROG.weeks[editW];if(b.food){FOOD=b.food;saveF()}if(b.nut!==undefined){NUT=b.nut;store.set("c1-nut",NUT)}if(b.presets){PRESETS=b.presets;savePR()}saveS();saveL();saveP();saveSch()}
+function applyImport(b){S=b.sessions||{};LOG=b.log||{};SCHED=b.sched||{};if(b.first){FIRST=b.first;store.set("c1-first",FIRST)}if(b.unit){UNIT=b.unit;store.set("c1-unit",UNIT)}if(b.bw){BW=b.bw;saveBW()}if(typeof b.sound==="boolean"){SOUND=b.sound;store.set("c1-sound",SOUND)}PROG=b.prog&&b.prog.weeks?b.prog:{start:mondayOf(FIRST),weeks:[b.plan||clone(DEFAULT_PLAN)]};editW=weekIdx(today());PLAN=PROG.weeks[editW];if(b.food){FOOD=b.food;saveF()}if(b.nut!==undefined){NUT=b.nut;store.set("c1-nut",NUT)}if(b.presets){PRESETS=b.presets;savePR()}if(b.lib){LIB=b.lib;saveLib()}if(b.clients){CLIENTS=b.clients;saveCl()}saveS();saveL();saveP();saveSch()}
 
 /* ---------- live bits ---------- */
 function tickWorkout(){
@@ -1351,8 +1386,156 @@ app.addEventListener("change",ev=>{
   }
 });
 
+/* ---------- Coach: exercise library + AI-drafted plans for other people. Never touches your own program (PROG/S/LOG). ---------- */
+let LIB=store.get("c1-lib",[]),CLIENTS=store.get("c1-clients",[]);
+const saveLib=()=>store.set("c1-lib",LIB),saveCl=()=>store.set("c1-clients",CLIENTS);
+const MUSCLES=["Chest","Back","Shoulders","Biceps","Triceps","Legs","Glutes","Core","Full body","Cardio","Mobility","Other"];
+const GOALS=["Build muscle","Lose fat","Get stronger","General fitness","Start training (beginner)","Sport / athletic"];
+const LEVELS=["Beginner","Intermediate","Advanced"];
+const EQUIPS=["Full gym","Dumbbells only","Home: dumbbells + bench","Bodyweight only","Resistance bands","Calisthenics (bars, rings)"];
+let coachTab="plans",libEdit=null,libQ="",coachBusy=false,coachErr="";
+let cDraft={name:"",goal:GOALS[0],level:LEVELS[0],days:"3",mins:"60",equip:EQUIPS[0],notes:"",libonly:false};
+const ytSearch=n=>`https://www.youtube.com/results?search_query=${encodeURIComponent(n+" exercise form")}`;
+const libFind=n=>LIB.find(x=>x.n.trim().toLowerCase()===String(n||"").trim().toLowerCase());
+const exLink=n=>{const l=libFind(n);return l&&l.v?l.v:ytSearch(n)};
+const optList=(arr,cur)=>arr.map(x=>`<option${String(x)===String(cur)?" selected":""}>${esc(x)}</option>`).join("");
+const clipIcon=`<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="4" width="14" height="17" rx="2"/><path d="M9 4V3h6v1M9 11h6M9 15h4"/></svg>`;
+
+function viewCoach(h){
+  if(h==="coach-new")return viewCoachNew();
+  if(h.startsWith("coach-p-"))return viewClientPlan(h.slice(8));
+  const seg=`<div class="mealseg cseg" role="group" aria-label="Coach section"><button type="button" data-ctab="plans" aria-pressed="${coachTab==="plans"}">Client plans (${CLIENTS.length})</button><button type="button" data-ctab="lib" aria-pressed="${coachTab==="lib"}">Exercise library (${LIB.length})</button></div>`;
+  let body="";
+  if(coachTab==="plans"){
+    body=`<a class="btn primary cbig" href="#coach-new">✨ New plan with Claude</a>
+      ${CLIENTS.length?CLIENTS.map(c=>`<a class="ccard" href="#coach-p-${c.id}"><div><strong>${esc(c.client)}</strong><small>${esc(c.name||"")}</small><small>${esc(c.goal)} · ${esc(c.level)} · ${c.days.length} days/week · made ${fshort(c.created)}</small></div><span aria-hidden="true">›</span></a>`).join(""):
+      `<div class="empty">No client plans yet. Tap <b>New plan with Claude</b>, describe the person, and Claude drafts a weekly program you can edit and share.</div>`}`;
+  }else{
+    const q=libQ.trim().toLowerCase(),list=LIB.filter(x=>!q||(x.n+" "+x.m+" "+(x.eq||"")).toLowerCase().includes(q));
+    const groups=MUSCLES.map(m=>[m,list.filter(x=>(x.m||"Other")===m)]).filter(g=>g[1].length);
+    const form=libEdit?(()=>{const x=libEdit==="new"?{n:"",m:"Chest",eq:"",v:"",note:""}:LIB.find(e=>e.id===libEdit)||{};return `<div class="cform">
+        <h3 class="csub">${libEdit==="new"?"Add exercise":"Edit exercise"}</h3>
+        <label class="fl">Name<input class="txt" id="l-n" value="${esc(x.n)}" placeholder="e.g. Romanian deadlift"></label>
+        <div class="grid2"><label class="fl">Muscle group<select class="txt" id="l-m">${optList(MUSCLES,x.m||"Other")}</select></label><label class="fl">Equipment<input class="txt" id="l-eq" value="${esc(x.eq||"")}" placeholder="e.g. Barbell"></label></div>
+        <label class="fl">Video link (optional)<input class="txt" id="l-v" inputmode="url" value="${esc(x.v||"")}" placeholder="https://youtu.be/…"></label>
+        <label class="fl">Coaching notes (optional)<input class="txt" id="l-note" value="${esc(x.note||"")}" placeholder="e.g. Hinge from hips, soft knees"></label>
+        <div class="rowbtns"><button type="button" class="btn primary" data-lsave="1">Save exercise</button><button type="button" class="btn" data-lcancel="1">Cancel</button>${libEdit!=="new"?`<button type="button" class="btn danger" data-ldel="1">Delete</button>`:""}</div></div>`})():"";
+    body=`${form||`<div class="inline crow"><input class="txt" id="lib-q" placeholder="Search your library" value="${esc(libQ)}" autocomplete="off"><button type="button" class="btn primary" data-ladd="1">＋ Add</button></div>`}
+      ${groups.length?groups.map(([m,xs])=>`<p class="fsec">${esc(m)} · ${xs.length}</p><div class="liblist">${xs.map(x=>`<button type="button" class="libitem" data-ledit="${x.id}"><span>${esc(x.n)}<small>${esc([x.eq,x.note].filter(Boolean).join(" · "))}</small></span>${x.v?`<span class="vtag">▶ video</span>`:""}</button>`).join("")}</div>`).join(""):
+      (LIB.length?`<p class="muted">Nothing matches “${esc(libQ)}”.</p>`:`<div class="empty">Your library is empty. Add the exercises you coach with: name, muscle group, equipment and a video link. Claude uses them first when it writes plans, and you can add new exercises from any plan.</div>`)}`;
+  }
+  app.innerHTML=`<div class="eyebrow">For your clients</div><h1>Coach</h1><p class="muted" style="margin:6px 0 14px">Separate from your own C1 program; nothing here changes your workouts.</p>${seg}<div class="cbody">${body}</div>`;
+}
+
+function viewCoachNew(){
+  const d=cDraft,sel=(id,arr)=>`<select class="txt" id="cd-${id}" data-cdraft="${id}">${optList(arr,d[id])}</select>`;
+  app.innerHTML=`<div class="wtop"><a class="back" href="#coach" aria-label="Back">←</a><div class="wt"><small>Coach</small><h1>New plan</h1></div></div>
+    <div class="cform">
+      <label class="fl">Who is it for?<input class="txt" id="cd-name" data-cdraft="name" value="${esc(d.name)}" placeholder="e.g. Ploy"></label>
+      <div class="grid2"><label class="fl">Goal${sel("goal",GOALS)}</label><label class="fl">Level${sel("level",LEVELS)}</label></div>
+      <div class="grid2"><label class="fl">Days per week${sel("days",[2,3,4,5,6])}</label><label class="fl">Minutes per session${sel("mins",[30,45,60,75,90])}</label></div>
+      <label class="fl">Equipment${sel("equip",EQUIPS)}</label>
+      <label class="fl">Anything Claude should know?<textarea class="txt note" rows="3" id="cd-notes" data-cdraft="notes" placeholder="e.g. Sore lower back, wants bigger glutes, no running. Prefers full-body days.">${esc(d.notes)}</textarea></label>
+      <label class="cchk"><input type="checkbox" id="cd-libonly" data-cdraft="libonly"${d.libonly?" checked":""}${LIB.length?"":" disabled"}> Only use exercises from my library${LIB.length?` (${LIB.length})`:" (add some first)"}</label>
+      ${coachErr?`<p style="color:var(--red);margin:0">${esc(coachErr)}</p>`:""}
+      <button type="button" class="btn primary cbig" data-cgen="1"${coachBusy?" disabled":""}>${coachBusy?"Claude is writing the plan… (about 20 s)":"✨ Create plan with Claude"}</button>
+      <p class="muted" style="margin:0">Uses your Claude API key from Food → ⚙. You can edit every exercise, set and rep afterwards.</p>
+    </div>`;
+}
+
+function viewClientPlan(id){
+  const c=CLIENTS.find(x=>x.id===id);
+  if(!c){app.innerHTML=`<div class="wtop"><a class="back" href="#coach" aria-label="Back">←</a><div class="wt"><h1>Plan not found</h1></div></div>`;return}
+  const missing=[...new Set(c.days.flatMap(d=>d.ex.map(e=>e.n.trim())).filter(n=>n&&!libFind(n)))];
+  app.innerHTML=`<div class="wtop"><a class="back" href="#coach" aria-label="Back">←</a><div class="wt"><small>${esc(c.name||"Client plan")}</small><h1>${esc(c.client)}</h1></div></div>
+    <p class="muted" style="margin:8px 0 4px">${esc(c.goal)} · ${esc(c.level)} · ${c.days.length} days/week · ~${esc(c.mins)} min · ${esc(c.equip)}</p>
+    ${c.summary?`<p style="margin:0 0 12px">${esc(c.summary)}</p>`:""}
+    <div class="rowbtns" style="margin-bottom:14px"><button type="button" class="btn primary" data-cshare="1">Share plan</button><button type="button" class="btn" data-ccopy="1">Copy text</button><button type="button" class="btn danger" data-cdel="1">Delete</button></div>
+    ${c.days.map((d,di)=>`<section class="ex cday"><div class="cdh"><input class="ctitle" data-cd="${di}:title" value="${esc(d.title)}" aria-label="Day name"><button type="button" class="swapbtn" data-cdeld="${di}" aria-label="Remove ${esc(d.title)}">✕</button></div>
+      <input class="cfocus" data-cd="${di}:focus" value="${esc(d.focus||"")}" placeholder="Focus" aria-label="Day focus">
+      ${d.ex.map((e,ei)=>`<div class="cex"><div class="cexh"><span class="cnum">${ei+1}</span><input class="cname" data-cx="${di}:${ei}:n" value="${esc(e.n)}" list="libnames" aria-label="Exercise"><a class="vlink" href="${esc(exLink(e.n))}" target="_blank" rel="noopener" aria-label="Video for ${esc(e.n)}">▶</a><button type="button" class="xbtn" data-cdelx="${di}:${ei}" aria-label="Remove ${esc(e.n)}">✕</button></div>
+        <div class="cexf"><label>Sets<input class="txt" inputmode="numeric" data-cx="${di}:${ei}:sets" value="${esc(e.sets)}"></label><label>Reps<input class="txt" data-cx="${di}:${ei}:reps" value="${esc(e.reps)}"></label><label>Rest<input class="txt" data-cx="${di}:${ei}:rest" value="${esc(e.rest)}"></label></div>
+        <input class="cnote" data-cx="${di}:${ei}:note" value="${esc(e.note||"")}" placeholder="Coaching cue (optional)" aria-label="Coaching cue"></div>`).join("")}
+      <button type="button" class="btn sm" data-caddx="${di}">＋ Add exercise</button></section>`).join("")}
+    <datalist id="libnames">${LIB.map(x=>`<option value="${esc(x.n)}">`).join("")}</datalist>
+    <button type="button" class="btn" data-caddd="1" style="width:100%;margin-bottom:14px">＋ Add a day</button>
+    ${missing.length?`<div class="cform"><p style="margin:0"><b>${missing.length} exercise${missing.length>1?"s":""} not in your library:</b> <span class="muted">${missing.map(esc).join(", ")}</span></p><button type="button" class="btn sm" data-caddlib="1">Add them to my library</button></div>`:""}
+    <label class="fl" style="margin-top:14px">Notes for the client<textarea class="txt note" rows="4" data-cnotes="1">${esc(c.notes||"")}</textarea></label>
+    <div class="cform" style="margin-top:14px"><h3 class="csub">Ask Claude to change it</h3>
+      <textarea class="txt note" rows="2" id="c-change" placeholder="e.g. Swap squats for leg press, add more glute work, make Day 2 shorter"></textarea>
+      ${coachErr?`<p style="color:var(--red);margin:0">${esc(coachErr)}</p>`:""}
+      <button type="button" class="btn primary" data-crevise="1"${coachBusy?" disabled":""}>${coachBusy?"Claude is updating the plan…":"✨ Update plan"}</button></div>`;
+}
+
+async function aiPlan(b,cur,change){
+  const names=LIB.map(x=>`${x.n} (${x.m||"Other"}${x.eq?", "+x.eq:""})`).join("; ");
+  const lib=LIB.length?(b.libonly?`Use ONLY exercises from this library, spelled exactly as written: ${names}.`:`Prefer exercises from the coach's library when they fit, spelled exactly as written: ${names}. Add other common exercises only when needed.`):"";
+  const ask=cur?`Here is the current plan as JSON: ${JSON.stringify({name:cur.name,summary:cur.summary,days:cur.days.map(d=>({title:d.title,focus:d.focus,exercises:d.ex.map(e=>({name:e.n,muscle:e.m,sets:e.sets,reps:e.reps,rest:e.rest,note:e.note}))})),notes:cur.notes})}\nThe coach wants this change: "${change}". Apply it and keep everything else the same.`
+    :`Write a weekly training plan for a client named "${b.name||"Client"}". Goal: ${b.goal}. Level: ${b.level}. ${b.days} training days per week, about ${b.mins} minutes per session. Equipment: ${b.equip}.${b.notes?` Notes from the coach (injuries, preferences): "${b.notes}".`:""} Make it safe, balanced and realistic for the level, with sensible exercise order (compound lifts first).`;
+  const fmt=`Reply with JSON only, no other text: {"name":"short plan name","summary":"1-2 sentences about the approach","days":[{"title":"Day 1 · Upper body","focus":"short focus","exercises":[{"name":"Barbell bench press","muscle":"Chest","sets":3,"reps":"8–12","rest":"1:30","note":"short cue or empty"}]}],"notes":"2-4 short sentences on warm-up and how to progress"}. sets is a number, reps is text like "8–12" or "30 s", rest is m:ss. muscle is one of: ${MUSCLES.join(", ")}.`;
+  const r=await callClaude([{type:"text",text:`You are an experienced, safety-minded strength coach.\n${ask}\n${lib}\n${fmt}`}],8000);
+  if(!Array.isArray(r.days)||!r.days.length)throw new Error("Claude didn’t return a plan. Try again.");
+  return {name:r.name||"Training plan",summary:r.summary||"",notes:r.notes||"",days:r.days.map(d=>({title:d.title||"Day",focus:d.focus||"",ex:(d.exercises||[]).map(e=>({n:String(e.name||"Exercise"),m:e.muscle||"",sets:+e.sets||3,reps:String(e.reps||"8–12"),rest:String(e.rest||"1:30"),note:e.note||""}))}))}
+}
+function planText(c){
+  const L=[`💪 ${c.name||"Training plan"} · for ${c.client}`];if(c.summary)L.push(c.summary);
+  L.push(`${c.goal} · ${c.level} · ${c.days.length} days/week · ~${c.mins} min · ${c.equip}`);
+  c.days.forEach(d=>{L.push("",`${d.title.toUpperCase()}${d.focus?` (${d.focus})`:""}`);d.ex.forEach((e,i)=>{L.push(`${i+1}. ${e.n}: ${e.sets} × ${e.reps}${e.rest?` · rest ${e.rest}`:""}`);if(e.note)L.push(`   ↳ ${e.note}`);L.push(`   ▶ ${exLink(e.n)}`)})});
+  if(c.notes)L.push("",`Notes: ${c.notes}`);return L.join("\n")}
+async function coachGenerate(){
+  if(!AIKEY){coachErr="Add your Claude API key in Food → ⚙ first.";return render()}
+  coachBusy=true;coachErr="";render();
+  try{const b={...cDraft,days:+cDraft.days,mins:+cDraft.mins},plan=await aiPlan(b);
+    const c={id:uid(),created:today(),client:b.name.trim()||"Client",goal:b.goal,level:b.level,mins:b.mins,equip:b.equip,brief:b.notes,...plan};
+    CLIENTS.unshift(c);saveCl();coachBusy=false;cDraft={...cDraft,name:"",notes:""};location.hash="#coach-p-"+c.id}
+  catch(e){coachBusy=false;coachErr=e.message||"Something went wrong. Try again.";render()}}
+async function coachRevise(c){
+  const change=(document.getElementById("c-change")||{}).value||"";if(!change.trim()){toast("Type what Claude should change");return}
+  if(!AIKEY){coachErr="Add your Claude API key in Food → ⚙ first.";return render()}
+  coachBusy=true;coachErr="";render();
+  try{const p=await aiPlan({...c,libonly:false},c,change.trim());Object.assign(c,p);saveCl();coachBusy=false;toast("Plan updated");render()}
+  catch(e){coachBusy=false;coachErr=e.message||"Something went wrong. Try again.";render()}}
+
+app.addEventListener("click",async ev=>{
+  const q=s=>ev.target.closest(s);let b;
+  if(!location.hash.startsWith("#coach"))return;
+  const cid=location.hash.startsWith("#coach-p-")?location.hash.slice(9):null,c=cid&&CLIENTS.find(x=>x.id===cid);
+  if(b=q("[data-ctab]")){coachTab=b.dataset.ctab;libEdit=null;return render()}
+  if(b=q("[data-ladd]")){libEdit="new";render();const n=document.getElementById("l-n");if(n)n.focus();return}
+  if(b=q("[data-ledit]")){libEdit=b.dataset.ledit;render();window.scrollTo(0,0);return}
+  if(b=q("[data-lcancel]")){libEdit=null;return render()}
+  if(b=q("[data-ldel]")){const x=LIB.find(e=>e.id===libEdit);if(x&&confirm(`Delete “${x.n}” from your library?`)){LIB=LIB.filter(e=>e.id!==libEdit);saveLib();libEdit=null;toast("Exercise deleted");render()}return}
+  if(b=q("[data-lsave]")){const v=id=>document.getElementById(id).value.trim(),n=v("l-n");if(!n){toast("Give the exercise a name");return}
+    const dup=libFind(n);if(dup&&dup.id!==libEdit){toast(`“${dup.n}” is already in your library`);return}
+    const x={n,m:v("l-m"),eq:v("l-eq"),v:v("l-v"),note:v("l-note")};
+    if(libEdit==="new")LIB.push({id:uid(),...x});else Object.assign(LIB.find(e=>e.id===libEdit)||{},x);
+    LIB.sort((a,z)=>a.n.localeCompare(z.n));saveLib();libEdit=null;toast("Exercise saved");return render()}
+  if(b=q("[data-cgen]"))return coachGenerate();
+  if(!c)return;
+  if(b=q("[data-crevise]"))return coachRevise(c);
+  if(b=q("[data-cshare]")){const text=planText(c);try{if(navigator.share){await navigator.share({title:`${c.client}: ${c.name||"Training plan"}`,text});return}}catch(e){if(e&&e.name==="AbortError")return}
+    try{await navigator.clipboard.writeText(text);toast("Plan copied. Paste it into LINE or Messages")}catch(e){toast("Sharing isn’t available here")}return}
+  if(b=q("[data-ccopy]")){try{await navigator.clipboard.writeText(planText(c));toast("Plan copied")}catch(e){toast("Copy isn’t allowed here")}return}
+  if(b=q("[data-cdel]")){if(confirm(`Delete the plan for ${c.client}? This can’t be undone.`)){CLIENTS=CLIENTS.filter(x=>x!==c);saveCl();toast("Plan deleted");location.hash="#coach"}return}
+  if(b=q("[data-cdelx]")){const [di,ei]=b.dataset.cdelx.split(":").map(Number);c.days[di].ex.splice(ei,1);saveCl();return render()}
+  if(b=q("[data-caddx]")){c.days[+b.dataset.caddx].ex.push({n:"",m:"",sets:3,reps:"8–12",rest:"1:30",note:""});saveCl();render();const ins=document.querySelectorAll(`[data-cx^="${b.dataset.caddx}:"][data-cx$=":n"]`);if(ins.length)ins[ins.length-1].focus();return}
+  if(b=q("[data-cdeld]")){const di=+b.dataset.cdeld;if(c.days.length<2){toast("Keep at least one day");return}if(confirm(`Remove ${c.days[di].title}?`)){c.days.splice(di,1);saveCl();render()}return}
+  if(b=q("[data-caddd]")){c.days.push({title:`Day ${c.days.length+1}`,focus:"",ex:[]});saveCl();return render()}
+  if(b=q("[data-caddlib]")){let k=0;c.days.forEach(d=>d.ex.forEach(e=>{const n=e.n.trim();if(n&&!libFind(n)){LIB.push({id:uid(),n,m:MUSCLES.includes(e.m)?e.m:"Other",eq:"",v:"",note:""});k++}}));LIB.sort((a,z)=>a.n.localeCompare(z.n));saveLib();toast(`Added ${k} exercise${k>1?"s":""} to your library`);return render()}
+});
+app.addEventListener("input",ev=>{
+  if(!location.hash.startsWith("#coach"))return;const el=ev.target;
+  if(el.id==="lib-q"){libQ=el.value;const pos=el.selectionStart;render();const n=document.getElementById("lib-q");if(n){n.focus();n.setSelectionRange(pos,pos)}return}
+  if(el.dataset.cdraft){cDraft[el.dataset.cdraft]=el.type==="checkbox"?el.checked:el.value;return}
+  const c=CLIENTS.find(x=>"#coach-p-"+x.id===location.hash);if(!c)return;
+  if(el.dataset.cx){const [di,ei,k]=el.dataset.cx.split(":");c.days[+di].ex[+ei][k]=k==="sets"?Math.max(1,parseInt(el.value)||1):el.value;saveCl();if(k==="n"){const a=el.parentElement.querySelector(".vlink");if(a)a.href=exLink(el.value)}}
+  else if(el.dataset.cd){const [di,k]=el.dataset.cd.split(":");c.days[+di][k]=el.value;saveCl()}
+  else if(el.dataset.cnotes){c.notes=el.value;saveCl()}
+});
+app.addEventListener("change",ev=>{if(location.hash==="#coach-new"&&ev.target.dataset.cdraft){const el=ev.target;cDraft[el.dataset.cdraft]=el.type==="checkbox"?el.checked:el.value}});
+
 function render(){
-  const h=location.hash.slice(1),tab=h.startsWith("w-")?"week":(["calendar","progress","plan","food"].includes(h)?h:"week");
+  const h=location.hash.slice(1),tab=h.startsWith("w-")?"week":h.startsWith("coach")?"coach":(["calendar","progress","plan","food"].includes(h)?h:"week");
   document.querySelectorAll(".nav a").forEach(a=>a.setAttribute("aria-current",a.dataset.tab===tab?"page":"false"));
   delete app.dataset.date;
   if(/^w-\d{4}-\d{2}-\d{2}$/.test(h))viewWorkout(h.slice(2));
@@ -1360,6 +1543,7 @@ function render(){
   else if(h==="progress")viewProgress();
   else if(h==="plan")viewPlan();
   else if(h==="food")viewFood();
+  else if(h.startsWith("coach"))viewCoach(h);
   else viewWeek();
 }
 window.addEventListener("hashchange",()=>{closeSheet();FS=null;WS=null;rpeOpen=null;swapOpen=null;render();window.scrollTo(0,0)});
