@@ -59,6 +59,8 @@ input.txt,select.txt{background:var(--field);color:var(--ink);border:1px solid v
 .row .wcard{-webkit-touch-callout:none;-webkit-user-drag:none;-webkit-user-select:none;user-select:none;transition:transform .15s,box-shadow .15s,border-color .15s}
 .row.lift .wcard{pointer-events:none;position:relative;z-index:3;transition:none;box-shadow:0 18px 40px -12px rgba(0,0,0,.8);border-color:var(--blue)}
 .row.dropto .wcard{border-color:var(--blue);border-style:dashed;background:color-mix(in srgb,var(--blue) 10%,var(--card))}
+a,[data-go]{-webkit-touch-callout:none}
+.wcard[data-go]{cursor:pointer}
 body.dragging{overflow:hidden;-webkit-user-select:none;user-select:none}
 .wd{text-align:center;color:var(--muted);font:600 13px var(--body);line-height:1.2}
 .wd span{display:block;font:700 20px var(--display);color:var(--ink)}
@@ -650,12 +652,12 @@ function viewWeek(){
     const moved=(d in SCHED)&&!started(s)?`<span class="moved">Changed</span>`:"";
     const wd=`<div class="wd${isT?" on":""}">${WDN[i]}<span>${parse(d).getDate()}</span></div>`;
     const more=`<button type="button" class="more" data-sheet="${d}" aria-label="Change ${fshort(d)}">${dotsIcon}</button>`;
-    if(st==="rest")return `<div class="row" data-day="${d}">${wd}<a class="wcard rest" href="#w-${d}"><span class="ico" style="--c:var(--muted)">${restIcon}</span><span class="wtxt">${moved}<strong>Rest Day</strong></span></a>${more}</div>`;
+    if(st==="rest")return `<div class="row" data-day="${d}">${wd}<div class="wcard rest" role="link" tabindex="0" data-go="#w-${d}"><span class="ico" style="--c:var(--muted)">${restIcon}</span><span class="wtxt">${moved}<strong>Rest Day</strong></span></div>${more}</div>`;
     const P0=day&&DD(d,day), title=s&&started(s)?titleOf(s):P0.title, type=s&&started(s)?typeOf(s):P0.type, nEx=s&&started(s)?s.ex.length:P0.ex.length;
     const label={complete:"Complete ✓",missed:"Missed ⚠",progress:"In progress",today:"Today",upcoming:fshort(d),before:fshort(d)}[st];
     const extra=st==="complete"?`<em>${nEx} exercises · ${fmtDur(s.end-s.start)} · <b>Review</b></em>`:st==="progress"?`<em>${s.ex.reduce((a,x)=>a+x.sets.filter(t=>t.d).length,0)} sets logged</em>`:`<em>${nEx} exercises</em>`;
     const btn=(!isT&&st==="progress")?`<span class="startbtn" data-startnow="${d}">▶ Continue</span>`:"";
-    return `<div class="row" data-day="${d}">${wd}<a class="wcard st-${st}" href="#w-${d}" style="--c:var(${TCOLOR[type]})"><span class="ico" style="--c:var(${TCOLOR[type]})">${icon}</span><span class="wtxt"><small>${label}</small>${moved}<strong>${esc(title)}</strong>${extra}</span>${btn}</a>${more}</div>`;
+    return `<div class="row" data-day="${d}">${wd}<div class="wcard st-${st}" role="link" tabindex="0" data-go="#w-${d}" style="--c:var(${TCOLOR[type]})"><span class="ico" style="--c:var(${TCOLOR[type]})">${icon}</span><span class="wtxt"><small>${label}</small>${moved}<strong>${esc(title)}</strong>${extra}</span>${btn}</div>${more}</div>`;
   }).join("");
   app.innerHTML=`<div class="toprow"><div class="eyebrow">${esc(WP(mon).name)}</div>${refreshBtn}</div><h1>Today</h1>${todayHero()}
     <div class="wkhead wkh2"><div><h2>${weekOff?fshort(dates[0])+" – "+fshort(dates[6]):"This week"}</h2><small>${done} of ${planned} workouts done · hold &amp; drag to swap days</small></div>
@@ -1243,6 +1245,9 @@ function closeSheet(){sheet.hidden=true;scrim.hidden=true}
 function swapDays(a,to){const pa=planFor(a)||"rest",pb=planFor(to)||"rest";setDay(to,pa);setDay(a,pb);
   toast(pa==="rest"&&pb==="rest"?"Both are rest days":pa==="rest"?`${DD(a,pb).title} moved to ${fshort(a)}`:pb==="rest"?`${DD(to,pa).title} moved to ${fshort(to)}`:`Swapped ${DD(to,pa).title} and ${DD(a,pb).title}`)}
 /* Hold a day for half a second, then drag it onto another day to swap them. */
+/* Week cards are not real links, so iPhone shows no link preview on long-press (that gesture is for dragging). */
+document.addEventListener("click",ev=>{const g=ev.target.closest&&ev.target.closest("[data-go]");if(!g||ev.defaultPrevented)return;location.hash=g.dataset.go});
+document.addEventListener("keydown",ev=>{if((ev.key==="Enter"||ev.key===" ")&&ev.target.dataset&&ev.target.dataset.go){ev.preventDefault();location.hash=ev.target.dataset.go}});
 function initDrag(){let hold=null,drag=null,sx=0,sy=0,justDragged=false,scrollT=null;
   const rowAt=(x,y)=>{if(y==null)return null;let best=null,bd=1e9;document.querySelectorAll(".row[data-day]").forEach(r=>{if(drag&&r===drag.row)return;const b=r.getBoundingClientRect(),d=y<b.top?b.top-y:y>b.bottom?y-b.bottom:0;if(d<bd){bd=d;best=r}});return bd<=24?best:null};
   const clear=()=>{clearTimeout(hold);hold=null};
