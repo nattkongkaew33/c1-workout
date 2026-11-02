@@ -941,7 +941,7 @@ function fsDraw(){
     h=`<h3 id="sheetTitle">${esc(st.name)}</h3>
       <div class="inline"><input class="txt" id="fs-g" inputmode="decimal" value="${esc(nq(st.q))}" aria-label="Amount"><select class="txt" id="fs-u" aria-label="Unit">${unitOpt(U,st.u)}</select></div>${mealSel(st.meal)}
       <div class="fmac"><div><b id="fm-cal">${R(p.cal*k)}</b><span>cal</span></div><div><b id="fm-p">${R(p.p*k)}</b><span>protein g</span></div><div><b id="fm-c">${R(p.c*k)}</b><span>carbs g</span></div><div><b id="fm-f">${R(p.f*k)}</b><span>fat g</span></div></div>
-      <p class="muted" style="margin:0" id="fm-note">${st.sv&&st.sv.v?`${R(p.cal)} cal per ${esc(st.sv.u)}`:`${R(p.cal)} cal per 100 g`}${st.u!=="g"&&!(st.sv&&st.sv.v)?` · ${R(g)} g`:""}${st.src?` · ${esc(st.src)}`:""}</p>
+      <p class="muted" style="margin:0" id="fm-note">${st.sv&&st.sv.v?`${R(p.cal)} cal per ${esc(st.sv.u)}`:`${R(p.cal)} cal per 100 g`}${st.u!=="g"&&!(st.sv&&st.sv.v)?` · ${R(g)} g`:""}${st.src?` · ${esc(st.src)}`:""}</p>${st.noserv?`<p class="muted" style="margin:0">This product has no serving size on file, so it shows 100 g. <button type="button" class="btn sm" data-bclabel="1">📷 Read the label</button></p>`:""}
       ${st.editId?`<label class="fl">Day<input class="txt" type="date" id="fs-date" value="${foodDate}"></label>`:""}
       <div class="rowbtns"><button type="button" class="btn primary" data-fsave="1">${st.editId?"Save":"Add to log"}</button>${st.editId?`<button type="button" class="btn" data-fcopy="1">⧉ Copy</button>`:""}${st.editId?`<button type="button" class="btn danger" data-fdel="1">Delete</button>`:`<button type="button" class="btn" data-fback="1">Back</button>`}<button type="button" class="btn" data-ffav="1">☆ Save to My foods</button></div>
       <button type="button" class="btn" data-fclose="1">Close</button>`;
@@ -1046,8 +1046,12 @@ function fillCF(o){const set=(id,v)=>{const el=document.getElementById(id);if(el
 const cfStatus=t=>{const el=document.getElementById("cf-status");if(el)el.textContent=t};
 async function lookupOFF(code){
   const j=await (await fetch(`https://world.openfoodfacts.org/api/v2/product/${encodeURIComponent(code)}.json?fields=product_name,brands,nutriments,serving_quantity,serving_size`)).json(),p=j.product;
-  if(!p||!p.nutriments||p.nutriments["energy-kcal_100g"]==null)return {code};
-  return {code,name:(p.product_name||"Product")+(p.brands?` · ${p.brands.split(",")[0]}`:""),g:R(+p.serving_quantity||100),sv:parseServ(p.serving_size,p.serving_quantity),serving:p.serving_size||"",per:{cal:+p.nutriments["energy-kcal_100g"]||0,p:+p.nutriments.proteins_100g||0,c:+p.nutriments.carbohydrates_100g||0,f:+p.nutriments.fat_100g||0}}}
+  const n=(p&&p.nutriments)||{},k100=n["energy-kcal_100g"],kS=n["energy-kcal_serving"];if(!p||(k100==null&&kS==null))return {code};
+  const name=(p.product_name||"Product")+(p.brands?` · ${p.brands.split(",")[0]}`:""),L=parseLabel(p.serving_size),cnt=L.n||1,sv=parseServ(p.serving_size,p.serving_quantity);
+  /* Default to one serving exactly as printed on the label (e.g. "2 cookies (30 g)" → 2 cookies). */
+  if(k100!=null&&sv)return {code,name,g:R(sv.g*cnt),sv,q:nq(cnt),u:sv.u,serving:p.serving_size||"",per:{cal:+k100||0,p:+n.proteins_100g||0,c:+n.carbohydrates_100g||0,f:+n.fat_100g||0}};
+  if(kS!=null){const u=L.u&&!/^(g|ml)$/i.test(L.u)?L.u.slice(0,24):"serving";return {code,name,g:100,sv:{u,g:100/cnt,v:1},q:nq(cnt),u,serving:p.serving_size||`1 ${u}`,per:{cal:+kS||0,p:+n.proteins_serving||0,c:+n.carbohydrates_serving||0,f:+n.fat_serving||0}}}
+  return {code,name,g:100,sv:null,noserv:true,serving:"",per:{cal:+k100||0,p:+n.proteins_100g||0,c:+n.carbohydrates_100g||0,f:+n.fat_100g||0}}}
 /* Decode a barcode at any angle: try the picture straight, turned 90°, and both diagonals (upside-down is covered by each). */
 let zxR=null,zxC=null;
 function zxReader(){if(!zxR){const h=new Map();h.set(ZXing.DecodeHintType.POSSIBLE_FORMATS,[ZXing.BarcodeFormat.EAN_13,ZXing.BarcodeFormat.EAN_8,ZXing.BarcodeFormat.UPC_A,ZXing.BarcodeFormat.UPC_E,ZXing.BarcodeFormat.CODE_128]);h.set(ZXing.DecodeHintType.TRY_HARDER,true);zxR=new ZXing.MultiFormatReader();zxR.setHints(h)}return zxR}
@@ -1102,7 +1106,7 @@ async function lookupUSDA(code){
   const cal=nv(1008)||nv(2047)||nv(2048);if(!cal&&!nv(1003))return {code};
   const unit=String(f.servingSizeUnit||"").toLowerCase(),sg=/^(g|grm|ml|mlt)$/.test(unit)?+f.servingSize||0:0;
   const nm=(f.description||"Product").toLowerCase().replace(/\b\w/g,m=>m.toUpperCase()),br=f.brandName||f.brandOwner||"";
-  return {code,name:nm+(br?` · ${br.split(",")[0]}`:""),g:R(sg||100),sv:sg?parseServ(f.householdServingFullText||"1 serving",sg):null,serving:f.householdServingFullText||"",src:"USDA",per:{cal,p:nv(1003),c:nv(1005),f:nv(1004)}}}
+  return {code,name:nm+(br?` · ${br.split(",")[0]}`:""),g:R(sg||100),sv:sg?parseServ(f.householdServingFullText||"1 serving",sg):null,...(sg?(()=>{const hs=parseServ(f.householdServingFullText||"1 serving",sg),c=parseLabel(f.householdServingFullText||"1").n||1;return hs?{q:nq(c),u:hs.u}:{}})():{}),serving:f.householdServingFullText||"",src:"USDA",per:{cal,p:nv(1003),c:nv(1005),f:nv(1004)}}}
 async function lookupBarcode(code){
   const mine=PRESETS.foods.find(f=>f.bc&&bcNorm(f.bc)===bcNorm(code));
   if(mine)return {code,name:mine.name,g:mine.g,sv:mine.sv,q:mine.q,u:mine.u,per:mine.per,src:"My foods",serving:mine.sv?`1 ${mine.sv.u}`:""};
@@ -1117,7 +1121,7 @@ async function findBarcode(code,meal){
   toast(`Found ${code} — looking it up…`);const r=await lookupBarcode(code);
   if(r.offline){toast("Couldn’t look up that barcode. Check your connection.");return}
   if(!r.per)return fsOpen({mode:"bcmiss",code,meal});
-  fsOpen({mode:"amount",name:r.name,g:r.sv?r.sv.g:r.g||100,sv:r.sv,q:r.u?r.q:undefined,u:r.u,meal,bc:code,src:`barcode ${code} · ${r.src}`,per:r.per})}
+  fsOpen({mode:"amount",name:r.name,g:r.g||100,sv:r.sv,q:r.u?r.q:undefined,u:r.u,noserv:r.noserv,meal,bc:code,src:`barcode ${code} · ${r.src}${r.u&&r.src!=="My foods"?" · 1 serving as labelled":""}`,per:r.per})}
 const MEATS=["Chicken","Pork","Beef","Fish","Shrimp","Duck","Tofu","Egg"];
 const hintChips=target=>`<div class="hchips" role="group" aria-label="Quick answers">${MEATS.map(m=>`<button type="button" data-hchip="${m}" data-target="${target}">${m}</button>`).join("")}</div>`;
 function aiTotHTML(){const on=FS.items.filter(i=>i.on),t=sumMac(on);return `<div><b>${R(t.cal)}</b><span>cal</span></div><div><b>${R(t.p)}</b><span>protein g</span></div><div><b>${R(t.c)}</b><span>carbs g</span></div><div><b>${R(t.f)}</b><span>fat g</span></div>`}
@@ -1152,11 +1156,11 @@ document.getElementById("sheet").addEventListener("click",async ev=>{
   if(b.dataset.fcreate){return fsOpen({mode:"create",meal:fmeal(),name:FS.q||""})}
   if(b.dataset.bcagain){const c=document.getElementById("bc-code").value.replace(/\D/g,"");if(c.length<6){toast("Enter the full barcode number");return}return findBarcode(c,fmeal())}
   if(b.dataset.bctype){return fsOpen({mode:"create",meal:fmeal(),bc:FS.code})}
-  if(b.dataset.bclabel){const code=FS.code;fsOpen({mode:"create",meal:fmeal(),bc:code});const btn=document.querySelector("#sheet [data-cfphoto]");if(btn)btn.click();return}
+  if(b.dataset.bclabel){const code=FS.code||FS.bc;fsOpen({mode:"create",meal:fmeal(),bc:code});const btn=document.querySelector("#sheet [data-cfphoto]");if(btn)btn.click();return}
   if(b.dataset.cfphoto){const file=await pickImage();if(!file)return;const img=await shrink(file,1400);cfStatus("Reading your photo… this takes a few seconds.");
     try{const r=await aiLabel(img,document.getElementById("cf-name").value.trim());fillCF({name:r.name,sv:r.serving||"1 serving",g:+r.serving_g||"",cal:+r.cal||0,p:+r.protein||0,c:+r.carbs||0,f:+r.fat||0});cfStatus("Filled in from your photo. Check the numbers and edit anything that’s off.")}catch(e){cfStatus(e.message)}return}
   if(b.dataset.cfbar){let code;try{code=await getBarcode()}catch(e){cfStatus("Couldn’t read a barcode. Take a closer, sharper photo of it.");return}if(!code)return;cfStatus(`Found ${code} — looking it up…`);FS.bc=code;
-    try{const r=await lookupBarcode(code);if(r.offline)throw 0;if(!r.per){cfStatus(`Barcode ${code} isn’t in Open Food Facts or USDA. Use 📷 Photo or label, or type the numbers. It’ll be linked to this barcode.`);return}const k=r.g/100;fillCF({name:r.name,sv:r.serving||"1 serving",g:r.g,cal:r.per.cal*k,p:r.per.p*k,c:r.per.c*k,f:r.per.f*k});cfStatus("Filled in from the barcode (per serving). Edit anything you like.")}catch(e){cfStatus("Couldn’t look up that barcode. Check your connection.")}return}
+    try{const r=await lookupBarcode(code);if(r.offline)throw 0;if(!r.per){cfStatus(`Barcode ${code} isn’t in Open Food Facts or USDA. Use 📷 Photo or label, or type the numbers. It’ll be linked to this barcode.`);return}const vir=r.sv&&r.sv.v,k=(vir?100:r.g)/100;fillCF({name:r.name,sv:r.serving||"1 serving",g:vir?"":r.g,cal:r.per.cal*k,p:r.per.p*k,c:r.per.c*k,f:r.per.f*k});cfStatus("Filled in from the barcode (per serving). Edit anything you like.")}catch(e){cfStatus("Couldn’t look up that barcode. Check your connection.")}return}
   if(b.dataset.fcsave){const val=id=>+(document.getElementById(id).value||"").replace(",",".")||0,name=document.getElementById("cf-name").value.trim(),wt=val("cf-g");if(!name){toast("Give the food a name");return}
     const L=parseLabel(document.getElementById("cf-sv").value),n=L.n||1,lbl=(L.u&&!/^(g|grams?)$/i.test(L.u))?L.u.slice(0,24):"serving",g=wt||100,sv=wt?{u:lbl,g:wt/n}:{u:lbl,g:100/n,v:1};
     const per={cal:val("cf-cal")/g*100,p:val("cf-p")/g*100,c:val("cf-c")/g*100,f:val("cf-f")/g*100},meal=fmeal(),base={g,per,sv,q:n,u:lbl};if(FS.bc)PRESETS.foods=PRESETS.foods.filter(f=>!(f.bc&&bcNorm(f.bc)===bcNorm(FS.bc)));PRESETS.foods.push({id:uid(),name,...base,...(FS.bc?{bc:FS.bc}:{})});savePR();
