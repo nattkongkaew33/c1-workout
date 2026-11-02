@@ -1226,7 +1226,8 @@ function viewPlan(){
       ${pendingImport?`<div class="confirm" style="margin-top:12px">Replace all data with the backup from <b>${esc(fshort((pendingImport.exported||today()).slice(0,10)))}</b>? <button type="button" class="btn sm primary" data-act="doimport">Replace</button><button type="button" class="btn sm" data-act="noimport">Cancel</button></div>`:""}
     </div>
     <h2 class="sec">Reset</h2>
-    ${confirmReset?`<div class="confirm">Put the plan back to the coach’s Week 1? Your logged workouts stay. <button type="button" class="btn sm danger" data-act="doreset">Reset plan</button><button type="button" class="btn sm" data-act="noreset">Cancel</button></div>`:`<button type="button" class="btn danger" data-act="reset">Reset plan to coach’s Week 1</button>`}`;
+    ${confirmReset?`<div class="confirm">Put the plan back to the coach’s Week 1? Your logged workouts stay. <button type="button" class="btn sm danger" data-act="doreset">Reset plan</button><button type="button" class="btn sm" data-act="noreset">Cancel</button></div>`:`<button type="button" class="btn danger" data-act="reset">Reset plan to coach’s Week 1</button>`}
+    <p class="muted" style="text-align:center;margin-top:24px;font-size:12px">v31</p>`;
 }
 
 /* ---------- day sheet: move / swap / change / rest ---------- */
