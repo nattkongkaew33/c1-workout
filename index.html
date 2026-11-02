@@ -2,7 +2,7 @@
 <html lang="th">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,viewport-fit=cover">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -452,6 +452,9 @@ tr.done td input{background:color-mix(in srgb,var(--green) 18%,var(--field));col
 .stat b{font-size:36px;font-weight:900;color:var(--blue)}
 .stat:nth-child(2) b{color:var(--ink)}
 .stat:nth-child(3) b{color:var(--ink)}
+/* iPhone zooms into any field under 16px and doesn't zoom back; keep every typed field at 16px+ on iOS. */
+@supports (-webkit-touch-callout:none){input.txt,select.txt,textarea,.note,.ainame,.swap select,.cexf .txt,.cname,.cfocus,.cnote{font-size:16px!important}}
+.bwrow .seg{flex:none}.bwrow .btn{white-space:nowrap;flex:none}.bwrow input{min-width:70px}
 @media (prefers-reduced-motion:reduce){*{transition:none!important}}
 </style>
 </head>
@@ -825,7 +828,7 @@ function bwSection(){
   const lv=bwLatest(),k30=keys.filter(k=>k>=addDays(t,-30)),ch=k30.length>1?+toDisp(BW[k30[k30.length-1]])-+toDisp(BW[k30[0]]):null;
   const list=keys.slice(-6).reverse().map(k=>`<span>${fshort(k)} · ${toDisp(BW[k])} ${UNIT}<button type="button" data-delbw="${k}" aria-label="Delete ${fshort(k)}">✕</button></span>`).join("");
   return `<h2 class="sec">Body weight</h2><div class="dayrec" style="margin-top:0">
-    <div class="bwrow"><input class="txt" id="bw-input" inputmode="decimal" value="${esc(toDisp(BW[t]))}" placeholder="${esc(lv?toDisp(lv):UNIT)}" aria-label="Today's body weight in ${UNIT}"><span class="muted">${UNIT}</span><button type="button" class="btn sm primary" data-act="savebw">${BW[t]?"Update today":"Save today"}</button></div>
+    <div class="bwrow"><input class="txt" id="bw-input" inputmode="decimal" value="${esc(toDisp(BW[t]))}" placeholder="${esc(lv?toDisp(lv):UNIT)}" aria-label="Today's body weight in ${UNIT}">${unitSeg()}<button type="button" class="btn sm primary" data-act="savebw">${BW[t]?"Update today":"Save today"}</button></div>
     <div class="rowbtns" style="margin-top:8px">${HK?`<button type="button" class="btn sm" data-act="hksync">↻ Sync from Apple Health</button>`:`<button type="button" class="btn sm" data-act="pastebw">Paste from Health</button>`}</div>
     ${HK?`<p class="muted" style="margin:6px 0 0;font-size:13px">${hkNote()}</p>`:""}
     <p style="margin:8px 0 0">${lv?`Latest <b>${toDisp(lv)} ${UNIT}</b>${ch!==null?` · ${ch>0?"+":""}${+ch.toFixed(1)} ${UNIT} in 30 days`:""}`:"Log your weight to see the trend. It also fills in body-weight targets like the seated row."}</p>
