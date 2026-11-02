@@ -171,6 +171,10 @@ textarea.note{resize:vertical;min-height:52px;font:inherit}
 .hchips button{border:1px solid var(--line);background:var(--field);color:var(--ink);border-radius:999px;padding:6px 12px;font:600 13px var(--body);cursor:pointer}
 .mealtot{display:flex;flex-wrap:wrap;gap:4px 12px;justify-content:space-between;margin:0 12px 12px;padding:10px 14px;border-radius:12px;border:1px dashed var(--line);font-size:13px;color:var(--muted);font-variant-numeric:tabular-nums}
 .mealtot b{color:var(--ink)}
+.dayk{font-size:13px;font-weight:600;color:var(--muted);margin:0 0 10px}.dayk.tr{color:var(--blue)}.dayk span{color:var(--muted);font-weight:500}
+.copyy{display:block;width:calc(100% - 24px);margin:0 12px 12px;padding:10px 12px;border:1px dashed var(--line);border-radius:12px;background:transparent;color:var(--blue);font:600 14px var(--body);text-align:left;cursor:pointer}
+.copyy small{color:var(--muted);font-weight:500}
+.copyday{margin:0 0 12px;width:100%}
 .airow small{display:block;color:var(--muted);font-size:12px}
 .airow input.txt{padding:6px 8px}
 .prow{display:flex;gap:6px}
@@ -676,6 +680,10 @@ const LOCAL=[["Chicken breast, cooked",165,31,0,3.6,150],["Chicken thigh, cooked
 function suggestTargets(){const bw=bwLatest()||70,cal=Math.round(bw*33/10)*10,p=Math.round(bw*1.6),f=Math.round(bw*.6);return {cal,p,f,c:Math.max(0,Math.round((cal-p*4-f*9)/4))}}
 // calories = one daily target; protein/carbs/fat = minimums (older saved ranges are converted)
 const targets=()=>{if(!NUT)return suggestTargets();const one=(v,i)=>Array.isArray(v)?v[i]:v;return {cal:one(NUT.cal,1),p:one(NUT.p,0),c:one(NUT.c,0),f:one(NUT.f,0)}};
+/* Training vs rest day: shift calories (as carbs) by DAYADJ on each kind of day. */
+let DAYADJ=store.get("c1-dayadj",{train:150,rest:-150});
+function dayKind(d){const s=S[d];if(s&&started(s))return {train:true,title:titleOf(s)};const id=planFor(d);return id?{train:true,title:DD(d,id).title}:{train:false,title:"Rest day"}}
+function targetsFor(d){const T={...targets()},k=dayKind(d),dl=k.train?(+DAYADJ.train||0):(+DAYADJ.rest||0);T.cal=Math.max(0,T.cal+dl);T.c=Math.max(0,R(T.c+dl/4));T.kind=k;T.delta=dl;return T}
 const mac=e=>{const k=(+e.g||0)/100;return {cal:e.per.cal*k,p:e.per.p*k,c:e.per.c*k,f:e.per.f*k}};
 const sumMac=list=>list.reduce((a,e)=>{const m=mac(e);a.cal+=m.cal;a.p+=m.p;a.c+=m.c;a.f+=m.f;return a},{cal:0,p:0,c:0,f:0});
 const R=v=>Math.round(v);
@@ -705,25 +713,32 @@ let foodDate=today(),foodMode="consumed",closedMeals={},FS=null,offTimer=null;
 const camIcon=`<svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M4 8h3l2-3h6l2 3h3v11H4z"/><circle cx="12" cy="13" r="3.5"/></svg>`;
 
 function viewFood(){
-  const d=foodDate,T=targets(),list=FOOD[d]||[],tot=sumMac(list),rem=foodMode==="remaining";
+  const d=foodDate,T=targetsFor(foodDate),list=FOOD[d]||[],tot=sumMac(list),rem=foodMode==="remaining";
   const lbl=d===today()?`Today, ${parse(d).toLocaleDateString("en-US",{month:"short",day:"numeric"})}`:parse(d).toLocaleDateString("en-US",{weekday:"short",month:"short",day:"numeric"});
   const big=rem?R(T.cal-tot.cal):R(tot.cal),pct=Math.min(100,tot.cal/T.cal*100);
   const macs=MACROS.map(([k,l,c])=>{const v=tot[k],ok=v>=T[k],shown=rem?Math.max(0,R(T[k]-v)):R(v);
     return `<div class="mac" style="--c:${c}"><small>${l}</small><div class="mb"><i style="width:${Math.min(100,T[k]?v/T[k]*100:0)}%"></i></div><p>${ok?`<span class="ok">✓</span> `:""}<b>${shown}</b>${rem?"g left":` / ${T[k]}g+`}</p></div>`}).join("");
-  const meals=MEALS.map(([m,l])=>{const items=list.filter(e=>e.meal===m),mt=sumMac(items),open=!closedMeals[m];
+  const prevD=addDays(d,-1),prev=FOOD[prevD]||[];
+  const meals=MEALS.map(([m,l])=>{const items=list.filter(e=>e.meal===m),mt=sumMac(items),open=!closedMeals[m],py=prev.filter(e=>e.meal===m);
+    const cp=!items.length&&py.length&&list.length?`<button type="button" class="copyy" data-copymeal="${m}">↺ Same as yesterday <small>· ${py.length} item${py.length>1?"s":""} · ${R(sumMac(py).cal)} cal</small></button>`:"";
     return `<div class="meal"><div class="mealh"><button type="button" class="t" data-mealt="${m}" aria-expanded="${open}"><span style="font-size:16px;color:var(--muted)">${open?"⌃":"⌄"}</span>${l}</button><span class="chipc">${R(mt.cal)} Cal</span><span class="chipp">${R(mt.p)} P</span>${items.length?`<button type="button" class="saveml" data-savemeal="${m}" aria-label="Save ${l} as a meal preset">☆</button>`:""}<button type="button" class="addm" data-addmeal="${m}" aria-label="Add food to ${l}">+</button></div>
-      ${open&&items.length?`<div class="fitems">${items.map(e=>{const x=mac(e);return `<button type="button" class="fitem" data-editfood="${e.id}"><span>${esc(e.name)}<small>${esc(qtyText(e))}</small></span><span class="r">${R(x.cal)} cal<small>${R(x.p)}g protein</small></span></button>`}).join("")}</div><div class="mealtot"><span>Total <b>${R(mt.cal)} cal</b></span><span>Protein <b>${R(mt.p)}g</b></span><span>Carbs <b>${R(mt.c)}g</b></span><span>Fat <b>${R(mt.f)}g</b></span></div>`:""}</div>`}).join("");
+      ${open&&items.length?`<div class="fitems">${items.map(e=>{const x=mac(e);return `<button type="button" class="fitem" data-editfood="${e.id}"><span>${esc(e.name)}<small>${esc(qtyText(e))}</small></span><span class="r">${R(x.cal)} cal<small>${R(x.p)}g protein</small></span></button>`}).join("")}</div><div class="mealtot"><span>Total <b>${R(mt.cal)} cal</b></span><span>Protein <b>${R(mt.p)}g</b></span><span>Carbs <b>${R(mt.c)}g</b></span><span>Fat <b>${R(mt.f)}g</b></span></div>`:""}${cp}</div>`}).join("");
+  const copyDay=!list.length&&prev.length?`<button type="button" class="btn copyday" data-copyday="1">↺ Copy yesterday’s food (${prev.length} items · ${R(sumMac(prev).cal)} cal)</button>`:"";
   app.innerHTML=`<div class="fhead"><button type="button" data-fday="-1" aria-label="Previous day">‹</button><b>${lbl}</b><button type="button" data-fday="1" aria-label="Next day">›</button></div>
-    <div class="ncard"><div class="ntog"><button type="button" data-fmode="consumed" aria-pressed="${!rem}">Consumed</button><button type="button" data-fmode="remaining" aria-pressed="${rem}">Remaining</button></div>
+    <div class="ncard"><div class="dayk ${T.kind.train?"tr":""}">${T.kind.train?"🏋️ Training day":"😌 Rest day"}${T.kind.train?` · ${esc(T.kind.title)}`:""}${T.delta?` <span>${T.delta>0?"+":""}${T.delta} cal${T.delta>0?" (extra carbs)":" (fewer carbs)"}</span>`:""}</div><div class="ntog"><button type="button" data-fmode="consumed" aria-pressed="${!rem}">Consumed</button><button type="button" data-fmode="remaining" aria-pressed="${rem}">Remaining</button></div>
       <div class="nbig"><b>${big}</b><span>${rem?"cal left":`/ ${T.cal} cal`}</span></div>
       <div class="nbar"><i class="${tot.cal>T.cal?"over":""}" style="width:${pct}%"></i></div>
       <div class="macros">${macs}</div>${NUT?"":`<p class="muted" style="margin:12px 0 0">Targets are suggested from your body weight${bwLatest()?"":" (70 kg until you log it)"}. Change them with ⚙.</p>`}</div>
     <div class="flh"><h2>Food Log</h2><span><button type="button" class="iconbtn" data-act="fsettings" aria-label="Nutrition settings"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg></button><button type="button" class="iconbtn" data-act="fcopy" aria-label="Copy yesterday's food to this day"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="8" y="8" width="12" height="13" rx="2"/><path d="M16 8V5a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v11a2 2 0 0 0 2 2h2"/></svg></button></span></div>
-    ${meals}
+    ${copyDay}${meals}
     <div class="foodbar"><div><button type="button" class="s" data-fsearch="1">🔍 Search for a food</button><button type="button" class="cam" data-fscan="1" aria-label="Scan a barcode">${bcIcon}</button><button type="button" class="cam" data-fphoto="1" aria-label="Photo of your meal">${camIcon}</button></div></div>`;
 }
 
 /* food sheet: search · amount · AI review · settings */
+/* Most-logged foods in the last 30 days, newest version of each. */
+function recentFoods(){const cut=addDays(today(),-30),seen=new Map();
+  Object.keys(FOOD).filter(k=>k>=cut).sort().reverse().forEach(k=>(FOOD[k]||[]).slice().reverse().forEach(e=>{const key=e.name.trim().toLowerCase();const r=seen.get(key);if(r)r.n++;else seen.set(key,{...e,n:1,last:k})}));
+  return [...seen.values()].sort((a,b)=>b.n-a.n||(a.last<b.last?1:-1)).slice(0,8)}
 function fsOpen(st){FS=st;fsDraw();sheet.hidden=false;scrim.hidden=false}
 function mealSel(cur){return `<select class="txt" id="fs-meal" aria-label="Meal">${MEALS.map(([m,l])=>`<option value="${m}"${m===cur?" selected":""}>${l}</option>`).join("")}</select>${autoMeal&&FS&&/^(amount|ai|create)$/.test(FS.mode)?`<p class="muted" id="fs-autonote" style="margin:0;font-size:13px"></p>`:""}`}
 function fsDraw(){
@@ -734,7 +749,7 @@ function fsDraw(){
     const saved=(sm.length||sf.length)?`<p class="fsec">Saved</p>${sm.map(x=>{const t=sumMac(x.items);return `<div class="prow"><button type="button" data-pmeal="${x.id}"><span>★ ${esc(x.name)}<small>Meal · ${x.items.length} items · ${R(t.p)}P ${R(t.c)}C ${R(t.f)}F</small></span><span class="r">${R(t.cal)} cal<small>tap to log</small></span></button><button type="button" class="px" data-pdelm="${x.id}" aria-label="Delete ${esc(x.name)}">✕</button></div>`}).join("")}${sf.map(x=>{const t=mac(x);return `<div class="prow"><button type="button" data-pfood="${x.id}"><span>☆ ${esc(x.name)}<small>My food · ${R(t.p)}P ${R(t.c)}C ${R(t.f)}F</small></span><span class="r">${R(t.cal)} cal<small>${R(x.g)} g</small></span></button><button type="button" class="px" data-pdelf="${x.id}" aria-label="Delete ${esc(x.name)}">✕</button></div>`}).join("")}<p class="fsec">Foods</p>`:"";
     h=`<h3 id="sheetTitle">Add food</h3><div class="inline"><input class="txt" id="fs-q" placeholder="Search: chicken, rice, banana…" value="${esc(st.q||"")}" autocomplete="off" enterkeyhint="search"><button type="button" class="btn sm bcbtn" data-fbarcode="1" aria-label="Scan a barcode">${bcIcon}</button>${mealSel(st.meal)}</div>
       <div class="rowbtns"><button type="button" class="btn sm" data-fphoto="1">📷 Photo of meal</button><button type="button" class="btn sm" data-fbarcode="1">Scan barcode</button><button type="button" class="btn sm" data-fcreate="1">＋ Create food</button>${q?`<button type="button" class="btn sm primary" data-faitext="1">✨ Ask AI: “${esc(st.q)}”</button>`:""}</div>
-      <div class="fres">${saved}${loc.map((f,i)=>`<button type="button" data-flocal="${LOCAL.indexOf(f)}"><span>${esc(f[0])}<small>${f[1]} cal · ${f[2]}P ${f[3]}C ${f[4]}F per 100 g</small></span><span class="r">${R(f[1]*f[5]/100)} cal<small>${f[5]} g</small></span></button>`).join("")}
+      <div class="fres">${!q&&recentFoods().length?`<p class="fsec">Recent</p>${recentFoods().map((e,i)=>{const x=mac(e);return `<button type="button" data-frecent="${i}"><span>↺ ${esc(e.name)}<small>${esc(qtyText(e))}${e.n>1?` · logged ${e.n}×`:""}</small></span><span class="r">${R(x.cal)} cal<small>${R(x.p)}g protein</small></span></button>`}).join("")}`:""}${saved}${q?"":`<p class="fsec">Common foods</p>`}${loc.map((f,i)=>`<button type="button" data-flocal="${LOCAL.indexOf(f)}"><span>${esc(f[0])}<small>${f[1]} cal · ${f[2]}P ${f[3]}C ${f[4]}F per 100 g</small></span><span class="r">${R(f[1]*f[5]/100)} cal<small>${f[5]} g</small></span></button>`).join("")}
       ${st.off?st.off.map((f,i)=>`<button type="button" data-foff="${i}"><span>${esc(f.name)}<small>${R(f.per.cal)} cal · ${R(f.per.p)}P ${R(f.per.c)}C ${R(f.per.f)}F per 100 g · Open Food Facts</small></span><span class="r">${f.sv?esc(`1 ${f.sv.u}`)+`<small>${R(f.sv.g)} g</small>`:"100 g"}</span></button>`).join(""):""}
       ${q&&st.offLoading?`<p class="muted">Searching Open Food Facts…</p>`:""}${q&&!loc.length&&st.off&&!st.off.length?`<p class="muted">No matches. Try “Ask AI”, or a simpler word.</p>`:""}</div>
       <button type="button" class="btn" data-fclose="1">Close</button>`;
@@ -746,7 +761,8 @@ function fsDraw(){
       <div class="inline"><input class="txt" id="fs-g" inputmode="decimal" value="${esc(nq(st.q))}" aria-label="Amount"><select class="txt" id="fs-u" aria-label="Unit">${unitOpt(U,st.u)}</select></div>${mealSel(st.meal)}
       <div class="fmac"><div><b id="fm-cal">${R(p.cal*k)}</b><span>cal</span></div><div><b id="fm-p">${R(p.p*k)}</b><span>protein g</span></div><div><b id="fm-c">${R(p.c*k)}</b><span>carbs g</span></div><div><b id="fm-f">${R(p.f*k)}</b><span>fat g</span></div></div>
       <p class="muted" style="margin:0" id="fm-note">${st.sv&&st.sv.v?`${R(p.cal)} cal per ${esc(st.sv.u)}`:`${R(p.cal)} cal per 100 g`}${st.u!=="g"&&!(st.sv&&st.sv.v)?` · ${R(g)} g`:""}${st.src?` · ${esc(st.src)}`:""}</p>
-      <div class="rowbtns"><button type="button" class="btn primary" data-fsave="1">${st.editId?"Save":"Add to log"}</button>${st.editId?`<button type="button" class="btn danger" data-fdel="1">Delete</button>`:`<button type="button" class="btn" data-fback="1">Back</button>`}<button type="button" class="btn" data-ffav="1">☆ Save to My foods</button></div>
+      ${st.editId?`<label class="fl">Day<input class="txt" type="date" id="fs-date" value="${foodDate}"></label>`:""}
+      <div class="rowbtns"><button type="button" class="btn primary" data-fsave="1">${st.editId?"Save":"Add to log"}</button>${st.editId?`<button type="button" class="btn" data-fcopy="1">⧉ Copy</button>`:""}${st.editId?`<button type="button" class="btn danger" data-fdel="1">Delete</button>`:`<button type="button" class="btn" data-fback="1">Back</button>`}<button type="button" class="btn" data-ffav="1">☆ Save to My foods</button></div>
       <button type="button" class="btn" data-fclose="1">Close</button>`;
   }else if(st.mode==="ai"){
     h=`<h3 id="sheetTitle">${st.loading?"Looking at your food…":"Check the estimate"}</h3>
@@ -797,6 +813,9 @@ function fsDraw(){
     h=`<h3 id="sheetTitle">Nutrition settings</h3><div class="grid2">${fld("cal","Calories per day")}${fld("p","Protein (g)")}</div><div class="grid2">${fld("c","Carbs (g)")}${fld("f","Fat (g)")}</div>
       <button type="button" class="btn sm" data-fsuggest="1">Suggest from body weight (${bwLatest()?toDisp(bwLatest())+" "+UNIT:"log it on Progress"})</button>
       <p class="muted" style="margin:0">Suggestion: calories about 33 × body weight in kg (maintenance), protein 1.6 g/kg, fat 0.6 g/kg, carbs fill the rest. Eat less to cut, more to bulk.</p>
+      <h3 style="font-size:19px;margin-top:6px">Training vs rest days</h3>
+      <div class="grid2"><label class="fl">Training day (cal)<input class="txt" inputmode="numeric" id="ns-dtrain" value="${esc(DAYADJ.train)}"></label><label class="fl">Rest day (cal)<input class="txt" inputmode="numeric" id="ns-drest" value="${esc(DAYADJ.rest)}"></label></div>
+      <p class="muted" style="margin:0">Added to your calorie target as carbs on days your plan has a workout (or you trained), and on rest days. The numbers above are your base. Use 0 to turn it off.</p>
       <h3 style="font-size:19px;margin-top:6px">AI food photos</h3>
       <label class="fl">Claude API key<input class="txt" type="password" id="ns-key" value="${esc(AIKEY)}" placeholder="sk-ant-…" autocomplete="off"></label>
       <label class="fl">Model<input class="txt" id="ns-model" value="${esc(AIMODEL)}"></label>
@@ -927,11 +946,14 @@ document.getElementById("sheet").addEventListener("click",async ev=>{
   if(!FS)return;const b=ev.target.closest("button");if(!b)return;
   if(b.dataset.fclose){FS=null;return closeSheet()}
   if(b.dataset.flocal){const f=LOCAL[+b.dataset.flocal];return fsOpen({mode:"amount",name:f[0],g:f[5],sv:{u:"serving",g:f[5]},meal:fmeal(),src:"approx. values",per:{cal:f[1],p:f[2],c:f[3],f:f[4]}})}
+  if(b.dataset.frecent){const e=recentFoods()[+b.dataset.frecent];if(e)fsOpen({mode:"amount",name:e.name,g:e.g,q:e.u?e.q:R(e.g),u:e.u||"g",sv:e.sv,meal:fmeal(),src:"Recent",per:e.per});return}
   if(b.dataset.foff){const f=FS.off[+b.dataset.foff];return fsOpen({mode:"amount",name:f.name,g:f.sv?f.sv.g:100,sv:f.sv,meal:fmeal(),src:"Open Food Facts",per:f.per})}
   if(b.dataset.fback){return fsOpen({mode:"search",meal:fmeal(),q:FS.q||""})}
   if(b.dataset.fsave){fsAmountLive();const g=FS.g;if(!(g>0)){toast("Enter the amount");return}const meal=fmeal();
-    if(FS.editId){const e=(FOOD[foodDate]||[]).find(x=>x.id===FS.editId);if(e){e.g=g;e.meal=meal;delete e.q;delete e.u;withQ(e,FS)}}else{(FOOD[foodDate]=FOOD[foodDate]||[]).push(withQ({id:Date.now().toString(36)+Math.random().toString(36).slice(2,5),meal,name:FS.name,g,per:FS.per},FS))}
+    if(FS.editId){const e=(FOOD[foodDate]||[]).find(x=>x.id===FS.editId),nd=(document.getElementById("fs-date")||{}).value||foodDate;if(e){e.g=g;e.meal=meal;delete e.q;delete e.u;withQ(e,FS);if(nd!==foodDate){FOOD[foodDate]=FOOD[foodDate].filter(x=>x!==e);(FOOD[nd]=FOOD[nd]||[]).push(e);saveF();toast(`Moved to ${fshort(nd)}`);FS=null;closeSheet();return render()}}}else{(FOOD[foodDate]=FOOD[foodDate]||[]).push(withQ({id:Date.now().toString(36)+Math.random().toString(36).slice(2,5),meal,name:FS.name,g,per:FS.per},FS))}
     saveF();closedMeals[meal]=false;toast(FS.editId?"Saved":`Added to ${MEALS.find(m=>m[0]===meal)[1]}`);FS=null;closeSheet();return render()}
+  if(b.dataset.fcopy){fsAmountLive();const e=(FOOD[foodDate]||[]).find(x=>x.id===FS.editId);if(!e)return;const nd=(document.getElementById("fs-date")||{}).value||foodDate,meal=fmeal();
+    (FOOD[nd]=FOOD[nd]||[]).push(withQ({id:uid(),meal,name:e.name,g:FS.g,per:e.per},FS));saveF();toast(`Copied to ${MEALS.find(x=>x[0]===meal)[1]}${nd!==foodDate?` · ${fshort(nd)}`:""}`);FS=null;closeSheet();return render()}
   if(b.dataset.fdel){FOOD[foodDate]=(FOOD[foodDate]||[]).filter(x=>x.id!==FS.editId);saveF();FS=null;closeSheet();toast("Deleted");return render()}
   if(b.dataset.fphoto){return photoFlow(fmeal())}
   if(b.dataset.fanalyze){return runAI(FS.img,document.getElementById("fs-hint").value.trim(),fmeal())}
@@ -963,7 +985,7 @@ document.getElementById("sheet").addEventListener("click",async ev=>{
   if(b.dataset.fsuggest){const t=suggestTargets();["cal","p","c","f"].forEach(k=>{document.getElementById(`ns-${k}`).value=t[k]});return}
   if(b.dataset.fresett){NUT=null;store.set("c1-nut",null);toast("Using suggested targets");FS=null;closeSheet();return render()}
   if(b.dataset.fsaveset){const v=id=>+document.getElementById(id).value||0;NUT={};["cal","p","c","f"].forEach(k=>{NUT[k]=v(`ns-${k}`)});store.set("c1-nut",NUT);
-    AIKEY=document.getElementById("ns-key").value.trim();store.set("c1-aikey",AIKEY);AIMODEL=document.getElementById("ns-model").value.trim()||"claude-haiku-5-5";store.set("c1-aimodel",AIMODEL);USDAKEY=document.getElementById("ns-usda").value.trim();store.set("c1-usdakey",USDAKEY);toast("Settings saved");FS=null;closeSheet();return render()}
+    AIKEY=document.getElementById("ns-key").value.trim();store.set("c1-aikey",AIKEY);AIMODEL=document.getElementById("ns-model").value.trim()||"claude-haiku-5-5";store.set("c1-aimodel",AIMODEL);USDAKEY=document.getElementById("ns-usda").value.trim();store.set("c1-usdakey",USDAKEY);DAYADJ={train:R(+document.getElementById("ns-dtrain").value||0),rest:R(+document.getElementById("ns-drest").value||0)};store.set("c1-dayadj",DAYADJ);toast("Settings saved");FS=null;closeSheet();return render()}
 });
 document.getElementById("sheet").addEventListener("input",ev=>{
   if(!FS)return;const el=ev.target;
@@ -1123,6 +1145,8 @@ app.addEventListener("click",async ev=>{
   if(b=q("[data-fday]")){foodDate=addDays(foodDate,+b.dataset.fday);return render()}
   if(b=q("[data-fmode]")){foodMode=b.dataset.fmode;return render()}
   if(b=q("[data-mealt]")){const m=b.dataset.mealt;closedMeals[m]=!closedMeals[m];return render()}
+  if(b=q("[data-copymeal]")){const m=b.dataset.copymeal,src=(FOOD[addDays(foodDate,-1)]||[]).filter(e=>e.meal===m);(FOOD[foodDate]=FOOD[foodDate]||[]).push(...src.map(e=>({...clone(e),id:uid()})));saveF();closedMeals[m]=false;toast(`Copied ${src.length} item(s)`);return render()}
+  if(b=q("[data-copyday]")){const src=FOOD[addDays(foodDate,-1)]||[];(FOOD[foodDate]=FOOD[foodDate]||[]).push(...src.map(e=>({...clone(e),id:uid()})));saveF();toast(`Copied ${src.length} item(s) from yesterday`);return render()}
   if(b=q("[data-addmeal]")){autoMeal=false;return fsOpen({mode:"search",meal:b.dataset.addmeal,q:""})}
   if(b=q("[data-fscan]")){autoMeal=true;return scanBarcode(defMeal())}
   if(b=q("[data-fsearch]")){autoMeal=true;fsOpen({mode:"search",meal:defMeal(),q:""});const el=document.getElementById("fs-q");if(el)el.focus();return}
