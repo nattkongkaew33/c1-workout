@@ -663,7 +663,7 @@ function recSection(by){
 /* ---------- nutrition ---------- */
 let FOOD=store.get("c1-food",{});      // {date:[{id,meal,name,g,per:{cal,p,c,f} per 100 g}]}
 let NUT=store.get("c1-nut",null);       // targets {cal:[min,max],p:[..],c:[..],f:[..]}
-let AIKEY=store.get("c1-aikey",""), AIMODEL=store.get("c1-aimodel","claude-haiku-5-5");
+let AIKEY=store.get("c1-aikey",""), AIMODEL=store.get("c1-aimodel","claude-haiku-5-5"), USDAKEY=store.get("c1-usdakey","");
 const saveF=()=>store.set("c1-food",FOOD);
 let PRESETS=store.get("c1-presets",{foods:[],meals:[]});   // saved foods {id,name,g,per} and meals {id,name,items:[{name,g,per}]}
 const savePR=()=>store.set("c1-presets",PRESETS);
@@ -764,6 +764,7 @@ function fsDraw(){
     h=`<h3 id="sheetTitle">Create food</h3>
       <div class="rowbtns"><button type="button" class="btn sm primary" data-cfphoto="1">📷 Photo or label</button><button type="button" class="btn sm" data-cfbar="1">Scan barcode</button></div>
       <p class="muted" id="cf-status" style="margin:0">Take or upload a photo of the food or its nutrition label, or a barcode, to fill this in. You can edit every number after.</p>
+      ${st.bc?`<p class="muted" style="margin:0">Barcode ${esc(st.bc)} will be linked to this food.</p>`:""}
       <label class="fl">Name<input class="txt" id="cf-name" placeholder="e.g. Mom’s chicken soup" value="${esc(st.name||"")}"></label>
       <div class="grid2"><label class="fl">Serving<input class="txt" id="cf-sv" value="1 serving" placeholder="e.g. 1 bar, 1 cup, 2 slices"></label><label class="fl">Weight (g or ml)<input class="txt" inputmode="decimal" id="cf-g" placeholder="optional"></label></div>
       <div class="grid2"><label class="fl">Calories per serving<input class="txt" inputmode="decimal" id="cf-cal"></label><span></span></div>
@@ -771,6 +772,15 @@ function fsDraw(){
       <div class="grid2"><label class="fl">Fat g<input class="txt" inputmode="decimal" id="cf-f"></label><label class="fl">Log it to${mealSel(st.meal)}</label></div>
       <label style="display:flex;gap:8px;align-items:center;font-size:14px"><input type="checkbox" id="cf-log" checked> Also add one serving to today’s log</label>
       <button type="button" class="btn primary" data-fcsave="1">Save to My foods</button><button type="button" class="btn" data-fclose="1">Cancel</button>`;
+  }else if(st.mode==="bcmiss"){
+    h=`<h3 id="sheetTitle">Product not found</h3>
+      <p class="muted" style="margin:0">Barcode <b>${esc(st.code)}</b> isn’t in Open Food Facts or USDA yet. Check the number matches the one printed under the barcode, and fix it if not.</p>
+      <div class="inline"><input class="txt" id="bc-code" inputmode="numeric" value="${esc(st.code)}" aria-label="Barcode number"><button type="button" class="btn sm" data-bcagain="1">Look up</button></div>
+      <p class="fsec">Add it yourself (saved to My foods, so the next scan finds it)</p>
+      <button type="button" class="btn primary" data-bclabel="1">📷 Photo of the nutrition label</button>
+      <button type="button" class="btn" data-bctype="1">Type the numbers in</button>
+      <a class="btn" href="https://world.openfoodfacts.org/cgi/product.pl?type=add&code=${encodeURIComponent(st.code)}" target="_blank" rel="noopener" style="display:flex;align-items:center;justify-content:center;text-decoration:none">Add it to Open Food Facts for everyone ↗</a>
+      <button type="button" class="btn" data-fclose="1">Close</button>`;
   }else if(st.mode==="settings"){
     const T=targets(),fld=(k,l)=>`<label class="fl">${l}<input class="txt" inputmode="numeric" id="ns-${k}" value="${T[k]}"></label>`;
     h=`<h3 id="sheetTitle">Nutrition settings</h3><div class="grid2">${fld("cal","Calories per day")}${fld("p","Protein (g)")}</div><div class="grid2">${fld("c","Carbs (g)")}${fld("f","Fat (g)")}</div>
@@ -780,6 +790,9 @@ function fsDraw(){
       <label class="fl">Claude API key<input class="txt" type="password" id="ns-key" value="${esc(AIKEY)}" placeholder="sk-ant-…" autocomplete="off"></label>
       <label class="fl">Model<input class="txt" id="ns-model" value="${esc(AIMODEL)}"></label>
       <p class="muted" style="margin:0">Get a key at console.anthropic.com. It stays only on this phone and isn’t in backups. Each photo costs a small amount on your Anthropic bill.</p>
+      <h3 style="font-size:19px;margin-top:6px">Barcode lookup</h3>
+      <label class="fl">USDA API key (optional)<input class="txt" type="password" id="ns-usda" value="${esc(USDAKEY)}" placeholder="Leave empty to use the shared demo key" autocomplete="off"></label>
+      <p class="muted" style="margin:0">Barcodes are checked in your saved foods first, then Open Food Facts, then USDA (mostly US products). The shared demo key allows about 30 lookups an hour. A free key from api.data.gov/signup allows 1,000.</p>
       <div class="rowbtns"><button type="button" class="btn primary" data-fsaveset="1">Save</button>${NUT?`<button type="button" class="btn" data-fresett="1">Use suggested targets</button>`:""}</div>
       <button type="button" class="btn" data-fclose="1">Close</button>`;
   }
@@ -869,12 +882,31 @@ async function getBarcode(){
 async function runAI(img,text,meal){fsOpen({mode:"ai",loading:true,img,meal,items:[],hint:text||""});try{const items=await aiFood(img,text);if(FS&&FS.mode==="ai"){FS.loading=false;FS.items=items;if(!items.length)FS.err="No food found in that photo.";fsDraw()}}catch(e){if(FS&&FS.mode==="ai"){FS.loading=false;FS.err=e.message;fsDraw()}}}
 let zxingP=null;
 function loadZX(){return zxingP||(zxingP=new Promise((ok,no)=>{const s=document.createElement("script");s.src="https://cdn.jsdelivr.net/npm/@zxing/library@0.21.3/umd/index.min.js";s.onload=ok;s.onerror=()=>{zxingP=null;no()};document.head.appendChild(s)}))}
+/* Barcode databases, checked in order: your own saved foods → Open Food Facts → USDA FoodData Central. */
+const bcNorm=c=>String(c||"").replace(/\D/g,"").replace(/^0+/,"");
+async function lookupUSDA(code){
+  const j=await (await fetch(`https://api.nal.usda.gov/fdc/v1/foods/search?api_key=${encodeURIComponent(USDAKEY||"DEMO_KEY")}&dataType=Branded&pageSize=5&query=${encodeURIComponent(code)}`)).json();
+  const f=(j.foods||[]).find(x=>bcNorm(x.gtinUpc)===bcNorm(code));if(!f)return {code};
+  const nv=id=>{const n=(f.foodNutrients||[]).find(n=>n.nutrientId===id);return n?+n.value||0:0};
+  const cal=nv(1008)||nv(2047)||nv(2048);if(!cal&&!nv(1003))return {code};
+  const unit=String(f.servingSizeUnit||"").toLowerCase(),sg=/^(g|grm|ml|mlt)$/.test(unit)?+f.servingSize||0:0;
+  const nm=(f.description||"Product").toLowerCase().replace(/\b\w/g,m=>m.toUpperCase()),br=f.brandName||f.brandOwner||"";
+  return {code,name:nm+(br?` · ${br.split(",")[0]}`:""),g:R(sg||100),sv:sg?parseServ(f.householdServingFullText||"1 serving",sg):null,serving:f.householdServingFullText||"",src:"USDA",per:{cal,p:nv(1003),c:nv(1005),f:nv(1004)}}}
+async function lookupBarcode(code){
+  const mine=PRESETS.foods.find(f=>f.bc&&bcNorm(f.bc)===bcNorm(code));
+  if(mine)return {code,name:mine.name,g:mine.g,sv:mine.sv,q:mine.q,u:mine.u,per:mine.per,src:"My foods",serving:mine.sv?`1 ${mine.sv.u}`:""};
+  let net=false;
+  try{const r=await lookupOFF(code);net=true;if(r.per)return {...r,src:"Open Food Facts"}}catch(e){}
+  try{const r=await lookupUSDA(code);net=true;if(r.per)return r}catch(e){}
+  return {code,offline:!net}}
 async function scanBarcode(meal){
   let code;try{code=await getBarcode()}catch(e){toast("Couldn’t read a barcode. Take a closer, sharper photo of it.");return}
-  if(!code)return;toast(`Found ${code} — looking it up…`);
-  try{const r=await lookupOFF(code);if(!r.per){toast(`Barcode ${code} isn’t in Open Food Facts yet`);return}
-    fsOpen({mode:"amount",name:r.name,g:r.sv?r.sv.g:100,sv:r.sv,meal,src:"barcode · Open Food Facts",per:r.per})}catch(e){toast("Couldn’t look up that barcode. Check your connection.")}
-}
+  if(!code)return;return findBarcode(code,meal)}
+async function findBarcode(code,meal){
+  toast(`Found ${code} — looking it up…`);const r=await lookupBarcode(code);
+  if(r.offline){toast("Couldn’t look up that barcode. Check your connection.");return}
+  if(!r.per)return fsOpen({mode:"bcmiss",code,meal});
+  fsOpen({mode:"amount",name:r.name,g:r.sv?r.sv.g:r.g||100,sv:r.sv,q:r.u?r.q:undefined,u:r.u,meal,bc:code,src:`barcode ${code} · ${r.src}`,per:r.per})}
 const MEATS=["Chicken","Pork","Beef","Fish","Shrimp","Duck","Tofu","Egg"];
 const hintChips=target=>`<div class="hchips" role="group" aria-label="Quick answers">${MEATS.map(m=>`<button type="button" data-hchip="${m}" data-target="${target}">${m}</button>`).join("")}</div>`;
 function aiTotHTML(){const on=FS.items.filter(i=>i.on),t=sumMac(on);return `<div><b>${R(t.cal)}</b><span>cal</span></div><div><b>${R(t.p)}</b><span>protein g</span></div><div><b>${R(t.c)}</b><span>carbs g</span></div><div><b>${R(t.f)}</b><span>fat g</span></div>`}
@@ -900,15 +932,18 @@ document.getElementById("sheet").addEventListener("click",async ev=>{
   if(b.dataset.pfood){const x=PRESETS.foods.find(f=>f.id===b.dataset.pfood);if(x)fsOpen({mode:"amount",name:x.name,g:x.g,q:x.u?x.q:undefined,u:x.u,sv:x.sv,meal:fmeal(),src:"My foods",per:x.per});return}
   if(b.dataset.pdelm){PRESETS.meals=PRESETS.meals.filter(m=>m.id!==b.dataset.pdelm);savePR();toast("Preset deleted");return fsDraw()}
   if(b.dataset.pdelf){PRESETS.foods=PRESETS.foods.filter(f=>f.id!==b.dataset.pdelf);savePR();toast("Removed from My foods");return fsDraw()}
-  if(b.dataset.ffav){fsAmountLive();if(PRESETS.foods.some(f=>f.name===FS.name)){toast("Already in My foods");return}PRESETS.foods.push(withQ({id:uid(),name:FS.name,g:FS.g,per:FS.per},FS));savePR();toast("Saved to My foods");return}
+  if(b.dataset.ffav){fsAmountLive();if(PRESETS.foods.some(f=>f.name===FS.name)){toast("Already in My foods");return}PRESETS.foods.push(withQ({id:uid(),name:FS.name,g:FS.g,per:FS.per,...(FS.bc?{bc:FS.bc}:{})},FS));savePR();toast("Saved to My foods");return}
   if(b.dataset.fcreate){return fsOpen({mode:"create",meal:fmeal(),name:FS.q||""})}
+  if(b.dataset.bcagain){const c=document.getElementById("bc-code").value.replace(/\D/g,"");if(c.length<6){toast("Enter the full barcode number");return}return findBarcode(c,fmeal())}
+  if(b.dataset.bctype){return fsOpen({mode:"create",meal:fmeal(),bc:FS.code})}
+  if(b.dataset.bclabel){const code=FS.code;fsOpen({mode:"create",meal:fmeal(),bc:code});const btn=document.querySelector("#sheet [data-cfphoto]");if(btn)btn.click();return}
   if(b.dataset.cfphoto){const file=await pickImage();if(!file)return;const img=await shrink(file,1400);cfStatus("Reading your photo… this takes a few seconds.");
     try{const r=await aiLabel(img,document.getElementById("cf-name").value.trim());fillCF({name:r.name,sv:r.serving||"1 serving",g:+r.serving_g||"",cal:+r.cal||0,p:+r.protein||0,c:+r.carbs||0,f:+r.fat||0});cfStatus("Filled in from your photo. Check the numbers and edit anything that’s off.")}catch(e){cfStatus(e.message)}return}
-  if(b.dataset.cfbar){let code;try{code=await getBarcode()}catch(e){cfStatus("Couldn’t read a barcode. Take a closer, sharper photo of it.");return}if(!code)return;cfStatus(`Found ${code} — looking it up…`);
-    try{const r=await lookupOFF(code);if(!r.per){cfStatus(`Barcode ${r.code} isn’t in Open Food Facts yet. Try 📷 Photo or label instead.`);return}const k=r.g/100;fillCF({name:r.name,sv:r.serving||"1 serving",g:r.g,cal:r.per.cal*k,p:r.per.p*k,c:r.per.c*k,f:r.per.f*k});cfStatus("Filled in from the barcode (per serving). Edit anything you like.")}catch(e){cfStatus("Couldn’t look up that barcode. Check your connection.")}return}
+  if(b.dataset.cfbar){let code;try{code=await getBarcode()}catch(e){cfStatus("Couldn’t read a barcode. Take a closer, sharper photo of it.");return}if(!code)return;cfStatus(`Found ${code} — looking it up…`);FS.bc=code;
+    try{const r=await lookupBarcode(code);if(r.offline)throw 0;if(!r.per){cfStatus(`Barcode ${code} isn’t in Open Food Facts or USDA. Use 📷 Photo or label, or type the numbers. It’ll be linked to this barcode.`);return}const k=r.g/100;fillCF({name:r.name,sv:r.serving||"1 serving",g:r.g,cal:r.per.cal*k,p:r.per.p*k,c:r.per.c*k,f:r.per.f*k});cfStatus("Filled in from the barcode (per serving). Edit anything you like.")}catch(e){cfStatus("Couldn’t look up that barcode. Check your connection.")}return}
   if(b.dataset.fcsave){const val=id=>+(document.getElementById(id).value||"").replace(",",".")||0,name=document.getElementById("cf-name").value.trim(),wt=val("cf-g");if(!name){toast("Give the food a name");return}
     const L=parseLabel(document.getElementById("cf-sv").value),n=L.n||1,lbl=(L.u&&!/^(g|grams?)$/i.test(L.u))?L.u.slice(0,24):"serving",g=wt||100,sv=wt?{u:lbl,g:wt/n}:{u:lbl,g:100/n,v:1};
-    const per={cal:val("cf-cal")/g*100,p:val("cf-p")/g*100,c:val("cf-c")/g*100,f:val("cf-f")/g*100},meal=fmeal(),base={g,per,sv,q:n,u:lbl};PRESETS.foods.push({id:uid(),name,...base});savePR();
+    const per={cal:val("cf-cal")/g*100,p:val("cf-p")/g*100,c:val("cf-c")/g*100,f:val("cf-f")/g*100},meal=fmeal(),base={g,per,sv,q:n,u:lbl};if(FS.bc)PRESETS.foods=PRESETS.foods.filter(f=>!(f.bc&&bcNorm(f.bc)===bcNorm(FS.bc)));PRESETS.foods.push({id:uid(),name,...base,...(FS.bc?{bc:FS.bc}:{})});savePR();
     if(document.getElementById("cf-log").checked){(FOOD[foodDate]=FOOD[foodDate]||[]).push({id:uid(),meal,name,...base});saveF();closedMeals[meal]=false}
     toast(`Saved “${name}” to My foods`);FS=null;closeSheet();return render()}
   if(b.dataset.fbarcode){return scanBarcode(fmeal())}
@@ -917,7 +952,7 @@ document.getElementById("sheet").addEventListener("click",async ev=>{
   if(b.dataset.fsuggest){const t=suggestTargets();["cal","p","c","f"].forEach(k=>{document.getElementById(`ns-${k}`).value=t[k]});return}
   if(b.dataset.fresett){NUT=null;store.set("c1-nut",null);toast("Using suggested targets");FS=null;closeSheet();return render()}
   if(b.dataset.fsaveset){const v=id=>+document.getElementById(id).value||0;NUT={};["cal","p","c","f"].forEach(k=>{NUT[k]=v(`ns-${k}`)});store.set("c1-nut",NUT);
-    AIKEY=document.getElementById("ns-key").value.trim();store.set("c1-aikey",AIKEY);AIMODEL=document.getElementById("ns-model").value.trim()||"claude-haiku-5-5";store.set("c1-aimodel",AIMODEL);toast("Settings saved");FS=null;closeSheet();return render()}
+    AIKEY=document.getElementById("ns-key").value.trim();store.set("c1-aikey",AIKEY);AIMODEL=document.getElementById("ns-model").value.trim()||"claude-haiku-5-5";store.set("c1-aimodel",AIMODEL);USDAKEY=document.getElementById("ns-usda").value.trim();store.set("c1-usdakey",USDAKEY);toast("Settings saved");FS=null;closeSheet();return render()}
 });
 document.getElementById("sheet").addEventListener("input",ev=>{
   if(!FS)return;const el=ev.target;
