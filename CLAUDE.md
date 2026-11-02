@@ -32,7 +32,7 @@ also wrapped as an iPhone app (Capacitor) that loads the live site.
 `c1-sessions` workouts, `c1-log`, `c1-prog` multi-week plan, `c1-sched` per-date overrides, `c1-first`,
 `c1-unit` kg/lb (weights stored in kg), `c1-bw` body weight {date: kg}, `c1-sound`, `c1-food` food log
 {date:[{id,meal,name,g,per(per 100 g),q,u,sv}]}, `c1-nut` targets, `c1-presets` saved foods/meals (foods can have `bc` barcode),
-`c1-dayadj` training/rest-day calorie shift, `c1-lib` exercise library, `c1-clients` coach plans,
+`c1-dayadj` training/rest-day calorie shift, `c1-lib` exercise library, `c1-clients` coach plans, `c1-theme` dark/light,
 keys: `c1-aikey` (Claude), `c1-aimodel`, `c1-usdakey`, `c1-ytkey` (YouTube).
 Backup/restore: `backupData()` / `applyImport()` – include new data keys there, never API keys.
 Changes must stay compatible with existing saved data (users' logs must survive updates).
