@@ -12,6 +12,8 @@ also wrapped as an iPhone app (Capacitor) that loads the live site.
 - `sw.js` – service worker. **Bump `CACHE` (e.g. `c1-workout-v30` → `v31`) on every release** or phones keep the old version.
 - `manifest.json`, `icon-180.png`, `icon-192.png`, `icon-512.png`
 - `.nojekyll` – keeps GitHub Pages from running Jekyll.
+- `native/ios/` – Swift files for the iPhone app (not served by the site): `HealthWorkoutPlugin.swift` (JS `HealthWorkout`)
+  and `AppViewController.swift` (registers it). Copy into `c1-ios/ios/App/App/`; see `native/ios/README.md`.
 
 ## Release checklist
 1. Edit `index.html`.
@@ -32,6 +34,7 @@ also wrapped as an iPhone app (Capacitor) that loads the live site.
 `c1-sessions` workouts, `c1-log`, `c1-prog` multi-week plan, `c1-sched` per-date overrides, `c1-first`,
 `c1-unit` kg/lb (weights stored in kg), `c1-bw` body weight {date: kg}, `c1-steps` step count {date: steps}, `c1-sound`, `c1-food` food log
 {date:[{id,meal,name,g,per(per 100 g),q,u,sv}]}, `c1-nut` targets, `c1-presets` saved foods/meals (foods can have `bc` barcode),
+`c1-hkw` {date: session end} sessions already saved to Apple Health (sync marker, not in backup),
 `c1-dayadj` training/rest-day calorie shift, `c1-lib` exercise library, `c1-clients` coach plans, `c1-theme` dark/light,
 keys: `c1-aikey` (Claude), `c1-aimodel`, `c1-usdakey`, `c1-ytkey` (YouTube).
 Backup/restore: `backupData()` / `applyImport()` – include new data keys there, never API keys.
@@ -44,6 +47,9 @@ Changes must stay compatible with existing saved data (users' logs must survive 
 - Coach tab: exercise library (+ auto most-viewed YouTube video via YouTube Data API) and AI client plans; never touches the user's own plan.
 - Progress tab: calories per day (with target) and weekly average; steps per day and weekly average.
 - iPhone app only: rest-timer local notifications (`@capacitor/local-notifications`), Apple Health sync for weight and steps (`@capgo/capacitor-health`; requests `read: ["weight","steps"]`, steps via `queryAggregated` bucketed by day).
+  Finished workouts are saved to Health as Traditional Strength Training via the app's own `HealthWorkout` plugin
+  (`native/ios/`): auto on Finish, "Save to Apple Health" button on finished workouts, removed when the workout is deleted.
+  Calories ≈ 3.5 × body weight (kg) × hours; none if no body weight logged. Hidden on the website / older app builds.
 
 ## Rules
 - Never put API keys in code, commits or messages. The user pastes keys in the app (Food → ⚙, Coach → Library).

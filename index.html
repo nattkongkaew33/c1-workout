@@ -713,7 +713,7 @@ function viewWorkout(date){
   const wrap=`<section class="ex"><span class="exname" style="color:var(--ink)">How did it feel?</span>
       <div class="feel">${FEEL.map((l,i)=>`<button type="button" data-feel="${i+1}" aria-pressed="${x.feel==i+1}">${l}</button>`).join("")}</div>
       <textarea class="note" id="wn-${date}" data-wnote="1" rows="2" placeholder="Workout notes: sleep, energy, anything for your coach" aria-label="Workout notes">${esc(x.wnote||"")}</textarea>
-      <div class="rowbtns" style="margin-top:10px">${ended?"":`<button type="button" class="btn primary" data-act="finish">✓ Finish workout</button>`}${started(s)?`<button type="button" class="btn" data-act="share">Share workout</button>`:""}${s&&s.start?`<button type="button" class="btn danger" data-act="discard">${ended?"Delete workout":"Discard"}</button>`:""}</div></section>
+      <div class="rowbtns" style="margin-top:10px">${ended?"":`<button type="button" class="btn primary" data-act="finish">✓ Finish workout</button>`}${started(s)?`<button type="button" class="btn" data-act="share">Share workout</button>`:""}${ended&&hkwOk?`<button type="button" class="btn" data-act="hkw">${HKWS[date]===s.end?"✓ In Apple Health":"Save to Apple Health"}</button>`:""}${s&&s.start?`<button type="button" class="btn danger" data-act="discard">${ended?"Delete workout":"Discard"}</button>`:""}</div></section>
     <datalist id="exlist">${names.map(n=>`<option value="${esc(n)}"></option>`).join("")}</datalist>`;
   app.innerHTML=`<div class="whead"><div class="wtop"><a class="back" href="#week" aria-label="Back to schedule">←</a>
       <div class="wt"><small>${date===today()?"Today’s Workout":flong(date)}</small><h1>${esc(x.title)}</h1></div>
@@ -839,6 +839,18 @@ async function hkSync(manual){
   catch(e){hkErr=(e&&e.message)||"couldn’t read";if(manual){toast("Apple Health: "+hkErr);render()}}
   finally{hkBusy=false}}
 if(HK){setTimeout(()=>hkSync(false),1500);document.addEventListener("visibilitychange",()=>{if(document.visibilityState==="visible")hkSync(false)})}
+/* Apple Health workouts (iPhone app only, native HealthWorkout plugin in the app build): save finished sessions as strength workouts. */
+const HKW=(()=>{try{const C=window.Capacitor;if(!(C&&C.isNativePlatform&&C.isNativePlatform()))return null;return (C.Plugins&&C.Plugins.HealthWorkout)||(C.registerPlugin?C.registerPlugin("HealthWorkout"):null)}catch(e){return null}})();
+let hkwOk=false,HKWS=store.get("c1-hkw",{}); // {date: end time of the session copy saved to Health}
+const saveHKWS=()=>store.set("c1-hkw",HKWS);
+if(HKW)Promise.resolve().then(()=>HKW.isAvailable()).then(r=>{hkwOk=!!(r&&r.available);if(hkwOk&&/^#w-/.test(location.hash))render()}).catch(()=>{hkwOk=false});
+const hkwKcal=s=>{const kg=bwLatest();return kg?Math.round(3.5*kg*(s.end-s.start)/36e5):0}; // ≈ active kcal for weight training (MET ≈ 4.5)
+async function hkwSave(date,manual){
+  const s=S[date];if(!hkwOk||!s||!s.start||!s.end||s.end<=s.start)return;
+  try{await HKW.saveWorkout({id:"c1-"+date,startDate:new Date(s.start).toISOString(),endDate:new Date(s.end).toISOString(),calories:hkwKcal(s),title:titleOf(s)});
+    HKWS[date]=s.end;saveHKWS();toast(manual?"Saved to Apple Health":`${titleOf(s)} saved · added to Apple Health`);if(location.hash==="#w-"+date)render()}
+  catch(e){toast("Apple Health: "+((e&&e.message)||"couldn’t save workout"))}}
+function hkwDelete(date){if(!hkwOk||!HKWS[date])return;delete HKWS[date];saveHKWS();HKW.deleteWorkout({id:"c1-"+date}).catch(()=>{})}
 function calSection(){
   const t=today(),mon=mondayOf(t);
   const dayCal=d=>Math.round(sumMac(FOOD[d]||[]).cal);
@@ -1388,8 +1400,8 @@ document.getElementById("sheet").addEventListener("click",ev=>{
   if(b.dataset.wkeep){WS=null;return closeSheet()}
   if(b.dataset.wdiscard){WS.confirm=true;return drawFinish()}
   if(b.dataset.wnodiscard){WS.confirm=false;return drawFinish()}
-  if(b.dataset.wsave){s.go=true;s.end=Date.now();saveS();stopWorkoutUI();toast(`${titleOf(s)} saved · ${fmtDur(s.end-s.start)}`);WS=null;closeSheet();if(location.hash==="#week")render();else location.hash="#week";return}
-  if(b.dataset.wdiscard2){const d=WS.date,was=!!s.end;delete S[d];delete chosen[d];saveS();stopWorkoutUI();toast(was?"Workout deleted":"Workout discarded");WS=null;closeSheet();if(location.hash==="#week")render();else location.hash="#week";return}
+  if(b.dataset.wsave){s.go=true;s.end=Date.now();saveS();stopWorkoutUI();toast(`${titleOf(s)} saved · ${fmtDur(s.end-s.start)}`);hkwSave(WS.date,false);WS=null;closeSheet();if(location.hash==="#week")render();else location.hash="#week";return}
+  if(b.dataset.wdiscard2){const d=WS.date,was=!!s.end;hkwDelete(d);delete S[d];delete chosen[d];saveS();stopWorkoutUI();toast(was?"Workout deleted":"Workout discarded");WS=null;closeSheet();if(location.hash==="#week")render();else location.hash="#week";return}
 });
 document.getElementById("scrim").addEventListener("click",()=>{WS=null});
 /* ---------- backup ---------- */
@@ -1513,6 +1525,7 @@ app.addEventListener("click",async ev=>{
   if(b=q("[data-act=start]")){begin(date,day);toast("Workout started — timer running");return render()}
   if(b=q("[data-act=finish]"))return openFinish(date,false);
   if(b=q("[data-act=discard]"))return openFinish(date,true);
+  if(b=q("[data-act=hkw]")){if(HKWS[date]===S[date].end)toast("Already in Apple Health");else hkwSave(date,true);return}
 });
 app.addEventListener("toggle",ev=>{const d=ev.target.closest&&ev.target.closest("details.pw");if(d&&d.open)openPw=d.dataset.pw},true);
 app.addEventListener("input",ev=>{
