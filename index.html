@@ -497,7 +497,7 @@ tr.done td input{background:color-mix(in srgb,var(--green) 18%,var(--field));col
 </nav>
 
 <script>
-/* ---------- default plan (coach's C1 Week 1) ---------- */
+/* ---------- default plan (coach's C1 trial week) ---------- */
 const U=id=>"https://youtu.be/"+id;
 const pushEx=sets=>[
   {n:"Dip",reps:"3–5 ครั้ง",sets:3,rest:"3:00–5:00",v:U("1e7nKhGvnQQ?si=TtoyzFl_jk5jt6Dm")},
@@ -506,7 +506,7 @@ const pushEx=sets=>[
   {n:"Push up",reps:"12–15 ครั้ง",sets,rest:"1:50",v:U("-5l_dcFY26Q?si=rW3n6gYZb--SEHY3")},
   {n:"Scapular push-up",reps:"20 ครั้ง",sets,rest:"1:50",v:U("c_d70dOf5No?si=9NII3E7Is8ylH8YH")}
 ];
-const DEFAULT_PLAN={name:"C1 · Week 1",week:["push-1","abs",null,"pull","leg","push-2",null],days:{
+const DEFAULT_PLAN={name:"C1 · Week trial",week:["push-1","abs",null,"pull","leg","push-2",null],days:{
   "push-1":{title:"Push 1",type:"push",warm:U("5s6RPJwTNBc?si=ETncuUgcvWN50zuV"),ex:pushEx(4)},
   "abs":{title:"Abs",type:"abs",warm:U("6sH8MsYVhmY?si=W8F01vZ_iJ6rcdUt"),ex:[
     {n:"Hanging L-sit hold",reps:"10–15 วิ",sets:4,rest:"3:00",v:U("4SFqyK0uOyQ?si=MbT3hw_2ZBMpPQBp")},
@@ -529,6 +529,38 @@ const DEFAULT_PLAN={name:"C1 · Week 1",week:["push-1","abs",null,"pull","leg","
     {n:"Wall sit",reps:"40 วิ",sets:4,rest:"1:50",v:U("PiluINmDWhY?si=LGdXaiDbsb17cNAH")}]},
   "push-2":{title:"Push 2",type:"push",warm:U("5s6RPJwTNBc?si=ETncuUgcvWN50zuV"),ex:pushEx(3)}
 }};
+/* coach's C1 Week 1 (follows the trial week) */
+const pushEx1=()=>[
+  {n:"Straight bar dip",reps:"8–12 ครั้ง",sets:4,rest:"3:00–5:00",v:U("RBBP8cjhYSQ?si=1Q4qQvRnGIbcAeB2")},
+  {n:"Pike push-up",reps:"8–12 ครั้ง",sets:4,rest:"2:00",v:U("e5aXL4jBoEE?si=71colGUSzWbssMHO")},
+  {n:"Skull crusher",reps:"10–12 ครั้ง",sets:4,rest:"2:00",v:U("Ujqqm65d0us?si=nr2-hNKrvzdYyZMR")},
+  {n:"Dip",reps:"10–12 ครั้ง",sets:4,rest:"2:00",v:U("1e7nKhGvnQQ?si=TtoyzFl_jk5jt6Dm")},
+  {n:"Scapular push-up",reps:"20 ครั้ง",sets:4,rest:"1:30",v:U("c_d70dOf5No?si=9NII3E7Is8ylH8YH")}
+];
+const WEEK1_PLAN={name:"C1 · Week 1",week:["push-1","abs",null,"pull","leg","push-2",null],days:{
+  "push-1":{title:"Push 1",type:"push",warm:U("5s6RPJwTNBc?si=ETncuUgcvWN50zuV"),ex:pushEx1()},
+  "abs":{title:"Abs",type:"abs",warm:U("6sH8MsYVhmY?si=W8F01vZ_iJ6rcdUt"),ex:[
+    {n:"Adv dragon flag hold",reps:"10–15 วิ",sets:4,rest:"3:00",v:U("UALmiDpep9I?si=gbxXtBo0VFjSiPjC")},
+    {n:"Hanging leg raise",reps:"8–12 ครั้ง",sets:4,rest:"1:30",v:U("1dmyCYnBNxQ?si=CFfiO4XkefWRCTgz")},
+    {n:"Hanging corner raise",reps:"8–12 ครั้ง",sets:4,rest:"1:30",v:U("f073nytTao8?si=UipTDHPCz9uyVwub")},
+    {n:"Russian twist",reps:"20–30 ครั้ง",sets:4,rest:"1:30",v:U("3Qyqb9ZBNDg?si=HfJbVMMxNqMzYKIs")},
+    {n:"Side plank hold",reps:"30–45 วิ",sets:4,rest:"1:30",v:U("SLkgrBWQkWE?si=XaYa4nCeT_AkqhIo")},
+    {n:"Hollow body hold",reps:"30–45 วิ",sets:4,rest:"1:30",v:U("Tt_NcZYdoIQ")}]},
+  "pull":{title:"Pull",type:"pull",warm:U("5s6RPJwTNBc?si=ETncuUgcvWN50zuV"),ex:[
+    {n:"Jump muscle up",reps:"10 ครั้ง",sets:4,rest:"2:00–3:00",v:U("5GoH-Ck6i2I?si=cXo7E4_k83e0O-Z4")},
+    {n:"Pull-up",reps:"6–8 ครั้ง",sets:4,rest:"2:00–3:00",v:U("asvMf5zVnB0?si=Ee7VfiXQWdO-kunF")},
+    {n:"Seated cable row",note:"ครึ่ง นน.ตัว → เท่า นน.ตัว",reps:"8–12 ครั้ง",sets:4,rest:"1:50",v:U("UCXxvVItLoM?si=BwPoXKs7iJoi9OdO")},
+    {n:"Lateral raise",note:"2.5 kg, 5 kg",reps:"8–12 ครั้ง",sets:4,rest:"1:50",v:U("pOmbQuGeHf8?si=WNtRWSduTrV24Ji7")},
+    {n:"Bicep curls",note:"5, 7.5, 10 kg",reps:"8–12 ครั้ง",sets:4,rest:"1:50",v:U("6DeLZ6cbgWQ?si=n_p0Efym9P8QQR3h")}]},
+  "leg":{title:"Legs",type:"leg",warm:U("0cYq7po-ZGE?si=ZXv984fpsb7xfcmd"),ex:[
+    {n:"Support half pistol squat",reps:"ข้างละ 6–8 ครั้ง",sets:4,rest:"3:00",v:U("yh7HfCsCC_Y?si=mbys_MqPwxuuWBl1")},
+    {n:"Forward lunges",note:"DB 10 kg",reps:"ข้างละ 12 ครั้ง",sets:4,rest:"1:50",v:U("oqNnL46MmMs?si=BET4chHoW7ZSZ1Ul")},
+    {n:"Glute bridges",reps:"20 ครั้ง",sets:4,rest:"1:50",v:U("xkfQkuuL1lw?si=JxPq2C2ooSUKm37l")},
+    {n:"Standing calf raise",note:"DB 10 kg",reps:"20 ครั้ง",sets:4,rest:"1:50",v:U("Uyg2QR1WAq8?si=X-f1YBvpb3EPDGg7")},
+    {n:"Wall sit",reps:"40 วิ",sets:4,rest:"1:50",v:U("PiluINmDWhY?si=LGdXaiDbsb17cNAH")}]},
+  "push-2":{title:"Push 2",type:"push",warm:U("5s6RPJwTNBc?si=ETncuUgcvWN50zuV"),ex:pushEx1()}
+}};
+const DEFAULT_WEEKS=[DEFAULT_PLAN,WEEK1_PLAN];
 const TYPES=[["push","Push","--push"],["pull","Pull","--pull"],["leg","Legs","--leg"],["abs","Abs","--abs"],["other","Other","--other"]];
 const TCOLOR={push:"--push",pull:"--pull",leg:"--leg",abs:"--abs",other:"--other"};
 const WDN=["MON","TUE","WED","THU","FRI","SAT","SUN"];
@@ -577,6 +609,16 @@ const vidId=u=>{const m=String(u||"").match(/(?:youtu\.be\/|v=|shorts\/|embed\/)
 const TH=u=>vidId(u)?`https://i.ytimg.com/vi/${vidId(u)}/mqdefault.jpg`:"";
 const D=id=>PLAN.days[id];
 if(!PROG.start){PROG.start=mondayOf(FIRST);store.set("c1-prog",PROG)}
+/* one-time: add the coach's Week 1 after the trial week (keeps every logged workout) */
+if(!store.get("c1-mig-w1",false)){
+  const W0=PROG.weeks[0],strip=w=>JSON.stringify({...w,name:""});
+  if(W0&&W0.name==="C1 · Week 1")W0.name="C1 · Week trial";
+  if(!PROG.weeks.some(w=>w.days&&w.days["push-1"]&&w.days["push-1"].ex.some(e=>e.n==="Straight bar dip"))){
+    if(PROG.weeks.length>1&&strip(PROG.weeks[1])===strip(W0))PROG.weeks[1]=clone(WEEK1_PLAN); // untouched copy of the trial week
+    else PROG.weeks.splice(1,0,clone(WEEK1_PLAN));
+  }
+  store.set("c1-prog",PROG);store.set("c1-mig-w1",true);
+}
 const weekIdx=d=>Math.max(0,Math.min(PROG.weeks.length-1,Math.round((parse(mondayOf(d))-parse(PROG.start))/6048e5)));
 const WP=d=>PROG.weeks[weekIdx(d)];
 const DD=(d,id)=>WP(d).days[id];
@@ -1297,8 +1339,8 @@ function viewPlan(){
       ${pendingImport?`<div class="confirm" style="margin-top:12px">Replace all data with the backup from <b>${esc(fshort((pendingImport.exported||today()).slice(0,10)))}</b>? <button type="button" class="btn sm primary" data-act="doimport">Replace</button><button type="button" class="btn sm" data-act="noimport">Cancel</button></div>`:""}
     </div>
     <h2 class="sec">Reset</h2>
-    ${confirmReset?`<div class="confirm">Put the plan back to the coach’s Week 1? Your logged workouts stay. <button type="button" class="btn sm danger" data-act="doreset">Reset plan</button><button type="button" class="btn sm" data-act="noreset">Cancel</button></div>`:`<button type="button" class="btn danger" data-act="reset">Reset plan to coach’s Week 1</button>`}
-    <p class="muted" style="text-align:center;margin-top:24px;font-size:12px">v31</p>`;
+    ${confirmReset?`<div class="confirm">Put ${esc(PLAN.name)} back to the coach’s version? Your logged workouts stay. <button type="button" class="btn sm danger" data-act="doreset">Reset plan</button><button type="button" class="btn sm" data-act="noreset">Cancel</button></div>`:`<button type="button" class="btn danger" data-act="reset">Reset ${esc(PLAN.name)} to coach’s version</button>`}
+    <p class="muted" style="text-align:center;margin-top:24px;font-size:12px">v35</p>`;
 }
 
 /* ---------- day sheet: move / swap / change / rest ---------- */
@@ -1484,7 +1526,7 @@ app.addEventListener("click",async ev=>{
   if(b=q("[data-act=noimport]")){pendingImport=null;return render()}
   if(b=q("[data-act=reset]")){confirmReset=true;return render()}
   if(b=q("[data-act=noreset]")){confirmReset=false;return render()}
-  if(b=q("[data-act=doreset]")){PLAN=PROG.weeks[editW]=clone(DEFAULT_PLAN);saveP();confirmReset=false;toast("Plan reset to Week 1");return render()}
+  if(b=q("[data-act=doreset]")){const d=DEFAULT_WEEKS[Math.min(editW,DEFAULT_WEEKS.length-1)];PLAN=PROG.weeks[editW]=clone(d);saveP();confirmReset=false;toast("Plan reset to "+d.name);return render()}
   // workout
   const date=app.dataset.date,day=app.dataset.day;
   if(b=q("[data-rpe]")){rpeOpen=rpeOpen===b.dataset.rpe?null:b.dataset.rpe;return render()}
