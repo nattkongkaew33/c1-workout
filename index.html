@@ -318,6 +318,14 @@ details.pw summary small{font:500 13px var(--body);color:var(--muted);margin-lef
 .ptr{position:fixed;left:50%;top:calc(env(safe-area-inset-top,0px) + 8px);z-index:11;width:40px;height:40px;margin-left:-20px;border-radius:50%;background:var(--card);border:1px solid var(--line);color:var(--muted);display:grid;place-items:center;box-shadow:0 6px 18px rgba(0,0,0,.35);transform:translateY(-70px);opacity:0;pointer-events:none}
 .ptr svg{width:20px;height:20px}.ptr.ready{color:var(--blue);border-color:var(--blue)}.ptr.go svg{animation:rspin .8s linear infinite}
 .ptr.back{transition:transform .2s,opacity .2s}
+.timer .lbl{display:flex;flex-direction:column;gap:3px;min-width:0}
+.timer .tnext{border:0;padding:0;border-radius:0;background:none;color:inherit;font:700 12px var(--body);text-align:left;text-decoration:underline;text-underline-offset:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:150px}
+.todayb,.fhead .todayb,.arrows .todayb,.cal-mid .todayb{width:auto;height:32px;padding:0 12px;border-radius:999px;border:1px solid var(--blue);background:transparent;color:var(--blue);font:700 13px var(--body);cursor:pointer;white-space:nowrap}
+.fhead{gap:6px}.fhead b{min-width:136px}.arrows .todayb{height:40px}
+.cal-mid{display:flex;flex-direction:column;align-items:center;gap:4px}.cal-mid .todayb{height:26px;font-size:12px}
+@keyframes swl{from{transform:translateX(28px);opacity:.3}}@keyframes swr{from{transform:translateX(-28px);opacity:.3}}
+#app.swl>:not(.foodbar){animation:swl .22s ease-out}#app.swr>:not(.foodbar){animation:swr .22s ease-out}
+@media (prefers-reduced-motion:reduce){#app.swl>*,#app.swr>*{animation:none!important}}
 .toast{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(140px + env(safe-area-inset-bottom,0px));z-index:12;background:var(--ink);color:var(--bg);font-weight:600;padding:10px 16px;border-radius:999px;font-size:14px;max-width:90vw;text-align:center}
 .scrim{position:fixed;inset:0;z-index:8;background:rgba(0,0,0,.55)}
 .sheet{position:fixed;left:0;right:0;bottom:0;z-index:9;background:var(--card);border-radius:18px 18px 0 0;border-top:1px solid var(--line);padding-block:16px calc(18px + env(safe-area-inset-bottom,0px));padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));max-height:85vh;overflow:auto}
@@ -484,7 +492,7 @@ tr.done td input{background:color-mix(in srgb,var(--green) 18%,var(--field));col
 
 <div class="wrap" id="app"></div>
 <div class="timer" id="timer" hidden>
-  <div class="lbl" id="timerLbl">Rest</div>
+  <div class="lbl"><span id="timerLbl">Rest</span><button type="button" class="tnext" id="timerNext" hidden>Next ↓</button></div>
   <div class="t" id="timerT">0:00</div>
   <button type="button" id="timerAdd">+30s</button>
   <button type="button" id="timerStop">Skip</button>
@@ -724,7 +732,7 @@ function viewWeek(){
   }).join("");
   app.innerHTML=`<div class="toprow"><div class="eyebrow">${esc(WP(mon).name)}</div>${refreshBtn}</div><h1>Today</h1>${todayHero()}
     <div class="wkhead wkh2"><div><h2>${weekOff?fshort(dates[0])+" – "+fshort(dates[6]):"This week"}</h2><small>${done} of ${planned} workouts done · hold &amp; drag to swap days</small></div>
-    <div class="arrows"><button type="button" data-wk="-1" aria-label="Previous week">‹</button><button type="button" data-wk="1" aria-label="Next week">›</button></div></div>${rows}`;
+    <div class="arrows">${weekOff?`<button type="button" class="todayb" data-today="week">Today</button>`:""}<button type="button" data-wk="-1" aria-label="Previous week">‹</button><button type="button" data-wk="1" aria-label="Next week">›</button></div></div>${rows}`;
 }
 
 function viewWorkout(date){
@@ -792,7 +800,7 @@ function viewCal(){
   const ss=S[selDate],man=LOG[selDate]||{},pl=planFor(selDate);
   const sess=started(ss)?`<a class="sesslink" href="#w-${selDate}">${esc(titleOf(ss))} · ${ss.ex.reduce((a,x)=>a+x.sets.filter(q=>q.d).length,0)} sets${ss.end?" · "+fmtDur(ss.end-ss.start):""}${ss.feel?" · "+FEEL[ss.feel-1]:""}<span>Open →</span></a>`:"";
   app.innerHTML=`<div class="eyebrow">History</div><h1>Calendar</h1><p class="muted">${active} workout days this month · outlined = planned</p>
-    <div class="cal"><div class="cal-head"><button type="button" data-nav="-1" aria-label="Previous month">‹</button><h2>${first.toLocaleDateString("en-GB",{month:"long",year:"numeric"})}</h2><button type="button" data-nav="1" aria-label="Next month">›</button></div>
+    <div class="cal"><div class="cal-head"><button type="button" data-nav="-1" aria-label="Previous month">‹</button><div class="cal-mid"><h2>${first.toLocaleDateString("en-GB",{month:"long",year:"numeric"})}</h2>${calY!==new Date().getFullYear()||calM!==new Date().getMonth()?`<button type="button" class="todayb" data-today="cal">Today</button>`:""}</div><button type="button" data-nav="1" aria-label="Next month">›</button></div>
     <div class="cal-grid">${cells}</div>
     <div class="legend">${TYPES.filter(([k])=>k!=="other"||counts.other).map(([k,l,c])=>`<span style="--c:var(${c})">${l} <b>${counts[k]}</b></span>`).join("")}</div></div>
     <div class="dayrec"><h3>${parse(selDate).toLocaleDateString("en-GB",{weekday:"long",day:"numeric",month:"long"})}</h3>${sess}
@@ -1023,7 +1031,7 @@ function viewFood(){
     return `<div class="meal"><div class="mealh"><button type="button" class="t" data-mealt="${m}" aria-expanded="${open}"><span style="font-size:16px;color:var(--muted)">${open?"⌃":"⌄"}</span>${l}</button><span class="chipc">${R(mt.cal)} cal · ${R(mt.p)}P</span><button type="button" class="addm" data-addmeal="${m}" aria-label="Add food to ${l}">+</button></div>
       ${open&&items.length?`<div class="fitems">${items.map(e=>{const x=mac(e);return `<button type="button" class="fitem" data-editfood="${e.id}"><span>${esc(e.name)}<small>${esc(qtyText(e))}</small></span><span class="r">${R(x.cal)} cal<small>${R(x.p)}g protein</small></span></button>`}).join("")}</div><div class="mealtot"><span>Total <b>${R(mt.cal)} cal</b></span><span>Protein <b>${R(mt.p)}g</b></span><span>Carbs <b>${R(mt.c)}g</b></span><span>Fat <b>${R(mt.f)}g</b></span><button type="button" class="saveml" data-savemeal="${m}">☆ Save as meal</button></div>`:""}${cp}</div>`}).join("");
   const copyDay=!list.length&&prev.length?`<button type="button" class="btn copyday" data-copyday="1">↺ Copy yesterday’s food (${prev.length} items · ${R(sumMac(prev).cal)} cal)</button>`:"";
-  app.innerHTML=`<div class="eyebrow">Nutrition</div><h1>Food</h1><div class="fhead"><button type="button" data-fday="-1" aria-label="Previous day">‹</button><b>${lbl}</b><button type="button" data-fday="1" aria-label="Next day">›</button></div>
+  app.innerHTML=`<div class="eyebrow">Nutrition</div><h1>Food</h1><div class="fhead"><button type="button" data-fday="-1" aria-label="Previous day">‹</button><b>${lbl}</b><button type="button" data-fday="1" aria-label="Next day">›</button>${foodDate!==today()?`<button type="button" class="todayb" data-today="food">Today</button>`:""}</div>
     <div class="ncard"><div class="dayk ${T.kind.train?"tr":""}">${T.kind.train?"🏋️ Training day":"😌 Rest day"}${T.kind.train?` · ${esc(T.kind.title)}`:""}${T.delta?` <span>${T.delta>0?"+":""}${T.delta} cal${T.delta>0?" (extra carbs)":" (fewer carbs)"}</span>`:""}</div><div class="ntog"><button type="button" data-fmode="consumed" aria-pressed="${!rem}">Consumed</button><button type="button" data-fmode="remaining" aria-pressed="${rem}">Remaining</button></div>
       <div class="nring">${plate(tot.cal/T.cal,{size:150,stroke:14,color:tot.cal>T.cal?"var(--red)":"var(--blue)",big:44,inner:`<b>${big}</b><small>${rem?"cal left":`of ${T.cal} cal`}</small>`})}
       <div class="macros">${macs}</div></div>${NUT?"":`<p class="muted" style="margin:12px 0 0">Targets are suggested from your body weight${bwLatest()?"":" (70 kg until you log it)"}. Change them with ⚙.</p>`}</div>
@@ -1346,7 +1354,7 @@ function viewPlan(){
     </div>
     <h2 class="sec">Reset</h2>
     ${confirmReset?`<div class="confirm">Put ${esc(PLAN.name)} back to the coach’s version? Your logged workouts stay. <button type="button" class="btn sm danger" data-act="doreset">Reset plan</button><button type="button" class="btn sm" data-act="noreset">Cancel</button></div>`:`<button type="button" class="btn danger" data-act="reset">Reset ${esc(PLAN.name)} to coach’s version</button>`}
-    <p class="muted" style="text-align:center;margin-top:24px;font-size:12px">v36</p>`;
+    <p class="muted" style="text-align:center;margin-top:24px;font-size:12px">v37</p>`;
 }
 
 /* ---------- day sheet: move / swap / change / rest ---------- */
@@ -1468,7 +1476,13 @@ let actx=null;function audio(){try{if(!actx)actx=new (window.AudioContext||windo
 document.addEventListener("pointerdown",()=>{if(SOUND)audio()},{passive:true});
 function beep(freqs,len=.18,gap=.08,vol=.5){if(!SOUND)return;const a=audio();if(!a)return;let t=a.currentTime+.02;freqs.forEach(f=>{const o=a.createOscillator(),g=a.createGain();o.type="sine";o.frequency.value=f;g.gain.setValueAtTime(.0001,t);g.gain.exponentialRampToValueAtTime(vol,t+.02);g.gain.exponentialRampToValueAtTime(.0001,t+len);o.connect(g);g.connect(a.destination);o.start(t);o.stop(t+len+.03);t+=len+gap})}
 function restDone(){beep([880,880,1175],.22,.1,.6);try{navigator.vibrate&&navigator.vibrate([300,120,300])}catch(e){}}
-function draw(){left=Math.ceil((restEnd-Date.now())/1000);document.getElementById("timerT").textContent=(left<0?"+":"")+fmtDur(Math.abs(left)*1000);tEl.classList.toggle("up",left<=0);
+/* "Next ↓" on the rest timer: first exercise on this workout page that still has an unticked set. */
+function nextSet(){const date=app.dataset.date,day=app.dataset.day;if(!date)return null;const s=S[date]&&S[date].day===day?S[date]:null;if(!s||s.end)return null;
+  for(let i=0;i<s.ex.length;i++){const j=s.ex[i].sets.findIndex(t=>!t.d);if(j>=0)return {date,i,j,n:s.ex[i].n,e:s.ex[i]}}return null}
+function drawNext(){const nb=document.getElementById("timerNext"),n=HOLD?null:nextSet();nb.hidden=!n;if(n){const t=`Next ↓ ${n.n} · set ${n.j+1}`;if(nb.textContent!==t)nb.textContent=t}}
+document.getElementById("timerNext").onclick=()=>{const n=nextSet();if(!n)return;const sec=app.querySelectorAll("section.ex")[n.i],inp=document.getElementById(`${timed(n.e)?"r":"w"}-${n.date}-${n.i}-${n.j}`);
+  if(sec)sec.scrollIntoView({behavior:"smooth",block:"center"});if(inp&&!timed(n.e))try{inp.focus({preventScroll:true})}catch(e){}};
+function draw(){drawNext();left=Math.ceil((restEnd-Date.now())/1000);document.getElementById("timerT").textContent=(left<0?"+":"")+fmtDur(Math.abs(left)*1000);tEl.classList.toggle("up",left<=0);
   if(left<=0&&!alerted){alerted=true;restDone()}else if(left>0&&left<=3&&lastBeep!==left){lastBeep=left;beep([660],.08,0,.35)}}
 /* Inside the iPhone app (Capacitor), also schedule a real notification so the rest alert fires with the screen locked. */
 const NATIVE=!!(window.Capacitor&&window.Capacitor.isNativePlatform&&window.Capacitor.isNativePlatform());
@@ -1478,16 +1492,19 @@ async function restNotify(){if(!LN)return;try{await LN.cancel({notifications:[{i
   await LN.schedule({notifications:[{id:7001,title:"Rest over",body:`Next set: ${restName}`,schedule:{at:new Date(restEnd),allowWhileIdle:true},sound:"default"}]})}catch(e){}}
 async function restCancel(){if(LN)try{await LN.cancel({notifications:[{id:7001}]})}catch(e){}}
 function startTimer(sec,name){if(HOLD)endHoldUI();restEnd=Date.now()+sec*1000;restName=name;alerted=false;lastBeep=null;document.getElementById("timerLbl").textContent="Rest · "+name;tEl.hidden=false;draw();clearInterval(tick);tick=setInterval(draw,250);restNotify()}
-document.getElementById("timerAdd").onclick=()=>{if(HOLD){HOLD.target+=5;return drawHold()}restEnd+=30000;if(restEnd>Date.now()){alerted=false;lastBeep=null}draw();restNotify()};
+document.getElementById("timerAdd").onclick=()=>{if(HOLD){HOLD.target+=5;holdNotify();return drawHold()}restEnd+=30000;if(restEnd>Date.now()){alerted=false;lastBeep=null}draw();restNotify()};
 document.getElementById("timerStop").onclick=()=>{if(HOLD){const h=HOLD,now=Date.now();return now<h.go?(endHoldUI(),tEl.hidden=true):finishHold(Math.floor((now-h.go)/1000))}clearInterval(tick);tEl.hidden=true;restCancel()};
 /* Hold timer for timed exercises (target in seconds, e.g. "30 วิ"): 5 s get-ready, count down the hold, then log the set and start rest. */
 let HOLD=null;const READY=5;
 function setBtns(a,b){document.getElementById("timerAdd").textContent=a;document.getElementById("timerStop").textContent=b}
-function endHoldUI(){HOLD=null;clearInterval(tick);tEl.classList.remove("hold","ready");setBtns("+30s","Skip")}
+async function holdNotify(){if(!LN)return;try{await LN.cancel({notifications:[{id:7002}]});const h=HOLD;if(!h||!SOUND)return;
+  const perm=await LN.checkPermissions();if(perm.display!=="granted"){const r=await LN.requestPermissions();if(r.display!=="granted")return}
+  if(HOLD!==h)return;await LN.schedule({notifications:[{id:7002,title:"Hold done ✓",body:`${h.name} · set ${h.j+1} · ${h.target}s`,schedule:{at:new Date(h.go+h.target*1000),allowWhileIdle:true},sound:"default"}]})}catch(e){}}
+function endHoldUI(){if(LN&&HOLD)LN.cancel({notifications:[{id:7002}]}).catch(()=>{});HOLD=null;clearInterval(tick);tEl.classList.remove("hold","ready");setBtns("+30s","Skip")}
 function startHold(date,day,i){const s=S[date]&&S[date].day===day?S[date]:blank(day,date),e=s.ex[i],j=e.sets.findIndex(t=>!t.d);if(j<0)return toast("All sets done");
   const ri=document.getElementById(`r-${date}-${i}-${j}`),target=+(e.sets[j].r||ri&&ri.placeholder||lowTarget(e))||30;
   clearInterval(tick);restCancel();HOLD={date,day,i,j,name:e.n,target,go:Date.now()+READY*1000};lastBeep=null;
-  tEl.hidden=false;tEl.classList.add("hold","ready");setBtns("+5s","Done");drawHold();tick=setInterval(drawHold,200);wake(true)}
+  tEl.hidden=false;tEl.classList.add("hold","ready");setBtns("+5s","Done");drawNext();drawHold();tick=setInterval(drawHold,200);wake(true);holdNotify()}
 function drawHold(){const h=HOLD;if(!h)return;const now=Date.now(),T=document.getElementById("timerT"),L=document.getElementById("timerLbl");
   if(now<h.go){const r=Math.ceil((h.go-now)/1000);L.textContent=`Get ready · ${h.name} · set ${h.j+1}`;T.textContent=String(r);if(lastBeep!==r){lastBeep=r;if(r<=3)beep([660],.08,0,.35)}return}
   if(tEl.classList.contains("ready")){tEl.classList.remove("ready");beep([988],.3,0,.6);try{navigator.vibrate&&navigator.vibrate(120)}catch(e){}}
@@ -1527,6 +1544,7 @@ app.addEventListener("click",async ev=>{
   if(b=q("[data-sound]")){SOUND=b.dataset.sound==="1";store.set("c1-sound",SOUND);if(SOUND){audio();beep([880],.12)}toast(SOUND?"Rest sound on":"Rest sound off");return render()}
   if(b=q("[data-unit]")){if(UNIT!==b.dataset.unit){UNIT=b.dataset.unit;store.set("c1-unit",UNIT);toast(`Weights now shown in ${UNIT}`)}return render()}
   if(b=q("[data-thm]")){if(THEME!==b.dataset.thm){THEME=b.dataset.thm;store.set("c1-theme",THEME);applyTheme();toast(THEME==="light"?"Light mode on":"Dark mode on")}return render()}
+  if(b=q("[data-today]")){const k=b.dataset.today;if(k==="food")foodDate=today();else if(k==="week")weekOff=0;else{calY=new Date().getFullYear();calM=new Date().getMonth();selDate=today()}return render()}
   if(b=q("[data-wk]")){weekOff+=+b.dataset.wk;return render()}
   if(b=q("[data-pick]")){chosen[location.hash.slice(3)]=b.dataset.pick;return render()}
   if(b=q("[data-nav]")){calM+=+b.dataset.nav;if(calM<0){calM=11;calY--}if(calM>11){calM=0;calY++}return render()}
@@ -1807,9 +1825,26 @@ initDrag();
     dy=Math.max(0,d);set(dy)},{passive:true});
   const end=()=>{if(y0==null)return;if(dy>=MAX){y0=null;ind.classList.add("go");try{navigator.vibrate&&navigator.vibrate(15)}catch(e){}refreshApp()}else reset()};
   document.addEventListener("touchend",end);document.addEventListener("touchcancel",reset)})();
+/* Swipe left/right: days on Food, months on Calendar, weeks on Today. Swipe in from the left edge of a workout to go back. */
+(function initSwipe(){let x0=null,y0=0,t0=0,el=null;
+  const scrollsX=n=>{for(;n&&n!==app;n=n.parentElement){const o=getComputedStyle(n).overflowX;if((o==="auto"||o==="scroll")&&n.scrollWidth>n.clientWidth+2)return true}return false};
+  app.addEventListener("touchstart",ev=>{x0=null;if(ev.touches.length>1||!sheet.hidden||document.querySelector(".scan"))return;el=ev.target;if(el.closest("input,textarea,select")||scrollsX(el))return;
+    x0=ev.touches[0].clientX;y0=ev.touches[0].clientY;t0=Date.now()},{passive:true});
+  app.addEventListener("touchend",ev=>{if(x0==null)return;const t=ev.changedTouches[0],dx=t.clientX-x0,dy=t.clientY-y0,edge=x0<28;x0=null;
+    if(document.body.classList.contains("dragging")||Date.now()-t0>700||Math.abs(dx)<70||Math.abs(dy)>Math.abs(dx)*.6)return;
+    const h=location.hash.slice(1),dir=dx<0?1:-1;
+    if(/^w-/.test(h)){if(edge&&dx>0){slide(-1);location.hash="#week"}return}
+    if(h==="food")foodDate=addDays(foodDate,dir);
+    else if(h==="calendar"){calM+=dir;if(calM<0){calM=11;calY--}if(calM>11){calM=0;calY++}}
+    else if(h===""||h==="week")weekOff+=dir;else return;
+    try{navigator.vibrate&&navigator.vibrate(8)}catch(e){}render();slide(dir)},{passive:true})})();
+function slide(dir){app.classList.remove("swl","swr");void app.offsetWidth;app.classList.add(dir>0?"swl":"swr");setTimeout(()=>app.classList.remove("swl","swr"),260)}
 /* Tap the tab you're already on to jump back to the top. */
 document.querySelector(".nav").addEventListener("click",ev=>{const a=ev.target.closest("a");if(a&&a.getAttribute("href")===location.hash&&window.scrollY>0){ev.preventDefault();window.scrollTo({top:0,behavior:"smooth"})}});
-window.addEventListener("hashchange",()=>{closeSheet();FS=null;WS=null;rpeOpen=null;swapOpen=null;render();window.scrollTo(0,0)});
+/* Remember where you were on each page (e.g. the week list) and return there. */
+const SCROLL={};
+window.addEventListener("hashchange",ev=>{const from=new URL(ev.oldURL).hash||"#week";SCROLL[from]=window.scrollY;
+  closeSheet();FS=null;WS=null;rpeOpen=null;swapOpen=null;render();window.scrollTo(0,SCROLL[location.hash||"#week"]||0)});
 render();
 </script>
 <script>if("serviceWorker" in navigator){window.addEventListener("load",()=>navigator.serviceWorker.register("sw.js").catch(()=>{}))}</script>
