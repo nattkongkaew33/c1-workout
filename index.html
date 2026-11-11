@@ -1145,8 +1145,20 @@ async function offSearch(q){
   if(FS&&FS.mode==="search"){FS.offLoading=false;fsDraw();refocus()}
 }
 function refocus(){const el=document.getElementById("fs-q");if(el&&document.activeElement!==el){el.focus();el.setSelectionRange(el.value.length,el.value.length)}}
-function pickImage(){return new Promise(res=>{const inp=document.createElement("input");inp.type="file";inp.accept="image/*";inp.onchange=()=>res(inp.files[0]||null);inp.click()})}
-async function shrink(file,max=1024){const url=URL.createObjectURL(file);const img=await new Promise((ok,no)=>{const i=new Image();i.onload=()=>ok(i);i.onerror=no;i.src=url});const k=Math.min(1,max/Math.max(img.width,img.height)),c=document.createElement("canvas");c.width=R(img.width*k);c.height=R(img.height*k);c.getContext("2d").drawImage(img,0,0,c.width,c.height);URL.revokeObjectURL(url);return c.toDataURL("image/jpeg",.82)}
+/* The file input must be in the page: iPhone (especially inside the app) can drop the "change" event of a detached input, so nothing happens after choosing a photo. */
+function pickImage(){return new Promise(res=>{document.querySelectorAll("input.c1pick").forEach(x=>x.remove());
+  const inp=document.createElement("input");inp.type="file";inp.accept="image/*";inp.className="c1pick";inp.style.cssText="position:fixed;left:-1000px;top:0;width:1px;height:1px;opacity:0";
+  let done=false;const fin=f=>{if(done)return;done=true;setTimeout(()=>inp.remove(),1000);res(f||null)};
+  inp.addEventListener("change",()=>fin(inp.files&&inp.files[0]));inp.addEventListener("cancel",()=>fin(null));
+  document.body.appendChild(inp);inp.click()})}
+/* Resize to a JPEG for the AI. createImageBitmap handles more formats and rotates by EXIF; fall back to <img>. */
+async function shrink(file,max=1024){let src=null,w=0,h=0,url=null;
+  try{if(window.createImageBitmap){src=await createImageBitmap(file,{imageOrientation:"from-image"});w=src.width;h=src.height}}catch(e){src=null}
+  if(!src){url=URL.createObjectURL(file);try{src=await new Promise((ok,no)=>{const i=new Image();i.onload=()=>ok(i);i.onerror=()=>no(new Error("decode"));i.src=url});w=src.naturalWidth||src.width;h=src.naturalHeight||src.height}
+    catch(e){URL.revokeObjectURL(url);throw new Error("Couldn’t open that photo. Try taking a new photo, or take a screenshot of it and use that.")}}
+  if(!w||!h)throw new Error("Couldn’t open that photo. Try another one.");
+  const k=Math.min(1,max/Math.max(w,h)),c=document.createElement("canvas");c.width=Math.max(1,R(w*k));c.height=Math.max(1,R(h*k));c.getContext("2d").drawImage(src,0,0,c.width,c.height);
+  if(url)URL.revokeObjectURL(url);if(src.close)src.close();const out=c.toDataURL("image/jpeg",.82);if(out.length<100)throw new Error("Couldn’t read that photo. Try another one.");return out}
 async function aiFood(img,text){
   if(!AIKEY)throw new Error("Add your Claude API key in ⚙ Nutrition settings first.");
   const content=[];if(img)content.push({type:"image",source:{type:"base64",media_type:"image/jpeg",data:img.split(",")[1]}});
@@ -1158,7 +1170,9 @@ async function aiFood(img,text){
   if(!m)throw new Error("The AI didn’t return an estimate. Try another photo.");
   return (JSON.parse(m[0]).items||[]).map(it=>{const g=Math.max(1,+it.grams||100);const L=parseLabel(it.portion),sv=L.u&&!/^(g|grams?|ml|oz)$/i.test(L.u)?{u:L.u.slice(0,24),g:g/(L.n||1)}:null;return {on:true,name:it.name||"Food",orig:it.name||"Food",g:R(g),sv,q:sv?nq(L.n||1):R(g),u:sv?sv.u:"g",per:{cal:(+it.cal||0)/g*100,p:(+it.protein||0)/g*100,c:(+it.carbs||0)/g*100,f:(+it.fat||0)/g*100}}});
 }
-async function photoFlow(meal){const file=await pickImage();if(!file)return;const img=await shrink(file);fsOpen({mode:"aiprep",img,meal,hint:""});const el=document.getElementById("fs-hint");if(el)el.focus()}
+async function photoFlow(meal){if(!AIKEY){toast("Add your Claude API key first (Food → ⚙)");return fsOpen({mode:"settings"})}
+  const file=await pickImage();if(!file)return;toast("Loading photo…");let img;try{img=await shrink(file)}catch(e){toast(e.message);return}
+  document.getElementById("toast").hidden=true;fsOpen({mode:"aiprep",img,meal,hint:""})}
 async function callClaude(content,mt){
   if(!AIKEY)throw new Error("Add your Claude API key in ⚙ Nutrition settings first.");
   const r=await fetch("https://api.anthropic.com/v1/messages",{method:"POST",headers:{"content-type":"application/json","x-api-key":AIKEY,"anthropic-version":"2023-06-01","anthropic-dangerous-direct-browser-access":"true"},body:JSON.stringify({model:AIMODEL,max_tokens:mt||4000,messages:[{role:"user",content}]})});
@@ -1283,7 +1297,7 @@ document.getElementById("sheet").addEventListener("click",async ev=>{
   if(b.dataset.bcagain){const c=document.getElementById("bc-code").value.replace(/\D/g,"");if(c.length<6){toast("Enter the full barcode number");return}return findBarcode(c,fmeal())}
   if(b.dataset.bctype){return fsOpen({mode:"create",meal:fmeal(),bc:FS.code})}
   if(b.dataset.bclabel){const code=FS.code||FS.bc;fsOpen({mode:"create",meal:fmeal(),bc:code});const btn=document.querySelector("#sheet [data-cfphoto]");if(btn)btn.click();return}
-  if(b.dataset.cfphoto){const file=await pickImage();if(!file)return;const img=await shrink(file,1400);cfStatus("Reading your photo… this takes a few seconds.");
+  if(b.dataset.cfphoto){const file=await pickImage();if(!file)return;cfStatus("Loading photo…");let img;try{img=await shrink(file,1400)}catch(e){cfStatus(e.message);return}cfStatus("Reading your photo… this takes a few seconds.");
     try{const r=await aiLabel(img,document.getElementById("cf-name").value.trim());fillCF({name:r.name,sv:r.serving||"1 serving",g:+r.serving_g||"",cal:+r.cal||0,p:+r.protein||0,c:+r.carbs||0,f:+r.fat||0});cfStatus("Filled in from your photo. Check the numbers and edit anything that’s off.")}catch(e){cfStatus(e.message)}return}
   if(b.dataset.cfbar){let code;try{code=await getBarcode()}catch(e){cfStatus("Couldn’t read a barcode. Take a closer, sharper photo of it.");return}if(!code)return;cfStatus(`Found ${code} — looking it up…`);FS.bc=code;
     try{const r=await lookupBarcode(code);if(r.offline)throw 0;if(!r.per){cfStatus(`Barcode ${code} isn’t in Open Food Facts or USDA. Use 📷 Photo or label, or type the numbers. It’ll be linked to this barcode.`);return}const vir=r.sv&&r.sv.v,k=(vir?100:r.g)/100;fillCF({name:r.name,sv:r.serving||"1 serving",g:vir?"":r.g,cal:r.per.cal*k,p:r.per.p*k,c:r.per.c*k,f:r.per.f*k});cfStatus("Filled in from the barcode (per serving). Edit anything you like.")}catch(e){cfStatus("Couldn’t look up that barcode. Check your connection.")}return}
@@ -1354,7 +1368,7 @@ function viewPlan(){
     </div>
     <h2 class="sec">Reset</h2>
     ${confirmReset?`<div class="confirm">Put ${esc(PLAN.name)} back to the coach’s version? Your logged workouts stay. <button type="button" class="btn sm danger" data-act="doreset">Reset plan</button><button type="button" class="btn sm" data-act="noreset">Cancel</button></div>`:`<button type="button" class="btn danger" data-act="reset">Reset ${esc(PLAN.name)} to coach’s version</button>`}
-    <p class="muted" style="text-align:center;margin-top:24px;font-size:12px">v37</p>`;
+    <p class="muted" style="text-align:center;margin-top:24px;font-size:12px">v38</p>`;
 }
 
 /* ---------- day sheet: move / swap / change / rest ---------- */
