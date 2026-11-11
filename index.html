@@ -313,6 +313,11 @@ details.pw summary small{font:500 13px var(--body);color:var(--muted);margin-lef
 .timer .lbl{font-size:12px;font-weight:600;max-width:150px}
 .timer button{font-weight:700;font-size:13px;background:transparent;border:1.5px solid currentColor;border-radius:8px;padding:6px 12px;cursor:pointer}
 .timer.up{background:var(--green)}
+.timer.hold{background:var(--green);color:#06150e}.timer.hold.ready{background:var(--amber);color:#1a1405}
+.exf .holdb{grid-column:1/-1;background:color-mix(in srgb,var(--green) 18%,var(--card2));color:var(--ink);border:1px solid color-mix(in srgb,var(--green) 45%,transparent)}
+.ptr{position:fixed;left:50%;top:calc(env(safe-area-inset-top,0px) + 8px);z-index:11;width:40px;height:40px;margin-left:-20px;border-radius:50%;background:var(--card);border:1px solid var(--line);color:var(--muted);display:grid;place-items:center;box-shadow:0 6px 18px rgba(0,0,0,.35);transform:translateY(-70px);opacity:0;pointer-events:none}
+.ptr svg{width:20px;height:20px}.ptr.ready{color:var(--blue);border-color:var(--blue)}.ptr.go svg{animation:rspin .8s linear infinite}
+.ptr.back{transition:transform .2s,opacity .2s}
 .toast{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(140px + env(safe-area-inset-bottom,0px));z-index:12;background:var(--ink);color:var(--bg);font-weight:600;padding:10px 16px;border-radius:999px;font-size:14px;max-width:90vw;text-align:center}
 .scrim{position:fixed;inset:0;z-index:8;background:rgba(0,0,0,.55)}
 .sheet{position:fixed;left:0;right:0;bottom:0;z-index:9;background:var(--card);border-radius:18px 18px 0 0;border-top:1px solid var(--line);padding-block:16px calc(18px + env(safe-area-inset-bottom,0px));padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));max-height:85vh;overflow:auto}
@@ -487,6 +492,7 @@ tr.done td input{background:color-mix(in srgb,var(--green) 18%,var(--field));col
 <div class="scrim" id="scrim" hidden></div>
 <div class="sheet" id="sheet" hidden role="dialog" aria-modal="true" aria-labelledby="sheetTitle"></div>
 <div class="toast" id="toast" hidden></div>
+<div class="ptr" id="ptr" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 11a8 8 0 1 0-2.3 5.7M20 4v7h-7"/></svg></div>
 <nav class="nav" aria-label="Main">
   <a href="#week" data-tab="week"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 8v8M18 8v8M3 10v4M21 10v4M6 12h12"/></svg>Workout</a>
   <a href="#food" data-tab="food"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M7 3v8M5 3v5a2 2 0 0 0 4 0V3M7 11v10M17 21V3c-2 1-3 4-3 7h3"/></svg>Food</a>
@@ -749,7 +755,7 @@ function viewWorkout(date){
       ${swapOpen===i?`<div class="swaprow"><input class="txt" list="exlist" id="sw-${date}-${i}" placeholder="Exercise to do instead" aria-label="Replacement exercise"><button type="button" class="btn sm primary" data-swapgo="${i}">Swap</button><button type="button" class="btn sm" data-swapx="1">Cancel</button></div>`:""}
       <input class="note" id="n-${date}-${i}" data-memo="${i}" value="${esc(e.memo)}" placeholder="✎ Add notes…" aria-label="Notes for ${esc(e.n)}">
       <div class="tbl"><table><thead><tr><th>SET</th><th>PREVIOUS</th><th>${UNIT.toUpperCase()}</th><th>${timed(e)?"SEC":"REPS"}</th><th></th></tr></thead><tbody>${rows}</tbody></table></div>
-      <div class="exf"><button type="button" data-rest="${i}">⏱ Rest: ${esc(e.rest)}</button><button type="button" data-add="${i}">+ Add Set</button></div></section>`}).join("");
+      <div class="exf">${timed(e)&&!ended&&e.sets.some(t=>!t.d)?`<button type="button" class="holdb" data-hold="${i}">▶ Hold timer · set ${e.sets.findIndex(t=>!t.d)+1}</button>`:""}<button type="button" data-rest="${i}">⏱ Rest: ${esc(e.rest)}</button><button type="button" data-add="${i}">+ Add Set</button></div></section>`}).join("");
   const P=DD(date,x.day)||D(x.day)||{};
   const names=[...new Set(PROG.weeks.flatMap(w=>Object.values(w.days).flatMap(dd=>dd.ex.map(e=>e.n))))];
   const wrap=`<section class="ex"><span class="exname" style="color:var(--ink)">How did it feel?</span>
@@ -1340,7 +1346,7 @@ function viewPlan(){
     </div>
     <h2 class="sec">Reset</h2>
     ${confirmReset?`<div class="confirm">Put ${esc(PLAN.name)} back to the coach’s version? Your logged workouts stay. <button type="button" class="btn sm danger" data-act="doreset">Reset plan</button><button type="button" class="btn sm" data-act="noreset">Cancel</button></div>`:`<button type="button" class="btn danger" data-act="reset">Reset ${esc(PLAN.name)} to coach’s version</button>`}
-    <p class="muted" style="text-align:center;margin-top:24px;font-size:12px">v35</p>`;
+    <p class="muted" style="text-align:center;margin-top:24px;font-size:12px">v36</p>`;
 }
 
 /* ---------- day sheet: move / swap / change / rest ---------- */
@@ -1471,9 +1477,29 @@ async function restNotify(){if(!LN)return;try{await LN.cancel({notifications:[{i
   const perm=await LN.checkPermissions();if(perm.display!=="granted"){const r=await LN.requestPermissions();if(r.display!=="granted")return}
   await LN.schedule({notifications:[{id:7001,title:"Rest over",body:`Next set: ${restName}`,schedule:{at:new Date(restEnd),allowWhileIdle:true},sound:"default"}]})}catch(e){}}
 async function restCancel(){if(LN)try{await LN.cancel({notifications:[{id:7001}]})}catch(e){}}
-function startTimer(sec,name){restEnd=Date.now()+sec*1000;restName=name;alerted=false;lastBeep=null;document.getElementById("timerLbl").textContent="Rest · "+name;tEl.hidden=false;draw();clearInterval(tick);tick=setInterval(draw,250);restNotify()}
-document.getElementById("timerAdd").onclick=()=>{restEnd+=30000;if(restEnd>Date.now()){alerted=false;lastBeep=null}draw();restNotify()};
-document.getElementById("timerStop").onclick=()=>{clearInterval(tick);tEl.hidden=true;restCancel()};
+function startTimer(sec,name){if(HOLD)endHoldUI();restEnd=Date.now()+sec*1000;restName=name;alerted=false;lastBeep=null;document.getElementById("timerLbl").textContent="Rest · "+name;tEl.hidden=false;draw();clearInterval(tick);tick=setInterval(draw,250);restNotify()}
+document.getElementById("timerAdd").onclick=()=>{if(HOLD){HOLD.target+=5;return drawHold()}restEnd+=30000;if(restEnd>Date.now()){alerted=false;lastBeep=null}draw();restNotify()};
+document.getElementById("timerStop").onclick=()=>{if(HOLD){const h=HOLD,now=Date.now();return now<h.go?(endHoldUI(),tEl.hidden=true):finishHold(Math.floor((now-h.go)/1000))}clearInterval(tick);tEl.hidden=true;restCancel()};
+/* Hold timer for timed exercises (target in seconds, e.g. "30 วิ"): 5 s get-ready, count down the hold, then log the set and start rest. */
+let HOLD=null;const READY=5;
+function setBtns(a,b){document.getElementById("timerAdd").textContent=a;document.getElementById("timerStop").textContent=b}
+function endHoldUI(){HOLD=null;clearInterval(tick);tEl.classList.remove("hold","ready");setBtns("+30s","Skip")}
+function startHold(date,day,i){const s=S[date]&&S[date].day===day?S[date]:blank(day,date),e=s.ex[i],j=e.sets.findIndex(t=>!t.d);if(j<0)return toast("All sets done");
+  const ri=document.getElementById(`r-${date}-${i}-${j}`),target=+(e.sets[j].r||ri&&ri.placeholder||lowTarget(e))||30;
+  clearInterval(tick);restCancel();HOLD={date,day,i,j,name:e.n,target,go:Date.now()+READY*1000};lastBeep=null;
+  tEl.hidden=false;tEl.classList.add("hold","ready");setBtns("+5s","Done");drawHold();tick=setInterval(drawHold,200);wake(true)}
+function drawHold(){const h=HOLD;if(!h)return;const now=Date.now(),T=document.getElementById("timerT"),L=document.getElementById("timerLbl");
+  if(now<h.go){const r=Math.ceil((h.go-now)/1000);L.textContent=`Get ready · ${h.name} · set ${h.j+1}`;T.textContent=String(r);if(lastBeep!==r){lastBeep=r;if(r<=3)beep([660],.08,0,.35)}return}
+  if(tEl.classList.contains("ready")){tEl.classList.remove("ready");beep([988],.3,0,.6);try{navigator.vibrate&&navigator.vibrate(120)}catch(e){}}
+  const left=Math.ceil(h.target-(now-h.go)/1000);L.textContent=`Hold · ${h.name} · set ${h.j+1} (${h.target}s)`;T.textContent=fmtDur(Math.max(0,left)*1000);
+  if(left>0&&left<=3&&lastBeep!=="h"+left){lastBeep="h"+left;beep([660],.08,0,.35)}
+  if(left<=0){restDone();finishHold(h.target)}}
+function finishHold(secs){const h=HOLD;endHoldUI();if(!h||secs<1){tEl.hidden=true;return}
+  const s=ensure(h.date,h.day),e=s.ex[h.i],t=e&&e.sets[h.j];if(!t||t.d){tEl.hidden=true;return}
+  const wi=document.getElementById(`w-${h.date}-${h.i}-${h.j}`);if(!t.w&&wi)t.w=fromDisp(wi.placeholder.replace(/^-$/,""));
+  t.r=String(secs);t.d=true;if(!s.start){s.start=Date.now();s.go=true;wake(true)}saveS();
+  const pr=prType(histBest(e.n,h.date),t);toast(pr?`🏆 ${pr}! ${e.n} · ${secs}s`:`✓ Set ${h.j+1} logged · ${secs}s`);if(pr)setTimeout(()=>beep([523,659,784,1047],.12,.03,.5),700);
+  startTimer(restSec(e.rest),e.n);if(app.dataset.date===h.date)render()}
 let toastT;function toast(m){const t=document.getElementById("toast");t.textContent=m;t.hidden=false;clearTimeout(toastT);toastT=setTimeout(()=>t.hidden=true,2600)}
 
 /* ---------- events ---------- */
@@ -1551,6 +1577,7 @@ app.addEventListener("click",async ev=>{
     saveS();return render();
   }
   if(b=q("[data-add]")){const s=ensure(date,day);s.ex[+b.dataset.add].sets.push({w:"",r:"",d:false});saveS();return render()}
+  if(b=q("[data-hold]")){audio();return startHold(date,day,+b.dataset.hold)}
   if(b=q("[data-rest]")){const s=S[date]&&S[date].day===day?S[date]:blank(day,date),e=s.ex[+b.dataset.rest];return startTimer(restSec(e.rest),e.n)}
   if(b=q("[data-act=start]")){begin(date,day);toast("Workout started — timer running");return render()}
   if(b=q("[data-act=finish]"))return openFinish(date,false);
@@ -1770,6 +1797,18 @@ function render(){
   else viewWeek();
 }
 initDrag();
+/* Pull down from the top of any page to refresh the app (same as the ↻ Refresh button). */
+(function initPull(){const ind=document.getElementById("ptr"),MAX=90;let y0=null,x0=0,dy=0;
+  const set=(v,back)=>{ind.classList.toggle("back",!!back);const p=Math.min(v/MAX,1);ind.style.transform=`translateY(${Math.min(v*.6,64)-70+(v>0?10:0)}px) rotate(${p*300}deg)`;ind.style.opacity=v>0?Math.min(1,.3+p):0;ind.classList.toggle("ready",v>=MAX)};
+  const reset=()=>{y0=null;if(dy>0)set(0,true);dy=0};
+  document.addEventListener("touchstart",ev=>{y0=null;dy=0;if(window.scrollY>0||ev.touches.length>1||!sheet.hidden||document.body.classList.contains("dragging")||document.querySelector(".scan")||ev.target.closest("input,textarea,select,.timer,.nav,.sheet"))return;y0=ev.touches[0].clientY;x0=ev.touches[0].clientX},{passive:true});
+  document.addEventListener("touchmove",ev=>{if(y0==null)return;const t=ev.touches[0],d=t.clientY-y0;
+    if(document.body.classList.contains("dragging")||window.scrollY>2||(dy<10&&Math.abs(t.clientX-x0)>Math.abs(d))){return reset()}
+    dy=Math.max(0,d);set(dy)},{passive:true});
+  const end=()=>{if(y0==null)return;if(dy>=MAX){y0=null;ind.classList.add("go");try{navigator.vibrate&&navigator.vibrate(15)}catch(e){}refreshApp()}else reset()};
+  document.addEventListener("touchend",end);document.addEventListener("touchcancel",reset)})();
+/* Tap the tab you're already on to jump back to the top. */
+document.querySelector(".nav").addEventListener("click",ev=>{const a=ev.target.closest("a");if(a&&a.getAttribute("href")===location.hash&&window.scrollY>0){ev.preventDefault();window.scrollTo({top:0,behavior:"smooth"})}});
 window.addEventListener("hashchange",()=>{closeSheet();FS=null;WS=null;rpeOpen=null;swapOpen=null;render();window.scrollTo(0,0)});
 render();
 </script>
