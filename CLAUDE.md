@@ -41,6 +41,7 @@ Changes must stay compatible with existing saved data (users' logs must survive 
 - Food: search (local list + Open Food Facts), barcode live scan (ZXing, any angle) → My foods → Open Food Facts → USDA;
   defaults to 1 serving as labelled; AI photo/label via Claude API from the browser; units (serving/g/oz/ml);
   auto meal by time (<200 cal = snack); recent foods; copy meal/day; training vs rest-day targets.
+- Gestures (bottom of `index.html`): `initPull` pull-to-refresh; `initSwipe` finger-following left/right swipes (Food days, Calendar months, Today weeks, left-edge back in a workout) and swipe-left on a logged food (`.fsw`) to reveal Delete (`delFood`, with Undo toast); `initSheetDrag` drag a bottom sheet down to close.
 - Coach tab: exercise library (+ auto most-viewed YouTube video via YouTube Data API) and AI client plans; never touches the user's own plan.
 - Progress tab: calories per day (with target) and weekly average; steps per day and weekly average.
 - iPhone app only: rest-timer local notifications (`@capacitor/local-notifications`), Apple Health sync for weight and steps (`@capgo/capacitor-health`; requests `read: ["weight","steps"]`, steps via `queryAggregated` bucketed by day).
