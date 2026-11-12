@@ -1,6 +1,6 @@
 # 006 — Toast: rise and fade in, fade out
 
-- **Status**: TODO
+- **Status**: DONE
 - **Commit**: 74a0b50
 - **Severity**: LOW (missed opportunity)
 - **Category**: Missed opportunities / Interruptibility

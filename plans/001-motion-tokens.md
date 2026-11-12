@@ -1,6 +1,6 @@
 # 001 — Add motion easing tokens and use them on existing transitions
 
-- **Status**: TODO
+- **Status**: DONE
 - **Commit**: 74a0b50
 - **Severity**: LOW
 - **Category**: Easing & duration / Cohesion & tokens

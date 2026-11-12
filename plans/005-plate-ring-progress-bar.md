@@ -1,6 +1,6 @@
 # 005 — Make the plate ring fill animate and move the workout bar to transform
 
-- **Status**: TODO
+- **Status**: DONE
 - **Commit**: 74a0b50
 - **Severity**: LOW
 - **Category**: Performance / dead motion

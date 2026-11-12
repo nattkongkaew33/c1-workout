@@ -1,6 +1,6 @@
 # 007 — Rest timer bar: slide up from behind the nav, colour cross-fade
 
-- **Status**: TODO
+- **Status**: DONE
 - **Commit**: 74a0b50
 - **Severity**: LOW (missed opportunity)
 - **Category**: Missed opportunities

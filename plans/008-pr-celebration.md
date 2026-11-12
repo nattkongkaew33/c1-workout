@@ -1,6 +1,6 @@
 # 008 — Celebrate a personal record
 
-- **Status**: TODO
+- **Status**: DONE
 - **Commit**: 74a0b50
 - **Severity**: LOW (missed opportunity)
 - **Category**: Missed opportunities

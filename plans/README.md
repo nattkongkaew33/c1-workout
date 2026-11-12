@@ -5,14 +5,14 @@ All edits are in `index.html`. Bump `CACHE` in `sw.js` once per release (one bum
 
 | # | Plan | Severity | Status | Depends on |
 |---|---|---|---|---|
-| 001 | [Motion easing tokens](001-motion-tokens.md) | LOW | TODO | — |
-| 002 | [Reduced motion: drop movement, keep fades](002-reduced-motion.md) | MEDIUM | TODO | — |
-| 003 | [Bottom sheet slide in/out + scrim fade](003-sheet-enter-exit.md) | MEDIUM | TODO | 001 |
-| 004 | [Press feedback](004-press-feedback.md) | MEDIUM | TODO | 001 |
-| 005 | [Plate ring + workout bar animate](005-plate-ring-progress-bar.md) | LOW | TODO | 001 |
-| 006 | [Toast enter/exit](006-toast-enter-exit.md) | LOW | TODO | 001 |
-| 007 | [Rest timer slide](007-rest-timer-slide.md) | LOW | TODO | 001 |
-| 008 | [PR celebration](008-pr-celebration.md) | LOW | TODO | 001, 006 |
+| 001 | [Motion easing tokens](001-motion-tokens.md) | LOW | DONE | — |
+| 002 | [Reduced motion: drop movement, keep fades](002-reduced-motion.md) | MEDIUM | DONE | — |
+| 003 | [Bottom sheet slide in/out + scrim fade](003-sheet-enter-exit.md) | MEDIUM | DONE | 001 |
+| 004 | [Press feedback](004-press-feedback.md) | MEDIUM | DONE | 001 |
+| 005 | [Plate ring + workout bar animate](005-plate-ring-progress-bar.md) | LOW | DONE | 001 |
+| 006 | [Toast enter/exit](006-toast-enter-exit.md) | LOW | DONE | 001 |
+| 007 | [Rest timer slide](007-rest-timer-slide.md) | LOW | DONE | 001 |
+| 008 | [PR celebration](008-pr-celebration.md) | LOW | DONE | 001, 006 |
 
 ## Recommended order
 

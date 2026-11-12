@@ -1,6 +1,6 @@
 # 003 — Bottom sheet: interruptible slide in and out, fading scrim
 
-- **Status**: TODO
+- **Status**: DONE
 - **Commit**: 74a0b50
 - **Severity**: MEDIUM
 - **Category**: Physicality & origin / Interruptibility

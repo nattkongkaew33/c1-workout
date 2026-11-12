@@ -24,6 +24,7 @@
   --blue:#ffd23f; --on-acc:#1a1405; --green:#2ed48a; --red:#ff5a5f; --amber:#ffb84d;
   --push:#ff5a5f; --abs:#ff9a3c; --pull:#2ed48a; --leg:#4c7dff; --other:#b49cff;
   --glow:#1b2146;
+  --ease-out:cubic-bezier(0.23, 1, 0.32, 1); --ease-in-out:cubic-bezier(0.77, 0, 0.175, 1); --ease-drawer:cubic-bezier(0.32, 0.72, 0, 1);
   --display:"Big Shoulders Display","Arial Narrow",system-ui,sans-serif;
   --mono:"IBM Plex Mono",ui-monospace,monospace;
   --body:"IBM Plex Sans Thai",system-ui,-apple-system,"Segoe UI",sans-serif;
@@ -66,7 +67,7 @@ input.txt,select.txt{background:var(--field);color:var(--ink);border:1px solid v
 .arrows{display:flex;gap:6px}
 .arrows button{width:40px;height:40px;border-radius:10px;border:1px solid var(--line);background:var(--card);font-size:18px;cursor:pointer}
 .row{display:grid;grid-template-columns:44px minmax(0,1fr) 36px;gap:8px;align-items:center;margin-bottom:10px}
-.row .wcard{-webkit-touch-callout:none;-webkit-user-drag:none;-webkit-user-select:none;user-select:none;transition:transform .15s,box-shadow .15s,border-color .15s}
+.row .wcard{-webkit-touch-callout:none;-webkit-user-drag:none;-webkit-user-select:none;user-select:none;transition:transform .15s var(--ease-out),box-shadow .15s ease,border-color .15s ease}
 .row.lift .wcard{pointer-events:none;position:relative;z-index:3;transition:none;box-shadow:0 18px 40px -12px rgba(0,0,0,.8);border-color:var(--blue)}
 .row.dropto .wcard{border-color:var(--blue);border-style:dashed;background:color-mix(in srgb,var(--blue) 10%,var(--card))}
 a,[data-go]{-webkit-touch-callout:none}
@@ -204,7 +205,7 @@ textarea.note{resize:vertical;min-height:52px;font:inherit}
 .wbar{display:flex;align-items:center;gap:12px;margin-top:8px;font-variant-numeric:tabular-nums}
 .el{color:var(--blue);font-weight:600;min-width:84px;white-space:nowrap}
 .pbar{flex:1;height:8px;border-radius:4px;background:var(--line);overflow:hidden}
-.pbar i{display:block;height:100%;width:0;background:var(--blue);transition:width .3s}
+.pbar i{display:block;height:100%;width:100%;background:var(--blue);transform:translateX(-100%);transition:transform 300ms var(--ease-out)}
 #pcount{color:var(--muted);font-weight:600}
 .tools{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin:12px 0}
 .chipl{font-size:13px;text-decoration:none;border:1px solid var(--line);background:var(--card);padding:6px 12px;border-radius:999px}
@@ -317,29 +318,29 @@ details.pw summary small{font:500 13px var(--body);color:var(--muted);margin-lef
 .exf .holdb{grid-column:1/-1;background:color-mix(in srgb,var(--green) 18%,var(--card2));color:var(--ink);border:1px solid color-mix(in srgb,var(--green) 45%,transparent)}
 .ptr{position:fixed;left:50%;top:calc(env(safe-area-inset-top,0px) + 8px);z-index:11;width:40px;height:40px;margin-left:-20px;border-radius:50%;background:var(--card);border:1px solid var(--line);color:var(--muted);display:grid;place-items:center;box-shadow:0 6px 18px rgba(0,0,0,.35);transform:translateY(-70px);opacity:0;pointer-events:none}
 .ptr svg{width:20px;height:20px}.ptr.ready{color:var(--blue);border-color:var(--blue)}.ptr.go svg{animation:rspin .8s linear infinite}
-.ptr.back{transition:transform .2s,opacity .2s}
+.ptr.back{transition:transform .2s var(--ease-out),opacity .2s var(--ease-out)}
 .timer .lbl{display:flex;flex-direction:column;gap:3px;min-width:0}
 .timer .tnext{border:0;padding:0;border-radius:0;background:none;color:inherit;font:700 12px var(--body);text-align:left;text-decoration:underline;text-underline-offset:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:150px}
 .todayb,.fhead .todayb,.arrows .todayb,.cal-mid .todayb{width:auto;height:32px;padding:0 12px;border-radius:999px;border:1px solid var(--blue);background:transparent;color:var(--blue);font:700 13px var(--body);cursor:pointer;white-space:nowrap}
 .fhead{gap:6px}.fhead b{min-width:136px}.arrows .todayb{height:40px}
 .cal-mid{display:flex;flex-direction:column;align-items:center;gap:4px}.cal-mid .todayb{height:26px;font-size:12px}
 @keyframes swl{from{transform:translateX(28px);opacity:.3}}@keyframes swr{from{transform:translateX(-28px);opacity:.3}}
-#app.swl>:not(.foodbar){animation:swl .22s ease-out}#app.swr>:not(.foodbar){animation:swr .22s ease-out}
+#app.swl>:not(.foodbar){animation:swl .22s var(--ease-out)}#app.swr>:not(.foodbar){animation:swr .22s var(--ease-out)}
 @media (prefers-reduced-motion:reduce){#app.swl>*,#app.swr>*{animation:none!important}}
 /* finger-following swipes */
 #app.swiping>:not(.foodbar),#app.swanim>:not(.foodbar){transform:translateX(var(--sx,0));opacity:var(--so,1)}
-#app.swanim>:not(.foodbar){transition:transform .15s ease-out,opacity .15s ease-out}
+#app.swanim>:not(.foodbar){transition:transform .15s var(--ease-out),opacity .15s var(--ease-out)}
 .fsw{position:relative;border-radius:14px;overflow:hidden}
-.fsw .fitem{position:relative;z-index:1;transition:transform .2s ease-out}
+.fsw .fitem{position:relative;z-index:1;transition:transform .2s var(--ease-out)}
 .fsw.drag .fitem{transition:none}
 .fsw.open .fitem{transform:translateX(-88px)}
 .fdelb{position:absolute;top:0;right:0;bottom:0;width:88px;border:0;background:var(--red);color:#fff;font:700 15px var(--body);cursor:pointer}
 .fsw:not(.open):not(.drag) .fdelb{visibility:hidden}
 .toast button{margin-left:12px;border:0;background:none;color:inherit;font:inherit;font-weight:800;text-decoration:underline;text-underline-offset:3px;cursor:pointer;padding:0}
-@keyframes shup{from{transform:translateY(40%);opacity:.4}}
-.sheet:not([hidden]){animation:shup .2s ease-out}
-.sheet.snap{transition:transform .18s ease-out}.scrim.snap{transition:opacity .18s}
-@media (prefers-reduced-motion:reduce){.sheet:not([hidden]){animation:none}}
+.sheet{transform:translateY(100%);transition:transform 240ms var(--ease-drawer)}.sheet.on{transform:none}
+.scrim{opacity:0;transition:opacity 240ms var(--ease-drawer)}.scrim.on{opacity:1}
+.sheet.closing,.scrim.closing{transition-duration:200ms;pointer-events:none}
+.sheet.drag,.scrim.drag{transition:none}
 .toast{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(140px + env(safe-area-inset-bottom,0px));z-index:12;background:var(--ink);color:var(--bg);font-weight:600;padding:10px 16px;border-radius:999px;font-size:14px;max-width:90vw;text-align:center}
 .scrim{position:fixed;inset:0;z-index:8;background:rgba(0,0,0,.55)}
 .sheet{position:fixed;left:0;right:0;bottom:0;z-index:9;background:var(--card);border-radius:18px 18px 0 0;border-top:1px solid var(--line);padding-block:16px calc(18px + env(safe-area-inset-bottom,0px));padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));max-height:85vh;overflow:auto}
@@ -380,10 +381,16 @@ input.txt:focus,select.txt:focus{border-color:var(--blue);outline:none}
 .nav a{font-size:11px;letter-spacing:.02em;border-radius:14px;padding:6px 10px}
 .nav a[aria-current="page"]{background:color-mix(in srgb,var(--blue) 12%,transparent)}
 .toast{background:var(--blue);color:var(--on-acc);box-shadow:0 10px 30px -10px rgba(0,0,0,.6)}
+.toast{opacity:0;transform:translateX(-50%) translateY(8px);transition:opacity 200ms var(--ease-out),transform 200ms var(--ease-out)}.toast.on{opacity:1;transform:translateX(-50%)}
+@keyframes prpop{0%{transform:translateX(-50%) scale(.9)}60%{transform:translateX(-50%) scale(1.06)}100%{transform:translateX(-50%) scale(1)}}
+@keyframes prglow{from{box-shadow:0 0 0 0 color-mix(in srgb,var(--blue) 70%,transparent),0 10px 30px -10px rgba(0,0,0,.6)}to{box-shadow:0 0 0 14px transparent,0 10px 30px -10px rgba(0,0,0,.6)}}
+.toast.on.pr{animation:prpop 420ms var(--ease-out),prglow 700ms var(--ease-out)}
+@media (prefers-reduced-motion:reduce){.toast.on.pr{animation:none}}
 .sheet{background:var(--card);border-radius:26px 26px 0 0}
 .sheet::before{content:"";display:block;width:40px;height:5px;border-radius:3px;background:var(--line);margin:-6px auto 12px}
 .sheet h3{font-size:28px;font-weight:900;text-transform:uppercase}
 .timer{border-radius:22px 22px 0 0}
+.timer{transform:translateY(100%);transition:transform 200ms var(--ease-out),background-color 200ms ease,color 200ms ease}.timer.on{transform:none}
 .timer .t,.el,#pcount,.nbig b,.stat b,.fmac b{font-variant-numeric:tabular-nums}
 .timer .t{font:600 32px var(--mono)}
 .el{font-family:var(--mono);font-weight:600}
@@ -393,7 +400,7 @@ input.txt:focus,select.txt:focus{border-color:var(--blue);outline:none}
 .pl-body{fill:var(--field);stroke:var(--line);stroke-width:1.5}
 .pl-tick{stroke:var(--line);stroke-width:2;stroke-linecap:round}
 .pl-track{fill:none;stroke:color-mix(in srgb,var(--ink) 7%,transparent)}
-.pl-fill{fill:none;stroke-linecap:round;transition:stroke-dasharray .8s cubic-bezier(.2,.8,.2,1)}
+.pl-fill{fill:none;stroke-linecap:round;transition:stroke-dasharray 600ms var(--ease-out)}
 .pl-hub{fill:none;stroke:color-mix(in srgb,var(--ink) 10%,transparent);stroke-width:1.5;stroke-dasharray:2 4}
 .pl-in{position:absolute;inset:0;display:grid;place-content:center;text-align:center;line-height:1}
 .pl-in b{font:900 var(--big,40px) var(--display);font-variant-numeric:tabular-nums}
@@ -498,7 +505,11 @@ tr.done td input{background:color-mix(in srgb,var(--green) 18%,var(--field));col
 /* iPhone zooms into any field under 16px and doesn't zoom back; keep every typed field at 16px+ on iOS. */
 @supports (-webkit-touch-callout:none){input.txt,select.txt,textarea,.note,.ainame,.swap select,.cexf .txt,.cname,.cfocus,.cnote{font-size:16px!important}}
 .bwrow .seg{flex:none}.bwrow .btn{white-space:nowrap;flex:none}.bwrow input{min-width:70px}
-@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+/* press feedback: responds on touch-down */
+.btn,.chk,.arrows button,.fhead button,.todayb,.seg button,.more,.nav a,.timer button,.back{transition:transform 160ms var(--ease-out)}
+.btn:active,.arrows button:active,.fhead button:active,.todayb:active,.seg button:active,.more:active,.nav a:active,.timer button:active,.back:active{transform:scale(0.97);transition-duration:100ms}
+.chk:active{transform:scale(0.95);transition-duration:100ms}.wcard[data-go]:active{transform:scale(0.98)}
+@media (prefers-reduced-motion:reduce){*,*::before,*::after{transition-property:opacity,color,background-color,border-color,box-shadow!important}.scan .frame::after{animation:none}}
 </style>
 </head>
 <body>
@@ -723,17 +734,17 @@ async function refreshApp(btn){
 }
 function plate(pct,o={}){const sz=o.size||140,sw=o.stroke||14,c=sz/2,r=c-sw/2-9,C=2*Math.PI*r,p=Math.max(0,Math.min(1,pct||0));
   const ticks=[...Array(32)].map((_,i)=>{const a=i/32*2*Math.PI,r1=c-3,r2=c-(i%8?5:8);return `<line class="pl-tick" x1="${(c+r1*Math.sin(a)).toFixed(1)}" y1="${(c-r1*Math.cos(a)).toFixed(1)}" x2="${(c+r2*Math.sin(a)).toFixed(1)}" y2="${(c-r2*Math.cos(a)).toFixed(1)}"/>`}).join("");
-  return `<div class="plate" style="--sz:${sz}px;--big:${o.big||Math.round(sz*.28)}px"><svg viewBox="0 0 ${sz} ${sz}" aria-hidden="true"><circle class="pl-body" cx="${c}" cy="${c}" r="${c-1}"/>${ticks}<circle class="pl-track" cx="${c}" cy="${c}" r="${r}" stroke-width="${sw}"/><circle class="pl-fill" cx="${c}" cy="${c}" r="${r}" stroke-width="${sw}" stroke="${o.color||"var(--blue)"}" stroke-dasharray="${(C*p).toFixed(1)} ${C.toFixed(1)}" transform="rotate(-90 ${c} ${c})"${p===0?' stroke-opacity="0"':""}/><circle class="pl-hub" cx="${c}" cy="${c}" r="${(r-sw/2-6).toFixed(1)}"/></svg><div class="pl-in">${o.inner||""}</div></div>`}
+  return `<div class="plate" style="--sz:${sz}px;--big:${o.big||Math.round(sz*.28)}px"><svg viewBox="0 0 ${sz} ${sz}" aria-hidden="true"><circle class="pl-body" cx="${c}" cy="${c}" r="${c-1}"/>${ticks}<circle class="pl-track" cx="${c}" cy="${c}" r="${r}" stroke-width="${sw}"/><circle class="pl-fill"${o.key?` data-k="${o.key}"`:""} cx="${c}" cy="${c}" r="${r}" stroke-width="${sw}" stroke="${o.color||"var(--blue)"}" stroke-dasharray="${(C*p).toFixed(1)} ${C.toFixed(1)}" transform="rotate(-90 ${c} ${c})"${p===0?' stroke-opacity="0"':""}/><circle class="pl-hub" cx="${c}" cy="${c}" r="${(r-sw/2-6).toFixed(1)}"/></svg><div class="pl-in">${o.inner||""}</div></div>`}
 const nSets=e=>Array.isArray(e.sets)?e.sets.length:(+e.sets||0);
 function todayHero(){
   const td=today(),ts=S[td],live=ts&&started(ts),day=live?ts.day:planFor(td),dl=parse(td).toLocaleDateString("en-GB",{weekday:"short",day:"numeric",month:"short"});
   const T=targetsFor(td),eat=sumMac(FOOD[td]||[]).cal,fp=Math.min(100,T.cal?eat/T.cal*100:0);
   const fuel=`<a class="fuel" href="#food"><span>Food today</span><div class="fb"><i style="width:${fp}%"></i></div><b><em>${R(eat)}</em> / ${T.cal} cal</b></a>`;
-  if(!day&&!live)return `<a class="hero rest" href="#w-${td}"><div class="ht"><small>Today · ${dl}</small><strong>Rest day</strong><span class="sub">Recover, sleep well and hit your protein.</span></div>${plate(0,{size:104,stroke:10,inner:`<b style="font-size:26px">ZZZ</b>`})}</a>${fuel}`;
+  if(!day&&!live)return `<a class="hero rest" href="#w-${td}"><div class="ht"><small>Today · ${dl}</small><strong>Rest day</strong><span class="sub">Recover, sleep well and hit your protein.</span></div>${plate(0,{key:"hero",size:104,stroke:10,inner:`<b style="font-size:26px">ZZZ</b>`})}</a>${fuel}`;
   const P=DD(td,day)||{},type=live?typeOf(ts):P.type,title=live?titleOf(ts):P.title,ex=live?ts.ex:(P.ex||[]);
   const total=ex.reduce((a,e)=>a+nSets(e),0),done=live?ts.ex.reduce((a,e)=>a+e.sets.filter(t=>t.d).length,0):0,fin=live&&ts.end;
   const btn=fin?`<span class="sub" style="color:var(--green);font-weight:700">Done ✓ ${fmtDur(ts.end-ts.start)}</span>`:`<span class="startbtn" data-startnow="${td}">▶ ${live?"Continue":"Start workout"}</span>`;
-  return `<a class="hero" href="#w-${td}" style="--c:var(${TCOLOR[type]||"--other"})"><div class="ht"><small>Today · ${dl}</small><strong>${esc(title||"Workout")}</strong><span class="sub">${ex.length} exercises · ${total} sets</span>${btn}</div>${plate(total?done/total:0,{size:112,stroke:11,color:"var(--c)",inner:`<b>${done}</b><small>of ${total} sets</small>`})}</a>${fuel}`}
+  return `<a class="hero" href="#w-${td}" style="--c:var(${TCOLOR[type]||"--other"})"><div class="ht"><small>Today · ${dl}</small><strong>${esc(title||"Workout")}</strong><span class="sub">${ex.length} exercises · ${total} sets</span>${btn}</div>${plate(total?done/total:0,{key:"hero",size:112,stroke:11,color:"var(--c)",inner:`<b>${done}</b><small>of ${total} sets</small>`})}</a>${fuel}`}
 function viewWeek(){
   const mon=addDays(mondayOf(today()),weekOff*7), dates=[...Array(7)].map((_,i)=>addDays(mon,i));
   const done=dates.filter(d=>S[d]&&S[d].end).length, planned=dates.filter(d=>planFor(d)||started(S[d])).length;
@@ -793,7 +804,7 @@ function viewWorkout(date){
   app.innerHTML=`<div class="whead"><div class="wtop"><a class="back" href="#week" aria-label="Back to schedule">←</a>
       <div class="wt"><small>${date===today()?"Today’s Workout":flong(date)}</small><h1>${esc(x.title)}</h1></div>
       ${s&&s.end?`<span class="donepill">✓ Done</span>`:(s&&s.day===x.day&&s.start?`<button type="button" class="finish" data-act="finish">✓ Finish</button>`:`<button type="button" class="startw" data-act="start">▶ Start</button>`)}</div>
-      <div class="wbar"><span class="el" id="elapsed">⏱ 0:00</span><div class="pbar"><i id="pfill"></i></div><span id="pcount">0/0</span></div></div>
+      <div class="wbar"><span class="el" id="elapsed">⏱ 0:00</span><div class="pbar"><i id="pfill" style="transform:translateX(${pbarFrom(date)})"></i></div><span id="pcount">0/0</span></div></div>
     <div class="tools">${unitSeg()}${P.warm?`<a class="chipl" href="${esc(P.warm)}" target="_blank" rel="noopener">▶ Warm-up video</a>`:""}<button type="button" class="chipl${x.warmDone?" on":""}" data-act="warm" aria-pressed="${!!x.warmDone}">${x.warmDone?"✓ Warmed up":"○ Warm-up done?"}</button>
       ${canSwap?`<label class="swap">Workout <select id="swap-${date}">${Object.entries(WP(date).days).map(([id,d])=>`<option value="${id}"${id===x.day?" selected":""}>${esc(d.title)}</option>`).join("")}</select></label>`:""}</div>
     ${cards}${wrap}`;
@@ -1055,7 +1066,7 @@ function viewFood(){
   const copyDay=!list.length&&prev.length?`<button type="button" class="btn copyday" data-copyday="1">↺ Copy yesterday’s food (${prev.length} items · ${R(sumMac(prev).cal)} cal)</button>`:"";
   app.innerHTML=`<div class="eyebrow">Nutrition</div><h1>Food</h1><div class="fhead"><button type="button" data-fday="-1" aria-label="Previous day">‹</button><b>${lbl}</b><button type="button" data-fday="1" aria-label="Next day">›</button>${foodDate!==today()?`<button type="button" class="todayb" data-today="food">Today</button>`:""}</div>
     <div class="ncard"><div class="dayk ${T.kind.train?"tr":""}">${T.kind.train?"🏋️ Training day":"😌 Rest day"}${T.kind.train?` · ${esc(T.kind.title)}`:""}${T.delta?` <span>${T.delta>0?"+":""}${T.delta} cal${T.delta>0?" (extra carbs)":" (fewer carbs)"}</span>`:""}</div><div class="ntog"><button type="button" data-fmode="consumed" aria-pressed="${!rem}">Consumed</button><button type="button" data-fmode="remaining" aria-pressed="${rem}">Remaining</button></div>
-      <div class="nring">${plate(tot.cal/T.cal,{size:150,stroke:14,color:tot.cal>T.cal?"var(--red)":"var(--blue)",big:44,inner:`<b>${big}</b><small>${rem?"cal left":`of ${T.cal} cal`}</small>`})}
+      <div class="nring">${plate(tot.cal/T.cal,{key:"food",size:150,stroke:14,color:tot.cal>T.cal?"var(--red)":"var(--blue)",big:44,inner:`<b>${big}</b><small>${rem?"cal left":`of ${T.cal} cal`}</small>`})}
       <div class="macros">${macs}</div></div>${NUT?"":`<p class="muted" style="margin:12px 0 0">Targets are suggested from your body weight${bwLatest()?"":" (70 kg until you log it)"}. Change them with ⚙.</p>`}</div>
     <div class="flh"><h2>Food Log</h2><span><button type="button" class="iconbtn" data-act="fsettings" aria-label="Nutrition settings"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg></button><button type="button" class="iconbtn" data-act="fcopy" aria-label="Copy yesterday's food to this day"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="8" y="8" width="12" height="13" rx="2"/><path d="M16 8V5a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v11a2 2 0 0 0 2 2h2"/></svg></button></span></div>
     ${copyDay}${meals}
@@ -1067,7 +1078,7 @@ function viewFood(){
 function recentFoods(){const cut=addDays(today(),-30),seen=new Map();
   Object.keys(FOOD).filter(k=>k>=cut).sort().reverse().forEach(k=>(FOOD[k]||[]).slice().reverse().forEach(e=>{const key=e.name.trim().toLowerCase();const r=seen.get(key);if(r)r.n++;else seen.set(key,{...e,n:1,last:k})}));
   return [...seen.values()].sort((a,b)=>b.n-a.n||(a.last<b.last?1:-1)).slice(0,8)}
-function fsOpen(st){FS=st;fsDraw();sheet.hidden=false;scrim.hidden=false}
+function fsOpen(st){FS=st;fsDraw();showSheet()}
 function setMealUI(m){const el=document.getElementById("fs-meal");if(el)el.value=m;document.querySelectorAll("#sheet [data-mealpick]").forEach(b=>b.setAttribute("aria-pressed",String(b.dataset.mealpick===m)))}
 function mealSel(cur){return `<div class="mealseg" role="group" aria-label="Meal"><input type="hidden" id="fs-meal" value="${cur}">${MEALS.map(([m,l])=>`<button type="button" data-mealpick="${m}" aria-pressed="${m===cur}">${l}</button>`).join("")}</div>${autoMeal&&FS&&/^(amount|ai|create)$/.test(FS.mode)?`<p class="muted" id="fs-autonote" style="margin:0;font-size:13px"></p>`:""}`}
 function fsDraw(){
@@ -1194,7 +1205,7 @@ async function aiFood(img,text){
 }
 async function photoFlow(meal){if(!AIKEY){toast("Add your Claude API key first (Food → ⚙)");return fsOpen({mode:"settings"})}
   const file=await pickImage();if(!file)return;toast("Loading photo…");let img;try{img=await shrink(file)}catch(e){toast(e.message);return}
-  document.getElementById("toast").hidden=true;fsOpen({mode:"aiprep",img,meal,hint:""})}
+  hideToast();fsOpen({mode:"aiprep",img,meal,hint:""})}
 async function callClaude(content,mt){
   if(!AIKEY)throw new Error("Add your Claude API key in ⚙ Nutrition settings first.");
   const r=await fetch("https://api.anthropic.com/v1/messages",{method:"POST",headers:{"content-type":"application/json","x-api-key":AIKEY,"anthropic-version":"2023-06-01","anthropic-dangerous-direct-browser-access":"true"},body:JSON.stringify({model:AIMODEL,max_tokens:mt||4000,messages:[{role:"user",content}]})});
@@ -1406,10 +1417,13 @@ function openSheet(d){
     <span style="font-weight:400">The two days swap: whatever was on that date comes here.</span></div>
     ${d in SCHED?`<button type="button" class="btn" data-shreset="${d}">Back to the weekly plan (${basePlan(d)&&DD(d,basePlan(d))?esc(DD(d,basePlan(d)).title):"Rest"})</button>`:""}`}
     <button type="button" class="btn" data-shclose="1">Close</button></div>`;
-  sheet.hidden=false;scrim.hidden=false;
+  showSheet();
   const f=sheet.querySelector("select,input,a");if(f)f.focus();
 }
-function closeSheet(){sheet.hidden=true;scrim.hidden=true;sheet.classList.remove("snap");scrim.classList.remove("snap");sheet.style.transform="";scrim.style.opacity=""}
+let sheetT;
+function showSheet(){clearTimeout(sheetT);sheet.classList.remove("closing");scrim.classList.remove("closing");const was=!sheet.hidden&&sheet.classList.contains("on");sheet.hidden=false;scrim.hidden=false;if(!was){sheet.style.transform="";scrim.style.opacity="";void sheet.offsetWidth}sheet.classList.add("on");scrim.classList.add("on")}
+function closeSheet(){if(sheet.hidden)return;clearTimeout(sheetT);sheet.classList.remove("on","drag");scrim.classList.remove("on","drag");sheet.classList.add("closing");scrim.classList.add("closing");scrim.style.opacity="";
+  sheetT=setTimeout(()=>{sheet.hidden=true;scrim.hidden=true;sheet.classList.remove("closing");scrim.classList.remove("closing");sheet.style.transform=""},200)}
 function swapDays(a,to){const pa=planFor(a)||"rest",pb=planFor(to)||"rest";setDay(to,pa);setDay(a,pb);
   toast(pa==="rest"&&pb==="rest"?"Both are rest days":pa==="rest"?`${DD(a,pb).title} moved to ${fshort(a)}`:pb==="rest"?`${DD(to,pa).title} moved to ${fshort(to)}`:`Swapped ${DD(to,pa).title} and ${DD(a,pb).title}`)}
 /* Hold a day for half a second, then drag it onto another day to swap them. */
@@ -1464,7 +1478,7 @@ sheet.addEventListener("change",ev=>{if(ev.target.dataset.shday){const d=ev.targ
 
 /* ---------- finish sheet: save or discard ---------- */
 let WS=null;
-function openFinish(date,confirm){const s=S[date];if(!s||!s.start){toast("Tap Start first");return}WS={date,confirm};drawFinish();sheet.hidden=false;scrim.hidden=false}
+function openFinish(date,confirm){const s=S[date];if(!s||!s.start){toast("Tap Start first");return}WS={date,confirm};drawFinish();showSheet()}
 function drawFinish(){
   const s=S[WS.date],done=!!s.end,sets=s.ex.reduce((a,x)=>a+x.sets.filter(t=>t.d).length,0),exd=s.ex.filter(x=>x.sets.some(t=>t.d)).length;
   sheet.innerHTML=`<div class="in"><h3 id="sheetTitle">${done?`${esc(titleOf(s))} · saved`:`Finish ${esc(titleOf(s))}?`}</h3>
@@ -1474,7 +1488,7 @@ function drawFinish(){
     ${WS.confirm?`<div class="confirm">${done?"Delete this saved workout":"Discard this workout"}, its sets and time? This can’t be undone. <button type="button" class="btn sm danger" data-wdiscard2="1">${done?"Delete":"Discard"}</button><button type="button" class="btn sm" data-wnodiscard="1">Cancel</button></div>`:`<button type="button" class="btn danger" data-wdiscard="1">${done?"Delete workout":"Discard workout"}</button>`}
     <button type="button" class="btn" data-wkeep="1">${done?"Close":"Keep going"}</button></div>`;
 }
-function stopWorkoutUI(){clearInterval(tick);tEl.hidden=true;wake(false)}
+function stopWorkoutUI(){clearInterval(tick);hideTimer();wake(false)}
 document.getElementById("sheet").addEventListener("click",ev=>{
   if(!WS)return;const b=ev.target.closest("button");if(!b)return;const s=S[WS.date];
   if(b.dataset.wkeep){WS=null;return closeSheet()}
@@ -1498,16 +1512,19 @@ async function exportBackup(){
 function applyImport(b){S=b.sessions||{};LOG=b.log||{};SCHED=b.sched||{};if(b.first){FIRST=b.first;store.set("c1-first",FIRST)}if(b.unit){UNIT=b.unit;store.set("c1-unit",UNIT)}if(b.bw){BW=b.bw;saveBW()}if(b.steps){STEPS=b.steps;saveSteps()}if(typeof b.sound==="boolean"){SOUND=b.sound;store.set("c1-sound",SOUND)}if(b.theme==="light"||b.theme==="dark"){THEME=b.theme;store.set("c1-theme",THEME);applyTheme()}PROG=b.prog&&b.prog.weeks?b.prog:{start:mondayOf(FIRST),weeks:[b.plan||clone(DEFAULT_PLAN)]};editW=weekIdx(today());PLAN=PROG.weeks[editW];if(b.food){FOOD=b.food;saveF()}if(b.nut!==undefined){NUT=b.nut;store.set("c1-nut",NUT)}if(b.presets){PRESETS=b.presets;savePR()}if(b.lib){LIB=b.lib;saveLib()}if(b.clients){CLIENTS=b.clients;saveCl()}saveS();saveL();saveP();saveSch()}
 
 /* ---------- live bits ---------- */
+let PBAR={d:"",v:0};const pbarFrom=d=>PBAR.d===d?`${(PBAR.v-1)*100}%`:"-100%";
 function tickWorkout(){
   const el=document.getElementById("elapsed");if(!el)return;
   const s=S[app.dataset.date],x=s&&s.day===app.dataset.day?s:null;
   el.textContent="⏱ "+(x&&x.start?fmtDur((x.end||Date.now())-x.start):"Tap Start");el.classList.toggle("live",!!(x&&x.start&&!x.end));
   const list=x?x.ex:(DD(app.dataset.date,app.dataset.day)||D(app.dataset.day)||{ex:[]}).ex,tot=list.length,dn=x?x.ex.filter(e=>e.sets.length&&e.sets.every(t=>t.d)).length:0;
-  document.getElementById("pfill").style.width=(tot?dn/tot*100:0)+"%";
+  const pf=document.getElementById("pfill"),pv=tot?dn/tot:0,pk=app.dataset.date;if(PBAR.d!==pk||PBAR.v!==pv||!pf.dataset.on){void pf.offsetWidth;pf.style.transform=`translateX(${(pv-1)*100}%)`;pf.dataset.on=1;PBAR={d:pk,v:pv}}
   document.getElementById("pcount").textContent=`${dn}/${tot}`;
 }
 setInterval(tickWorkout,1000);
 let left=0,tick=null,restEnd=0,alerted=false,lastBeep=null;const tEl=document.getElementById("timer");
+let timerT;function showTimer(){clearTimeout(timerT);if(tEl.hidden){tEl.hidden=false;void tEl.offsetWidth}tEl.classList.add("on")}
+function hideTimer(){if(tEl.hidden)return;tEl.classList.remove("on");clearTimeout(timerT);timerT=setTimeout(()=>{if(!tEl.classList.contains("on"))tEl.hidden=true},200)}
 let actx=null;function audio(){try{if(!actx)actx=new (window.AudioContext||window.webkitAudioContext)();if(actx.state==="suspended")actx.resume()}catch(e){}return actx}
 document.addEventListener("pointerdown",()=>{if(SOUND)audio()},{passive:true});
 function beep(freqs,len=.18,gap=.08,vol=.5){if(!SOUND)return;const a=audio();if(!a)return;let t=a.currentTime+.02;freqs.forEach(f=>{const o=a.createOscillator(),g=a.createGain();o.type="sine";o.frequency.value=f;g.gain.setValueAtTime(.0001,t);g.gain.exponentialRampToValueAtTime(vol,t+.02);g.gain.exponentialRampToValueAtTime(.0001,t+len);o.connect(g);g.connect(a.destination);o.start(t);o.stop(t+len+.03);t+=len+gap})}
@@ -1527,9 +1544,9 @@ async function restNotify(){if(!LN)return;try{await LN.cancel({notifications:[{i
   const perm=await LN.checkPermissions();if(perm.display!=="granted"){const r=await LN.requestPermissions();if(r.display!=="granted")return}
   await LN.schedule({notifications:[{id:7001,title:"Rest over",body:`Next set: ${restName}`,schedule:{at:new Date(restEnd),allowWhileIdle:true},sound:"default"}]})}catch(e){}}
 async function restCancel(){if(LN)try{await LN.cancel({notifications:[{id:7001}]})}catch(e){}}
-function startTimer(sec,name){if(HOLD)endHoldUI();restEnd=Date.now()+sec*1000;restName=name;alerted=false;lastBeep=null;document.getElementById("timerLbl").textContent="Rest · "+name;tEl.hidden=false;draw();clearInterval(tick);tick=setInterval(draw,250);restNotify()}
+function startTimer(sec,name){if(HOLD)endHoldUI();restEnd=Date.now()+sec*1000;restName=name;alerted=false;lastBeep=null;document.getElementById("timerLbl").textContent="Rest · "+name;showTimer();draw();clearInterval(tick);tick=setInterval(draw,250);restNotify()}
 document.getElementById("timerAdd").onclick=()=>{if(HOLD){HOLD.target+=5;holdNotify();return drawHold()}restEnd+=30000;if(restEnd>Date.now()){alerted=false;lastBeep=null}draw();restNotify()};
-document.getElementById("timerStop").onclick=()=>{if(HOLD){const h=HOLD,now=Date.now();return now<h.go?(endHoldUI(),tEl.hidden=true):finishHold(Math.floor((now-h.go)/1000))}clearInterval(tick);tEl.hidden=true;restCancel()};
+document.getElementById("timerStop").onclick=()=>{if(HOLD){const h=HOLD,now=Date.now();return now<h.go?(endHoldUI(),hideTimer()):finishHold(Math.floor((now-h.go)/1000))}clearInterval(tick);hideTimer();restCancel()};
 /* Hold timer for timed exercises (target in seconds, e.g. "30 วิ"): 5 s get-ready, count down the hold, then log the set and start rest. */
 let HOLD=null;const READY=5;
 function setBtns(a,b){document.getElementById("timerAdd").textContent=a;document.getElementById("timerStop").textContent=b}
@@ -1540,20 +1557,23 @@ function endHoldUI(){if(LN&&HOLD)LN.cancel({notifications:[{id:7002}]}).catch(()
 function startHold(date,day,i){const s=S[date]&&S[date].day===day?S[date]:blank(day,date),e=s.ex[i],j=e.sets.findIndex(t=>!t.d);if(j<0)return toast("All sets done");
   const ri=document.getElementById(`r-${date}-${i}-${j}`),target=+(e.sets[j].r||ri&&ri.placeholder||lowTarget(e))||30;
   clearInterval(tick);restCancel();HOLD={date,day,i,j,name:e.n,target,go:Date.now()+READY*1000};lastBeep=null;
-  tEl.hidden=false;tEl.classList.add("hold","ready");setBtns("+5s","Done");drawNext();drawHold();tick=setInterval(drawHold,200);wake(true);holdNotify()}
+  showTimer();tEl.classList.add("hold","ready");setBtns("+5s","Done");drawNext();drawHold();tick=setInterval(drawHold,200);wake(true);holdNotify()}
 function drawHold(){const h=HOLD;if(!h)return;const now=Date.now(),T=document.getElementById("timerT"),L=document.getElementById("timerLbl");
   if(now<h.go){const r=Math.ceil((h.go-now)/1000);L.textContent=`Get ready · ${h.name} · set ${h.j+1}`;T.textContent=String(r);if(lastBeep!==r){lastBeep=r;if(r<=3)beep([660],.08,0,.35)}return}
   if(tEl.classList.contains("ready")){tEl.classList.remove("ready");beep([988],.3,0,.6);try{navigator.vibrate&&navigator.vibrate(120)}catch(e){}}
   const left=Math.ceil(h.target-(now-h.go)/1000);L.textContent=`Hold · ${h.name} · set ${h.j+1} (${h.target}s)`;T.textContent=fmtDur(Math.max(0,left)*1000);
   if(left>0&&left<=3&&lastBeep!=="h"+left){lastBeep="h"+left;beep([660],.08,0,.35)}
   if(left<=0){restDone();finishHold(h.target)}}
-function finishHold(secs){const h=HOLD;endHoldUI();if(!h||secs<1){tEl.hidden=true;return}
-  const s=ensure(h.date,h.day),e=s.ex[h.i],t=e&&e.sets[h.j];if(!t||t.d){tEl.hidden=true;return}
+function finishHold(secs){const h=HOLD;endHoldUI();if(!h||secs<1){hideTimer();return}
+  const s=ensure(h.date,h.day),e=s.ex[h.i],t=e&&e.sets[h.j];if(!t||t.d){hideTimer();return}
   const wi=document.getElementById(`w-${h.date}-${h.i}-${h.j}`);if(!t.w&&wi)t.w=fromDisp(wi.placeholder.replace(/^-$/,""));
   t.r=String(secs);t.d=true;if(!s.start){s.start=Date.now();s.go=true;wake(true)}saveS();
-  const pr=prType(histBest(e.n,h.date),t);toast(pr?`🏆 ${pr}! ${e.n} · ${secs}s`:`✓ Set ${h.j+1} logged · ${secs}s`);if(pr)setTimeout(()=>beep([523,659,784,1047],.12,.03,.5),700);
+  const pr=prType(histBest(e.n,h.date),t);toast(pr?`🏆 ${pr}! ${e.n} · ${secs}s`:`✓ Set ${h.j+1} logged · ${secs}s`);if(pr){celebrate();setTimeout(()=>beep([523,659,784,1047],.12,.03,.5),700)}
   startTimer(restSec(e.rest),e.n);if(app.dataset.date===h.date)render()}
-let toastT;function toast(m,act,fn){const t=document.getElementById("toast");t.textContent=m;if(act){const b=document.createElement("button");b.type="button";b.textContent=act;b.onclick=()=>{t.hidden=true;fn()};t.appendChild(b)}t.hidden=false;clearTimeout(toastT);toastT=setTimeout(()=>t.hidden=true,act?5000:2600)}
+let toastT;function toast(m,act,fn){const t=document.getElementById("toast");t.textContent=m;t.classList.remove("pr");if(act){const b=document.createElement("button");b.type="button";b.textContent=act;b.onclick=()=>{hideToast();fn()};t.appendChild(b)}
+  const was=!t.hidden&&t.classList.contains("on");t.hidden=false;if(!was)void t.offsetWidth;t.classList.add("on");clearTimeout(toastT);toastT=setTimeout(hideToast,act?5000:2600)}
+function hideToast(){const t=document.getElementById("toast");t.classList.remove("on");clearTimeout(toastT);toastT=setTimeout(()=>{if(!t.classList.contains("on"))t.hidden=true},200)}
+function celebrate(){const t=document.getElementById("toast");t.classList.remove("pr");void t.offsetWidth;t.classList.add("pr");try{navigator.vibrate&&navigator.vibrate([20,40,20])}catch(e){}}
 
 /* ---------- events ---------- */
 const app=document.getElementById("app");
@@ -1629,7 +1649,7 @@ app.addEventListener("click",async ev=>{
     t.d=!t.d;rpeOpen=t.d?b.dataset.chk:null;
     if(t.d&&!s.start){s.start=Date.now();s.go=true;wake(true)}
     if(t.d){const row=b.closest("tr");if(!t.w)t.w=fromDisp(row.querySelector('[data-f="w"]').placeholder.replace(/^-$/,""));if(!t.r)t.r=row.querySelector('[data-f="r"]').placeholder;startTimer(restSec(e.rest),e.n);
-      const pr=prType(histBest(e.n,date),t);if(pr){toast(`🏆 ${pr}! ${e.n} · ${parseFloat(t.w)?toDisp(t.w)+" "+UNIT+" × ":""}${t.r}`);setTimeout(()=>beep([523,659,784,1047],.12,.03,.5),700)}}
+      const pr=prType(histBest(e.n,date),t);if(pr){toast(`🏆 ${pr}! ${e.n} · ${parseFloat(t.w)?toDisp(t.w)+" "+UNIT+" × ":""}${t.r}`);celebrate();setTimeout(()=>beep([523,659,784,1047],.12,.03,.5),700)}}
     saveS();return render();
   }
   if(b=q("[data-add]")){const s=ensure(date,day);s.ex[+b.dataset.add].sets.push({w:"",r:"",d:false});saveS();return render()}
@@ -1841,7 +1861,10 @@ app.addEventListener("input",ev=>{
 app.addEventListener("change",ev=>{if(location.hash==="#coach-new"&&ev.target.dataset.cdraft){const el=ev.target;cDraft[el.dataset.cdraft]=el.type==="checkbox"?el.checked:el.value}});
 
 /* If one page hits a bad record, show a recovery screen instead of a blank app. Data is never touched here. */
-function render(){try{renderPage()}catch(e){console.error(e);showCrash(e)}}
+const PLATE={};
+function playPlates(){app.querySelectorAll(".pl-fill[data-k]").forEach(c=>{const k=c.dataset.k,to=c.getAttribute("stroke-dasharray"),from=PLATE[k]||"0 "+to.split(" ")[1];PLATE[k]=to;if(from===to)return;
+  c.style.transition="none";c.setAttribute("stroke-dasharray",from);void c.getBoundingClientRect();c.style.transition="";c.setAttribute("stroke-dasharray",to)})}
+function render(){try{renderPage();playPlates()}catch(e){console.error(e);showCrash(e)}}
 function showCrash(e){if(!app)return;app.innerHTML=`<div class="eyebrow">Oops</div><h1>Something went wrong</h1>
     <p class="muted">This page hit an error. Your saved workouts and food are safe. Try another tab, refresh, or export a backup.</p>
     <div class="rowbtns"><a class="btn primary" href="#week">Go to Today</a><button type="button" class="btn" data-act="refresh">↻ Refresh app</button><button type="button" class="btn" data-act="export">Export backup</button></div>
@@ -1917,18 +1940,17 @@ function slide(dir){app.classList.remove("swl","swr");void app.offsetWidth;app.c
 /* Drag a bottom sheet down to close it (same as tapping Close). */
 (function initSheetDrag(){let s=null;
   const scrolled=n=>{for(;n;n=n.parentElement){if(n.scrollTop>0)return true;if(n===sheet)break}return false};
-  sheet.addEventListener("touchstart",ev=>{s=null;if(ev.touches.length>1||sheet.classList.contains("snap")||sheet.querySelector(".scan")||ev.target.closest("input,textarea,select")||scrolled(ev.target))return;
+  sheet.addEventListener("touchstart",ev=>{s=null;if(ev.touches.length>1||sheet.classList.contains("closing")||sheet.querySelector(".scan")||ev.target.closest("input,textarea,select")||scrolled(ev.target))return;
     const t=ev.touches[0];s={x0:t.clientX,y0:t.clientY,ly:t.clientY,lt:ev.timeStamp,v:0,dy:0,on:false}},{passive:true});
   sheet.addEventListener("touchmove",ev=>{if(!s)return;const t=ev.touches[0],dy=t.clientY-s.y0,dx=t.clientX-s.x0;
-    if(!s.on){if(dy<-6||Math.abs(dx)>Math.max(8,Math.abs(dy))){s=null;return}if(dy<8)return;s.on=true}
+    if(!s.on){if(dy<-6||Math.abs(dx)>Math.max(8,Math.abs(dy))){s=null;return}if(dy<8)return;s.on=true;sheet.classList.add("drag");scrim.classList.add("drag")}
     if(ev.cancelable)ev.preventDefault();
     const dt=ev.timeStamp-s.lt;if(dt>0){s.v=.6*(t.clientY-s.ly)/dt+.4*s.v;s.ly=t.clientY;s.lt=ev.timeStamp}
     s.dy=Math.max(0,dy);sheet.style.transform=`translateY(${s.dy}px)`;scrim.style.opacity=1-Math.min(.8,s.dy/sheet.offsetHeight)},{passive:false});
   const end=cancel=>{if(!s||!s.on){s=null;return}const d=s;s=null;const h=sheet.offsetHeight;
-    sheet.classList.add("snap");scrim.classList.add("snap");
-    if(!cancel&&d.v>-.2&&(d.dy>Math.min(150,h*.3)||(d.dy>30&&d.v>.5))){sheet.style.transform="translateY(105%)";scrim.style.opacity=0;
-      setTimeout(()=>{FS=null;WS=null;closeSheet()},180)}
-    else{sheet.style.transform="";scrim.style.opacity="";setTimeout(()=>{sheet.classList.remove("snap");scrim.classList.remove("snap")},200)}};
+    sheet.classList.remove("drag");scrim.classList.remove("drag");
+    if(!cancel&&d.v>-.2&&(d.dy>Math.min(150,h*.3)||(d.dy>30&&d.v>.5))){sheet.style.transform="translateY(100%)";FS=null;WS=null;closeSheet()}
+    else{sheet.style.transform="";scrim.style.opacity=""}};
   sheet.addEventListener("touchend",()=>end(false));sheet.addEventListener("touchcancel",()=>end(true))})();
 /* Tap the tab you're already on to jump back to the top. */
 document.querySelector(".nav").addEventListener("click",ev=>{const a=ev.target.closest("a");if(a&&a.getAttribute("href")===location.hash&&window.scrollY>0){ev.preventDefault();window.scrollTo({top:0,behavior:"smooth"})}});

@@ -1,6 +1,6 @@
 # 002 — Reduced motion: drop movement, keep fades
 
-- **Status**: TODO
+- **Status**: DONE
 - **Commit**: 74a0b50
 - **Severity**: MEDIUM
 - **Category**: Accessibility

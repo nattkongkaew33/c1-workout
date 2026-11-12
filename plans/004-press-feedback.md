@@ -1,6 +1,6 @@
 # 004 — Press feedback on buttons, set checkmarks and day cards
 
-- **Status**: TODO
+- **Status**: DONE
 - **Commit**: 74a0b50
 - **Severity**: MEDIUM
 - **Category**: Physicality & origin
