@@ -204,7 +204,7 @@ textarea.note{resize:vertical;min-height:52px;font:inherit}
 .wbar{display:flex;align-items:center;gap:12px;margin-top:8px;font-variant-numeric:tabular-nums}
 .el{color:var(--blue);font-weight:600;min-width:84px;white-space:nowrap}
 .pbar{flex:1;height:8px;border-radius:4px;background:var(--line);overflow:hidden}
-.pbar i{display:block;height:100%;width:0;background:var(--blue);transition:width .3s}
+.pbar i{display:block;height:100%;width:0;background:var(--blue)}
 #pcount{color:var(--muted);font-weight:600}
 .tools{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin:12px 0}
 .chipl{font-size:13px;text-decoration:none;border:1px solid var(--line);background:var(--card);padding:6px 12px;border-radius:999px}
@@ -336,8 +336,6 @@ details.pw summary small{font:500 13px var(--body);color:var(--muted);margin-lef
 .fdelb{position:absolute;top:0;right:0;bottom:0;width:88px;border:0;background:var(--red);color:#fff;font:700 15px var(--body);cursor:pointer}
 .fsw:not(.open):not(.drag) .fdelb{visibility:hidden}
 .toast button{margin-left:12px;border:0;background:none;color:inherit;font:inherit;font-weight:800;text-decoration:underline;text-underline-offset:3px;cursor:pointer;padding:0}
-@keyframes shup{from{transform:translateY(40%);opacity:.4}}
-.sheet:not([hidden]){animation:shup .2s ease-out}
 .sheet.snap{transition:transform .18s ease-out}.scrim.snap{transition:opacity .18s}
 @media (prefers-reduced-motion:reduce){.sheet:not([hidden]){animation:none}}
 .toast{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(140px + env(safe-area-inset-bottom,0px));z-index:12;background:var(--ink);color:var(--bg);font-weight:600;padding:10px 16px;border-radius:999px;font-size:14px;max-width:90vw;text-align:center}
@@ -393,7 +391,7 @@ input.txt:focus,select.txt:focus{border-color:var(--blue);outline:none}
 .pl-body{fill:var(--field);stroke:var(--line);stroke-width:1.5}
 .pl-tick{stroke:var(--line);stroke-width:2;stroke-linecap:round}
 .pl-track{fill:none;stroke:color-mix(in srgb,var(--ink) 7%,transparent)}
-.pl-fill{fill:none;stroke-linecap:round;transition:stroke-dasharray .8s cubic-bezier(.2,.8,.2,1)}
+.pl-fill{fill:none;stroke-linecap:round}
 .pl-hub{fill:none;stroke:color-mix(in srgb,var(--ink) 10%,transparent);stroke-width:1.5;stroke-dasharray:2 4}
 .pl-in{position:absolute;inset:0;display:grid;place-content:center;text-align:center;line-height:1}
 .pl-in b{font:900 var(--big,40px) var(--display);font-variant-numeric:tabular-nums}
@@ -498,6 +496,62 @@ tr.done td input{background:color-mix(in srgb,var(--green) 18%,var(--field));col
 /* iPhone zooms into any field under 16px and doesn't zoom back; keep every typed field at 16px+ on iOS. */
 @supports (-webkit-touch-callout:none){input.txt,select.txt,textarea,.note,.ainame,.swap select,.cexf .txt,.cname,.cfocus,.cnote{font-size:16px!important}}
 .bwrow .seg{flex:none}.bwrow .btn{white-space:nowrap;flex:none}.bwrow input{min-width:70px}
+/* ---------- motion ----------
+   One easing family (fast out, soft land) so every movement feels like the same app.
+   Page entrances run only on navigation, never on in-page re-renders (render() rebuilds #app often). */
+:root{--ease:cubic-bezier(.2,.8,.2,1);--spring:cubic-bezier(.34,1.45,.64,1)}
+@keyframes pgin{from{opacity:0;transform:translateY(10px)}}
+#app.pgin>:not(.foodbar){animation:pgin .32s var(--ease) backwards}
+#app.pgin>:nth-child(2){animation-delay:.03s}#app.pgin>:nth-child(3){animation-delay:.06s}#app.pgin>:nth-child(4){animation-delay:.09s}#app.pgin>:nth-child(5){animation-delay:.12s}#app.pgin>:nth-child(n+6){animation-delay:.15s}
+@keyframes rowin{from{opacity:0;transform:translateY(12px)}}
+#app.pgin .row,#app.pgin .ex,#app.pgin .meal{animation:rowin .36s var(--ease) backwards}
+#app.pgin .row:nth-of-type(2),#app.pgin .ex:nth-of-type(2){animation-delay:.04s}#app.pgin .row:nth-of-type(3),#app.pgin .ex:nth-of-type(3){animation-delay:.08s}
+#app.pgin .row:nth-of-type(4),#app.pgin .ex:nth-of-type(4){animation-delay:.12s}#app.pgin .row:nth-of-type(5),#app.pgin .ex:nth-of-type(5){animation-delay:.16s}
+#app.pgin .row:nth-of-type(n+6),#app.pgin .ex:nth-of-type(n+6){animation-delay:.2s}
+/* chart bars rise from the baseline when a page opens */
+.cbar{transform-box:fill-box;transform-origin:50% 100%}
+@keyframes barup{from{transform:scaleY(0)}}
+#app.pgin .cbar{animation:barup .55s var(--ease) backwards}
+#app.pgin .cbar:nth-of-type(2n){animation-delay:.04s}#app.pgin .cbar:nth-of-type(3n){animation-delay:.08s}
+/* rings and bars fill to their value (JS sets the start value, CSS does the rest) */
+.pl-fill{transition:stroke-dasharray .9s var(--ease)}
+.fb i,.mb i{transition:width .7s var(--ease)}
+.pbar i{transition:width .45s var(--ease)}
+/* press feedback: things you tap give a little under the finger */
+.btn,.startbtn,.startw,.finish,.refresh,.arrows button,.todayb,.wkchip,.rpebar button,.feel button,.swapbtn,.fhead button,.timer button,.ntog button,.copyy{transition:transform .14s var(--ease),background-color .2s,border-color .2s,color .2s}
+.btn:active,.startbtn:active,.startw:active,.finish:active,.refresh:active,.arrows button:active,.todayb:active,.wkchip:active,.rpebar button:active,.feel button:active,.swapbtn:active,.fhead button:active,.timer button:active,.ntog button:active,.copyy:active{transform:scale(.96)}
+.hero,.fuel{transition:transform .16s var(--ease)}.hero:active,.fuel:active{transform:scale(.985)}
+.nav a{transition:color .2s,background-color .25s var(--ease)}
+.nav a svg{transition:transform .3s var(--spring)}
+.nav a:active svg{transform:scale(.88)}
+.nav a[aria-current="page"] svg{transform:translateY(-1px) scale(1.06)}
+/* set checkbox: fills with a pop and the tick draws in */
+.chk{transition:transform .14s var(--ease),background-color .2s,border-color .2s,box-shadow .3s}
+.chk:active{transform:scale(.9)}
+@keyframes chkpop{0%{transform:scale(.7)}55%{transform:scale(1.14)}100%{transform:scale(1)}}
+@keyframes tickin{from{opacity:0;transform:rotate(-45deg) translate(1px,-1px) scale(.3)}}
+.chk.pop{animation:chkpop .38s var(--spring)}
+.chk.pop::after{animation:tickin .26s .08s var(--spring) backwards}
+@keyframes rowdone{from{background-color:color-mix(in srgb,var(--green) 45%,var(--field))}}
+tr.done.pop td input{animation:rowdone .6s var(--ease)}
+/* toast rises in and sinks out */
+@keyframes tin{from{opacity:0;transform:translate(-50%,14px) scale(.96)}}
+.toast:not([hidden]){animation:tin .28s var(--spring)}
+.toast.out{transition:opacity .18s,transform .18s var(--ease);opacity:0;transform:translate(-50%,8px)}
+/* bottom sheet: scrim fades, sheet rises; closing reverses it */
+@keyframes shup{from{transform:translateY(100%)}}
+@keyframes fadein{from{opacity:0}}
+.sheet:not([hidden]){animation:shup .32s var(--ease)}
+.scrim:not([hidden]){animation:fadein .25s ease-out}
+.sheet.out{transition:transform .22s cubic-bezier(.4,0,1,1);transform:translateY(100%)!important}
+.scrim.out{transition:opacity .22s;opacity:0!important}
+/* rest timer slides up from the nav; colour changes ease instead of flashing */
+@keyframes tup{from{transform:translateY(100%);opacity:0}}
+.timer:not([hidden]){animation:tup .34s var(--ease)}
+.timer{transition:background-color .35s,color .35s}
+@keyframes tbeat{50%{transform:scale(1.06)}}
+.timer.up .t{animation:tbeat .9s ease-in-out infinite}
+@media (prefers-reduced-motion:reduce){*,*::before,*::after{animation:none!important}}
 @media (prefers-reduced-motion:reduce){*{transition:none!important}}
 </style>
 </head>
@@ -838,7 +892,7 @@ function viewProgress(){
   let bars=`<line x1="${pl}" y1="${H-pb}" x2="${W}" y2="${H-pb}" stroke="var(--line)"/>`;
   for(let g=1;g<=maxC;g++){const y=H-pb-(H-pb-10)*g/maxC;if(g%Math.ceil(maxC/4)===0)bars+=`<line x1="${pl}" y1="${y}" x2="${W}" y2="${y}" stroke="var(--line)" stroke-dasharray="2 4"/><text x="${pl-6}" y="${y+4}" fill="var(--muted)" font-size="10" text-anchor="end">${g}</text>`}
   weeks.forEach((w,i)=>{const h=(H-pb-10)*w.c/maxC,x=pl+i*bw+bw*.2,cur=i===7;
-    bars+=`<rect x="${x}" y="${H-pb-h}" width="${bw*.6}" height="${Math.max(h,0)}" rx="3" fill="${cur?"var(--blue)":"color-mix(in srgb,var(--blue) 45%,var(--card))"}"/>`;
+    bars+=`<rect class="cbar" x="${x}" y="${H-pb-h}" width="${bw*.6}" height="${Math.max(h,0)}" rx="3" fill="${cur?"var(--blue)":"color-mix(in srgb,var(--blue) 45%,var(--card))"}"/>`;
     if(w.c)bars+=`<text x="${x+bw*.3}" y="${H-pb-h-4}" fill="var(--ink)" font-size="11" text-anchor="middle" font-weight="600">${w.c}</text>`;
     bars+=`<text x="${x+bw*.3}" y="${H-6}" fill="var(--muted)" font-size="10" text-anchor="middle">${parse(w.m).getDate()}/${parse(w.m).getMonth()+1}</text>`});
   // per exercise
@@ -925,7 +979,7 @@ function calSection(){
   const W=320,H=160,pl=8,pr=8,pt=24,pb=34,bw=(W-pl-pr)/N;
   let bars=`<line x1="${pl}" y1="${H-pb}" x2="${W-pr}" y2="${H-pb}" stroke="var(--line)"/>`;
   days.forEach((d,i)=>{const v=vals[i],h=(H-pt-pb)*v/maxV,x=pl+i*bw+bw*.15,cx=x+bw*.35,cur=d===t,over=v>tgts[i]*1.05,wd=WDN[(parse(d).getDay()+6)%7];
-    bars+=`<rect x="${x}" y="${H-pb-h}" width="${bw*.7}" height="${Math.max(h,0)}" rx="3" fill="${cur?"var(--blue)":over?"color-mix(in srgb,var(--red) 55%,var(--card))":"color-mix(in srgb,var(--blue) 40%,var(--card))"}"/>`;
+    bars+=`<rect class="cbar" x="${x}" y="${H-pb-h}" width="${bw*.7}" height="${Math.max(h,0)}" rx="3" fill="${cur?"var(--blue)":over?"color-mix(in srgb,var(--red) 55%,var(--card))":"color-mix(in srgb,var(--blue) 40%,var(--card))"}"/>`;
     if(v>0)bars+=`<text x="${cx}" y="${Math.max(pt-8,H-pb-h-6)}" fill="var(--ink)" font-size="10.5" font-weight="700" text-anchor="middle">${v.toLocaleString("en-US")}</text>`;
     bars+=`<text x="${cx}" y="${H-pb+14}" fill="${cur?"var(--ink)":"var(--muted)"}" font-size="10" font-weight="${cur?700:400}" text-anchor="middle">${wd[0]+wd.slice(1).toLowerCase()}</text>`;
     bars+=`<text x="${cx}" y="${H-pb+26}" fill="var(--muted)" font-size="9" text-anchor="middle">${parse(d).getDate()}</text>`});
@@ -971,7 +1025,7 @@ function stepsSection(){
   const W=320,H=160,pl=8,pr=8,pt=24,pb=34,bw=(W-pl-pr)/N;
   let bars=`<line x1="${pl}" y1="${H-pb}" x2="${W-pr}" y2="${H-pb}" stroke="var(--line)"/>`;
   days.forEach((d,i)=>{const v=STEPS[d]||0,h=(H-pt-pb)*v/maxV,x=pl+i*bw+bw*.15,cx=x+bw*.35,cur=d===t,wd=WDN[(parse(d).getDay()+6)%7];
-    bars+=`<rect x="${x}" y="${H-pb-h}" width="${bw*.7}" height="${Math.max(h,0)}" rx="3" fill="${cur?"var(--blue)":"color-mix(in srgb,var(--blue) 45%,var(--card))"}"/>`;
+    bars+=`<rect class="cbar" x="${x}" y="${H-pb-h}" width="${bw*.7}" height="${Math.max(h,0)}" rx="3" fill="${cur?"var(--blue)":"color-mix(in srgb,var(--blue) 45%,var(--card))"}"/>`;
     if(v>0)bars+=`<text x="${cx}" y="${Math.max(pt-8,H-pb-h-6)}" fill="var(--ink)" font-size="10.5" font-weight="700" text-anchor="middle">${v.toLocaleString("en-US")}</text>`;
     bars+=`<text x="${cx}" y="${H-pb+14}" fill="${cur?"var(--ink)":"var(--muted)"}" font-size="10" font-weight="${cur?700:400}" text-anchor="middle">${wd[0]+wd.slice(1).toLowerCase()}</text>`;
     bars+=`<text x="${cx}" y="${H-pb+26}" fill="var(--muted)" font-size="9" text-anchor="middle">${parse(d).getDate()}</text>`});
@@ -1067,7 +1121,7 @@ function viewFood(){
 function recentFoods(){const cut=addDays(today(),-30),seen=new Map();
   Object.keys(FOOD).filter(k=>k>=cut).sort().reverse().forEach(k=>(FOOD[k]||[]).slice().reverse().forEach(e=>{const key=e.name.trim().toLowerCase();const r=seen.get(key);if(r)r.n++;else seen.set(key,{...e,n:1,last:k})}));
   return [...seen.values()].sort((a,b)=>b.n-a.n||(a.last<b.last?1:-1)).slice(0,8)}
-function fsOpen(st){FS=st;fsDraw();sheet.hidden=false;scrim.hidden=false}
+function fsOpen(st){FS=st;fsDraw();showSheet()}
 function setMealUI(m){const el=document.getElementById("fs-meal");if(el)el.value=m;document.querySelectorAll("#sheet [data-mealpick]").forEach(b=>b.setAttribute("aria-pressed",String(b.dataset.mealpick===m)))}
 function mealSel(cur){return `<div class="mealseg" role="group" aria-label="Meal"><input type="hidden" id="fs-meal" value="${cur}">${MEALS.map(([m,l])=>`<button type="button" data-mealpick="${m}" aria-pressed="${m===cur}">${l}</button>`).join("")}</div>${autoMeal&&FS&&/^(amount|ai|create)$/.test(FS.mode)?`<p class="muted" id="fs-autonote" style="margin:0;font-size:13px"></p>`:""}`}
 function fsDraw(){
@@ -1406,10 +1460,16 @@ function openSheet(d){
     <span style="font-weight:400">The two days swap: whatever was on that date comes here.</span></div>
     ${d in SCHED?`<button type="button" class="btn" data-shreset="${d}">Back to the weekly plan (${basePlan(d)&&DD(d,basePlan(d))?esc(DD(d,basePlan(d)).title):"Rest"})</button>`:""}`}
     <button type="button" class="btn" data-shclose="1">Close</button></div>`;
-  sheet.hidden=false;scrim.hidden=false;
+  showSheet();
   const f=sheet.querySelector("select,input,a");if(f)f.focus();
 }
-function closeSheet(){sheet.hidden=true;scrim.hidden=true;sheet.classList.remove("snap");scrim.classList.remove("snap");sheet.style.transform="";scrim.style.opacity=""}
+let sheetT;const RM=()=>matchMedia("(prefers-reduced-motion: reduce)").matches;
+function showSheet(){clearTimeout(sheetT);sheet.classList.remove("out");scrim.classList.remove("out");sheet.hidden=false;scrim.hidden=false}
+/* instant=true skips the slide-down (page change, or the sheet was already dragged off screen). */
+function closeSheet(instant){clearTimeout(sheetT);
+  const done=()=>{sheet.hidden=true;scrim.hidden=true;sheet.classList.remove("snap","out");scrim.classList.remove("snap","out");sheet.style.transform="";scrim.style.opacity=""};
+  if(instant===true||sheet.hidden||RM())return done();
+  sheet.classList.remove("snap");scrim.classList.remove("snap");sheet.classList.add("out");scrim.classList.add("out");sheetT=setTimeout(done,220)}
 function swapDays(a,to){const pa=planFor(a)||"rest",pb=planFor(to)||"rest";setDay(to,pa);setDay(a,pb);
   toast(pa==="rest"&&pb==="rest"?"Both are rest days":pa==="rest"?`${DD(a,pb).title} moved to ${fshort(a)}`:pb==="rest"?`${DD(to,pa).title} moved to ${fshort(to)}`:`Swapped ${DD(to,pa).title} and ${DD(a,pb).title}`)}
 /* Hold a day for half a second, then drag it onto another day to swap them. */
@@ -1464,7 +1524,7 @@ sheet.addEventListener("change",ev=>{if(ev.target.dataset.shday){const d=ev.targ
 
 /* ---------- finish sheet: save or discard ---------- */
 let WS=null;
-function openFinish(date,confirm){const s=S[date];if(!s||!s.start){toast("Tap Start first");return}WS={date,confirm};drawFinish();sheet.hidden=false;scrim.hidden=false}
+function openFinish(date,confirm){const s=S[date];if(!s||!s.start){toast("Tap Start first");return}WS={date,confirm};drawFinish();showSheet()}
 function drawFinish(){
   const s=S[WS.date],done=!!s.end,sets=s.ex.reduce((a,x)=>a+x.sets.filter(t=>t.d).length,0),exd=s.ex.filter(x=>x.sets.some(t=>t.d)).length;
   sheet.innerHTML=`<div class="in"><h3 id="sheetTitle">${done?`${esc(titleOf(s))} · saved`:`Finish ${esc(titleOf(s))}?`}</h3>
@@ -1553,7 +1613,9 @@ function finishHold(secs){const h=HOLD;endHoldUI();if(!h||secs<1){tEl.hidden=tru
   t.r=String(secs);t.d=true;if(!s.start){s.start=Date.now();s.go=true;wake(true)}saveS();
   const pr=prType(histBest(e.n,h.date),t);toast(pr?`🏆 ${pr}! ${e.n} · ${secs}s`:`✓ Set ${h.j+1} logged · ${secs}s`);if(pr)setTimeout(()=>beep([523,659,784,1047],.12,.03,.5),700);
   startTimer(restSec(e.rest),e.n);if(app.dataset.date===h.date)render()}
-let toastT;function toast(m,act,fn){const t=document.getElementById("toast");t.textContent=m;if(act){const b=document.createElement("button");b.type="button";b.textContent=act;b.onclick=()=>{t.hidden=true;fn()};t.appendChild(b)}t.hidden=false;clearTimeout(toastT);toastT=setTimeout(()=>t.hidden=true,act?5000:2600)}
+let toastT;function toast(m,act,fn){const t=document.getElementById("toast");t.textContent=m;if(act){const b=document.createElement("button");b.type="button";b.textContent=act;b.onclick=()=>{t.hidden=true;fn()};t.appendChild(b)}
+  const was=!t.hidden&&!t.classList.contains("out");t.classList.remove("out");t.hidden=false;if(was){t.style.animation="none";void t.offsetWidth;t.style.animation=""}
+  clearTimeout(toastT);toastT=setTimeout(()=>{t.classList.add("out");toastT=setTimeout(()=>{t.hidden=true;t.classList.remove("out")},190)},act?5000:2600)}
 
 /* ---------- events ---------- */
 const app=document.getElementById("app");
@@ -1626,7 +1688,7 @@ app.addEventListener("click",async ev=>{
     try{await navigator.clipboard.writeText(txt);toast("Workout copied. Paste it into a message to your coach.")}catch(e){toast("Sharing isn’t available here")}return}
   if(b=q("[data-chk]")){
     const [i,j]=b.dataset.chk.split("-").map(Number),s=ensure(date,day),e=s.ex[i],t=e.sets[j];
-    t.d=!t.d;rpeOpen=t.d?b.dataset.chk:null;
+    t.d=!t.d;rpeOpen=t.d?b.dataset.chk:null;justChk=t.d?b.dataset.chk:null;
     if(t.d&&!s.start){s.start=Date.now();s.go=true;wake(true)}
     if(t.d){const row=b.closest("tr");if(!t.w)t.w=fromDisp(row.querySelector('[data-f="w"]').placeholder.replace(/^-$/,""));if(!t.r)t.r=row.querySelector('[data-f="r"]').placeholder;startTimer(restSec(e.rest),e.n);
       const pr=prType(histBest(e.n,date),t);if(pr){toast(`🏆 ${pr}! ${e.n} · ${parseFloat(t.w)?toDisp(t.w)+" "+UNIT+" × ":""}${t.r}`);setTimeout(()=>beep([523,659,784,1047],.12,.03,.5),700)}}
@@ -1841,7 +1903,21 @@ app.addEventListener("input",ev=>{
 app.addEventListener("change",ev=>{if(location.hash==="#coach-new"&&ev.target.dataset.cdraft){const el=ev.target;cDraft[el.dataset.cdraft]=el.type==="checkbox"?el.checked:el.value}});
 
 /* If one page hits a bad record, show a recovery screen instead of a blank app. Data is never touched here. */
-function render(){try{renderPage()}catch(e){console.error(e);showCrash(e)}}
+function render(){const prev=animSnap();try{renderPage()}catch(e){console.error(e);showCrash(e)}animRun(prev);popChk()}
+/* Motion helpers. render() rebuilds the page, so CSS transitions alone never run; these replay the change. */
+let freshRoute=true,justChk=null,enterT;
+const ANIM=".pl-fill,.fb>i,.mb>i",animVal=el=>el.tagName==="circle"?el.getAttribute("stroke-dasharray"):el.style.width;
+const animSet=(el,v)=>{if(el.tagName==="circle")el.style.strokeDasharray=v;else el.style.width=v};
+function animSnap(){return freshRoute?null:[...app.querySelectorAll(ANIM)].map(el=>el.tagName==="circle"?(el.style.strokeDasharray||animVal(el)):el.style.width)}
+function animRun(prev){const fresh=freshRoute;freshRoute=false;if(RM())return;const els=[...app.querySelectorAll(ANIM)];
+  if(!els.length||(!fresh&&(!prev||prev.length!==els.length)))return;
+  const to=els.map(animVal);let any=false;
+  els.forEach((el,i)=>{const from=fresh?(el.tagName==="circle"?"0 "+String(to[i]).split(" ")[1]:"0%"):prev[i];if(!from||from===to[i]||from.replace(/\s+/g," ")===String(to[i]).replace(/,/g," "))return;any=true;el.style.transition="none";animSet(el,from)});
+  if(!any)return;void app.offsetWidth;els.forEach(el=>el.style.transition="");
+  requestAnimationFrame(()=>els.forEach((el,i)=>animSet(el,to[i])))}
+function popChk(){const k=justChk;justChk=null;if(!k||RM())return;const b=app.querySelector(`[data-chk="${k}"]`);if(!b)return;b.classList.add("pop");const tr=b.closest("tr");if(tr)tr.classList.add("pop");
+  try{navigator.vibrate&&navigator.vibrate(10)}catch(e){}}
+function enter(){if(RM())return;clearTimeout(enterT);app.classList.remove("pgin");void app.offsetWidth;app.classList.add("pgin");enterT=setTimeout(()=>app.classList.remove("pgin"),800)}
 function showCrash(e){if(!app)return;app.innerHTML=`<div class="eyebrow">Oops</div><h1>Something went wrong</h1>
     <p class="muted">This page hit an error. Your saved workouts and food are safe. Try another tab, refresh, or export a backup.</p>
     <div class="rowbtns"><a class="btn primary" href="#week">Go to Today</a><button type="button" class="btn" data-act="refresh">↻ Refresh app</button><button type="button" class="btn" data-act="export">Export backup</button></div>
@@ -1927,7 +2003,7 @@ function slide(dir){app.classList.remove("swl","swr");void app.offsetWidth;app.c
   const end=cancel=>{if(!s||!s.on){s=null;return}const d=s;s=null;const h=sheet.offsetHeight;
     sheet.classList.add("snap");scrim.classList.add("snap");
     if(!cancel&&d.v>-.2&&(d.dy>Math.min(150,h*.3)||(d.dy>30&&d.v>.5))){sheet.style.transform="translateY(105%)";scrim.style.opacity=0;
-      setTimeout(()=>{FS=null;WS=null;closeSheet()},180)}
+      setTimeout(()=>{FS=null;WS=null;closeSheet(true)},180)}
     else{sheet.style.transform="";scrim.style.opacity="";setTimeout(()=>{sheet.classList.remove("snap");scrim.classList.remove("snap")},200)}};
   sheet.addEventListener("touchend",()=>end(false));sheet.addEventListener("touchcancel",()=>end(true))})();
 /* Tap the tab you're already on to jump back to the top. */
@@ -1935,8 +2011,8 @@ document.querySelector(".nav").addEventListener("click",ev=>{const a=ev.target.c
 /* Remember where you were on each page (e.g. the week list) and return there. */
 const SCROLL={};
 window.addEventListener("hashchange",ev=>{const from=new URL(ev.oldURL).hash||"#week";SCROLL[from]=window.scrollY;
-  closeSheet();FS=null;WS=null;rpeOpen=null;swapOpen=null;render();window.scrollTo(0,SCROLL[location.hash||"#week"]||0)});
-render();
+  closeSheet(true);FS=null;WS=null;rpeOpen=null;swapOpen=null;freshRoute=true;render();window.scrollTo(0,SCROLL[location.hash||"#week"]||0);if(!/sw[lr]/.test(app.className))enter()});
+render();enter();
 </script>
 <script>if("serviceWorker" in navigator){window.addEventListener("load",()=>navigator.serviceWorker.register("sw.js").catch(()=>{}))}</script>
 </body>
