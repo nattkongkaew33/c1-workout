@@ -324,12 +324,7 @@ details.pw summary small{font:500 13px var(--body);color:var(--muted);margin-lef
 .todayb,.fhead .todayb,.arrows .todayb,.cal-mid .todayb{width:auto;height:32px;padding:0 12px;border-radius:999px;border:1px solid var(--blue);background:transparent;color:var(--blue);font:700 13px var(--body);cursor:pointer;white-space:nowrap}
 .fhead{gap:6px}.fhead b{min-width:136px}.arrows .todayb{height:40px}
 .cal-mid{display:flex;flex-direction:column;align-items:center;gap:4px}.cal-mid .todayb{height:26px;font-size:12px}
-@keyframes swl{from{transform:translateX(28px);opacity:.3}}@keyframes swr{from{transform:translateX(-28px);opacity:.3}}
-#app.swl>:not(.foodbar){animation:swl .22s var(--ease-out)}#app.swr>:not(.foodbar){animation:swr .22s var(--ease-out)}
-@media (prefers-reduced-motion:reduce){#app.swl>*,#app.swr>*{animation:none!important}}
 /* finger-following swipes */
-#app.swiping>:not(.foodbar),#app.swanim>:not(.foodbar){transform:translateX(var(--sx,0));opacity:var(--so,1)}
-#app.swanim>:not(.foodbar){transition:transform .15s var(--ease-out),opacity .15s var(--ease-out)}
 .fsw{position:relative;border-radius:14px;overflow:hidden}
 .fsw .fitem{position:relative;z-index:1;transition:transform .2s var(--ease-out)}
 .fsw.drag .fitem{transition:none}
@@ -337,9 +332,9 @@ details.pw summary small{font:500 13px var(--body);color:var(--muted);margin-lef
 .fdelb{position:absolute;top:0;right:0;bottom:0;width:88px;border:0;background:var(--red);color:#fff;font:700 15px var(--body);cursor:pointer}
 .fsw:not(.open):not(.drag) .fdelb{visibility:hidden}
 .toast button{margin-left:12px;border:0;background:none;color:inherit;font:inherit;font-weight:800;text-decoration:underline;text-underline-offset:3px;cursor:pointer;padding:0}
-.sheet{transform:translateY(100%);transition:transform 240ms var(--ease-drawer)}.sheet.on{transform:none}
-.scrim{opacity:0;transition:opacity 240ms var(--ease-drawer)}.scrim.on{opacity:1}
-.sheet.closing,.scrim.closing{transition-duration:200ms;pointer-events:none}
+.sheet{transform:translateY(100%);transition:transform 400ms var(--ease-drawer)}.sheet.on{transform:none}
+.scrim{opacity:0;transition:opacity 400ms var(--ease-drawer)}.scrim.on{opacity:1}
+.sheet.closing,.scrim.closing{transition-duration:250ms;pointer-events:none}
 .sheet.drag,.scrim.drag{transition:none}
 .toast{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(140px + env(safe-area-inset-bottom,0px));z-index:12;background:var(--ink);color:var(--bg);font-weight:600;padding:10px 16px;border-radius:999px;font-size:14px;max-width:90vw;text-align:center}
 .scrim{position:fixed;inset:0;z-index:8;background:rgba(0,0,0,.55)}
@@ -1421,9 +1416,10 @@ function openSheet(d){
   const f=sheet.querySelector("select,input,a");if(f)f.focus();
 }
 let sheetT;
-function showSheet(){clearTimeout(sheetT);sheet.classList.remove("closing");scrim.classList.remove("closing");const was=!sheet.hidden&&sheet.classList.contains("on");sheet.hidden=false;scrim.hidden=false;if(!was){sheet.style.transform="";scrim.style.opacity="";void sheet.offsetWidth}sheet.classList.add("on");scrim.classList.add("on")}
-function closeSheet(){if(sheet.hidden)return;clearTimeout(sheetT);sheet.classList.remove("on","drag");scrim.classList.remove("on","drag");sheet.classList.add("closing");scrim.classList.add("closing");scrim.style.opacity="";
-  sheetT=setTimeout(()=>{sheet.hidden=true;scrim.hidden=true;sheet.classList.remove("closing");scrim.classList.remove("closing");sheet.style.transform=""},200)}
+function showSheet(){clearTimeout(sheetT);sheet.style.transitionDuration=scrim.style.transitionDuration="";sheet.classList.remove("closing");scrim.classList.remove("closing");const was=!sheet.hidden&&sheet.classList.contains("on");sheet.hidden=false;scrim.hidden=false;if(!was){sheet.style.transform="";scrim.style.opacity="";void sheet.offsetWidth}sheet.classList.add("on");scrim.classList.add("on")}
+function closeSheet(ms){if(sheet.hidden)return;ms=ms||250;clearTimeout(sheetT);sheet.classList.remove("on","drag");scrim.classList.remove("on","drag");sheet.classList.add("closing");scrim.classList.add("closing");scrim.style.opacity="";
+  sheet.style.transitionDuration=scrim.style.transitionDuration=ms+"ms";
+  sheetT=setTimeout(()=>{sheet.hidden=true;scrim.hidden=true;sheet.classList.remove("closing");scrim.classList.remove("closing");sheet.style.transform="";sheet.style.transitionDuration=scrim.style.transitionDuration=""},ms)}
 function swapDays(a,to){const pa=planFor(a)||"rest",pb=planFor(to)||"rest";setDay(to,pa);setDay(a,pb);
   toast(pa==="rest"&&pb==="rest"?"Both are rest days":pa==="rest"?`${DD(a,pb).title} moved to ${fshort(a)}`:pb==="rest"?`${DD(to,pa).title} moved to ${fshort(to)}`:`Swapped ${DD(to,pa).title} and ${DD(a,pb).title}`)}
 /* Hold a day for half a second, then drag it onto another day to swap them. */
@@ -1434,11 +1430,15 @@ function initDrag(){let hold=null,drag=null,sx=0,sy=0,justDragged=false,scrollT=
   const rowAt=(x,y)=>{if(y==null)return null;let best=null,bd=1e9;document.querySelectorAll(".row[data-day]").forEach(r=>{if(drag&&r===drag.row)return;const b=r.getBoundingClientRect(),d=y<b.top?b.top-y:y>b.bottom?y-b.bottom:0;if(d<bd){bd=d;best=r}});return bd<=24?best:null};
   const clear=()=>{clearTimeout(hold);hold=null};
   const end=(x,y,cancel)=>{clear();clearInterval(scrollT);if(!drag)return;const {row,card,from}=drag,t=cancel?null:rowAt(x,y);drag=null;document.body.classList.remove("dragging");
-    card.style.transform="";row.classList.remove("lift");document.querySelectorAll(".row.dropto").forEach(r=>r.classList.remove("dropto"));
+    row.classList.remove("lift");document.querySelectorAll(".row.dropto").forEach(r=>r.classList.remove("dropto"));
     justDragged=true;setTimeout(()=>justDragged=false,400);
-    const to=t&&t.dataset.day;if(!to||to===from)return;
-    if(started(S[to])){toast(`${fshort(to)} already has a logged workout`);return}
-    swapDays(from,to);try{navigator.vibrate&&navigator.vibrate(20)}catch(e){}render()};
+    const to=t&&t.dataset.day;
+    if(!to||to===from||started(S[to])){card.style.transform="";if(to&&to!==from)toast(`${fshort(to)} already has a logged workout`);return}
+    // glide: the dragged card settles into the target slot while the target card moves to the old one
+    const tc=t.querySelector(".wcard"),dy=t.getBoundingClientRect().top-row.getBoundingClientRect().top;
+    card.style.transform=`translateY(${dy}px)`;if(tc)tc.style.transform=`translateY(${-dy}px)`;
+    try{navigator.vibrate&&navigator.vibrate(20)}catch(e){}
+    setTimeout(()=>{swapDays(from,to);render()},170)};
   app.addEventListener("pointerdown",ev=>{const card=ev.target.closest(".row[data-day] .wcard");if(!card||ev.button>0)return;const row=card.closest(".row"),from=row.dataset.day;
     sx=ev.clientX;sy=ev.clientY;clear();
     hold=setTimeout(()=>{hold=null;if(started(S[from])){toast("Logged workouts can’t be moved");return}
@@ -1888,7 +1888,7 @@ window.addEventListener("error",ev=>{if(ev.target&&ev.target!==window)return;sof
 window.addEventListener("unhandledrejection",ev=>{const r=ev.reason;if(r&&r.name==="AbortError")return;softErr(r&&r.message)});
 /* Pull down from the top of any page to refresh the app (same as the ↻ Refresh button). */
 (function initPull(){const ind=document.getElementById("ptr"),MAX=90;let y0=null,x0=0,dy=0;
-  const set=(v,back)=>{ind.classList.toggle("back",!!back);const p=Math.min(v/MAX,1);ind.style.transform=`translateY(${Math.min(v*.6,64)-70+(v>0?10:0)}px) rotate(${p*300}deg)`;ind.style.opacity=v>0?Math.min(1,.3+p):0;ind.classList.toggle("ready",v>=MAX)};
+  const set=(v,back)=>{ind.classList.toggle("back",!!back);const p=Math.min(v/MAX,1);ind.style.transform=`translateY(${70*(1-Math.exp(-v/110))-70+(v>0?10:0)}px) rotate(${p*300}deg)`;ind.style.opacity=v>0?Math.min(1,.3+p):0;ind.classList.toggle("ready",v>=MAX)};
   const reset=()=>{y0=null;if(dy>0)set(0,true);dy=0};
   document.addEventListener("touchstart",ev=>{y0=null;dy=0;if(window.scrollY>0||ev.touches.length>1||!sheet.hidden||document.body.classList.contains("dragging")||document.querySelector(".scan")||ev.target.closest("input,textarea,select,.timer,.nav,.sheet"))return;y0=ev.touches[0].clientY;x0=ev.touches[0].clientX},{passive:true});
   document.addEventListener("touchmove",ev=>{if(y0==null)return;const t=ev.touches[0],d=t.clientY-y0;
@@ -1900,10 +1900,9 @@ window.addEventListener("unhandledrejection",ev=>{const r=ev.reason;if(r&&r.name
    Swipe a logged food left to show Delete. Let go early and everything springs back. */
 (function initSwipe(){let g=null,busy=false;const OPENW=88;
   const scrollsX=n=>{for(;n&&n!==app;n=n.parentElement){const o=getComputedStyle(n).overflowX;if((o==="auto"||o==="scroll")&&n.scrollWidth>n.clientWidth+2)return true}return false};
-  const setP=(x,o)=>{app.style.setProperty("--sx",x+"px");app.style.setProperty("--so",o)};
-  const clearP=()=>{app.classList.remove("swiping","swanim");app.style.removeProperty("--sx");app.style.removeProperty("--so")};
+  const setP=(x,o,ms)=>pageSet(x,o,ms),clearP=()=>pageSet(0,1,0);
   const closeRows=keep=>document.querySelectorAll(".fsw.open").forEach(n=>{if(n!==keep)n.classList.remove("open")});
-  const back=()=>{app.classList.remove("swiping");app.classList.add("swanim");setP(0,1);busy=true;setTimeout(()=>{clearP();busy=false},170)};
+  const back=()=>setP(0,1,180); // fast snap-back; a new touch can catch it mid-way
   app.addEventListener("touchstart",ev=>{g=null;const el=ev.target,row=el.closest(".fsw");closeRows(row);
     if(busy||ev.touches.length>1||!sheet.hidden||document.querySelector(".scan")||el.closest("input,textarea,select")||scrollsX(el))return;
     const t=ev.touches[0];g={x0:t.clientX,y0:t.clientY,lx:t.clientX,lt:ev.timeStamp,v:0,dx:0,mode:"",row}},{passive:true});
@@ -1912,52 +1911,66 @@ window.addEventListener("unhandledrejection",ev=>{const r=ev.reason;if(r&&r.name
       const h=location.hash.slice(1);
       if(ev.touches.length>1||document.body.classList.contains("dragging")||Math.abs(dy)>Math.abs(dx)*.8)g.mode="no";
       else if(g.row&&(dx<0||g.row.classList.contains("open"))){g.mode="row";g.base=g.row.classList.contains("open")?-OPENW:0;g.row.classList.add("drag")}
-      else if(/^w-/.test(h)?(g.x0<28&&dx>0):(h===""||h==="week"||h==="food"||h==="calendar")){g.mode="page";g.back=/^w-/.test(h);app.classList.add("swiping")}
+      else if(/^w-/.test(h)?(g.x0<28&&dx>0):(h===""||h==="week"||h==="food"||h==="calendar")){g.mode="page";g.back=/^w-/.test(h);g.off=pageX();setP(g.off,1,0)}
       else g.mode="no";
       if(g.mode==="no")return}
     if(ev.cancelable)ev.preventDefault();
     const dt=ev.timeStamp-g.lt;if(dt>0){g.v=.6*(t.clientX-g.lx)/dt+.4*g.v;g.lx=t.clientX;g.lt=ev.timeStamp}
     g.dx=dx;
-    if(g.mode==="row"){let x=Math.min(0,g.base+dx);if(x<-OPENW)x=-OPENW+(x+OPENW)*.25;g.x=x;g.row.querySelector(".fitem").style.transform=`translateX(${x}px)`}
-    else{const x=g.back?Math.max(0,dx):dx;setP(x,1-Math.min(.6,Math.abs(x)/(app.clientWidth||360)))}},{passive:false});
+    if(g.mode==="row"){let x=g.base+dx;if(x>0)x*=.2;else if(x<-OPENW)x=-OPENW+(x+OPENW)*.25;g.x=x;g.row.querySelector(".fitem").style.transform=`translateX(${x}px)`}
+    else{const x=g.back?Math.max(0,g.off+dx):g.off+dx;setP(x,1-Math.min(.6,Math.abs(x)/(app.clientWidth||360)),0)}},{passive:false});
   const end=cancel=>{if(!g)return;const s=g;g=null;
     if(s.mode==="row"){const it=s.row.querySelector(".fitem");s.row.classList.remove("drag");it.style.transform="";
       s.row.classList.toggle("open",!cancel&&(s.v<-.3||(s.x<-OPENW/2&&s.v<.3)));return}
     if(s.mode!=="page")return;
-    const W=app.clientWidth||360,dx=s.back?Math.max(0,s.dx):s.dx,dir=dx<0?1:-1;
+    const W=app.clientWidth||360,dx=s.back?Math.max(0,s.off+s.dx):s.off+s.dx,dir=dx<0?1:-1;
     const go=!cancel&&(Math.abs(dx)>W*.28||(Math.abs(dx)>24&&Math.abs(s.v)>.35))&&s.v*dir<=.1&&dx!==0;
     if(!go)return back();
-    busy=true;app.classList.remove("swiping");app.classList.add("swanim");setP(-dir*W*.4,0);
+    // leave at the finger's speed: duration = remaining distance / release velocity
+    const ms=Math.round(Math.max(80,Math.min(160,Math.max(0,W*.4-Math.abs(dx))/Math.max(Math.abs(s.v),.01))));
+    busy=true;setP(-dir*W*.4,0,ms);
     try{navigator.vibrate&&navigator.vibrate(8)}catch(e){}
-    setTimeout(()=>{busy=false;clearP();const h=location.hash.slice(1);
-      if(/^w-/.test(h)){slide(-1);location.hash="#week";return}
+    setTimeout(()=>{busy=false;const h=location.hash.slice(1);
+      if(/^w-/.test(h)){pendSlide=-1;location.hash="#week";return}
       if(h==="food")foodDate=addDays(foodDate,dir);
       else if(h==="calendar"){calM+=dir;if(calM<0){calM=11;calY--}if(calM>11){calM=0;calY++}}
       else if(h===""||h==="week")weekOff+=dir;else return;
-      render();slide(dir)},130)};
+      render();slide(dir)},ms)};
   app.addEventListener("touchend",()=>end(false));app.addEventListener("touchcancel",()=>end(true))})();
-function slide(dir){app.classList.remove("swl","swr");void app.offsetWidth;app.classList.add(dir>0?"swl":"swr");setTimeout(()=>app.classList.remove("swl","swr"),260)}
+/* Page motion writes transform straight onto #app's children (never a CSS variable on the parent),
+   and uses transitions so a new swipe can grab the page mid-slide. */
+const pageKids=()=>[...app.children].filter(n=>!n.classList.contains("foodbar"));
+function pageSet(x,o,ms){pageKids().forEach(n=>{n.style.transition=ms?`transform ${ms}ms var(--ease-out),opacity ${ms}ms var(--ease-out)`:"none";n.style.transform=x?`translateX(${x}px)`:"";n.style.opacity=o<1?o:""})}
+function pageX(){const n=pageKids()[0];if(!n)return 0;try{return new DOMMatrixReadOnly(getComputedStyle(n).transform).m41||0}catch(e){return 0}}
+let pendSlide=0;
+function slide(dir){pageSet(dir*28,.3,0);void app.offsetWidth;pageSet(0,1,220)}
 /* Drag a bottom sheet down to close it (same as tapping Close). */
 (function initSheetDrag(){let s=null;
   const scrolled=n=>{for(;n;n=n.parentElement){if(n.scrollTop>0)return true;if(n===sheet)break}return false};
   sheet.addEventListener("touchstart",ev=>{s=null;if(ev.touches.length>1||sheet.classList.contains("closing")||sheet.querySelector(".scan")||ev.target.closest("input,textarea,select")||scrolled(ev.target))return;
     const t=ev.touches[0];s={x0:t.clientX,y0:t.clientY,ly:t.clientY,lt:ev.timeStamp,v:0,dy:0,on:false}},{passive:true});
   sheet.addEventListener("touchmove",ev=>{if(!s)return;const t=ev.touches[0],dy=t.clientY-s.y0,dx=t.clientX-s.x0;
-    if(!s.on){if(dy<-6||Math.abs(dx)>Math.max(8,Math.abs(dy))){s=null;return}if(dy<8)return;s.on=true;sheet.classList.add("drag");scrim.classList.add("drag")}
+    if(!s.on){if(Math.abs(dx)>Math.max(8,Math.abs(dy))||(dy<-6&&sheet.scrollHeight>sheet.clientHeight+2)){s=null;return}if(Math.abs(dy)<8)return;
+      s.on=true;try{s.base=new DOMMatrixReadOnly(getComputedStyle(sheet).transform).m42||0}catch(e){s.base=0}s.y0=t.clientY;sheet.classList.add("drag");scrim.classList.add("drag")}
     if(ev.cancelable)ev.preventDefault();
     const dt=ev.timeStamp-s.lt;if(dt>0){s.v=.6*(t.clientY-s.ly)/dt+.4*s.v;s.ly=t.clientY;s.lt=ev.timeStamp}
-    s.dy=Math.max(0,dy);sheet.style.transform=`translateY(${s.dy}px)`;scrim.style.opacity=1-Math.min(.8,s.dy/sheet.offsetHeight)},{passive:false});
+    const raw=s.base+t.clientY-s.y0,H=sheet.offsetHeight;s.dy=Math.max(0,raw);
+    const y=raw>=0?raw:-(-raw*H*.55)/(H+.55*-raw); // above the open position: resist, don't stop dead
+    sheet.style.transform=`translateY(${y}px)`;scrim.style.opacity=1-Math.min(.8,s.dy/H)},{passive:false});
   const end=cancel=>{if(!s||!s.on){s=null;return}const d=s;s=null;const h=sheet.offsetHeight;
     sheet.classList.remove("drag");scrim.classList.remove("drag");
-    if(!cancel&&d.v>-.2&&(d.dy>Math.min(150,h*.3)||(d.dy>30&&d.v>.5))){sheet.style.transform="translateY(100%)";FS=null;WS=null;closeSheet()}
-    else{sheet.style.transform="";scrim.style.opacity=""}};
+    if(!cancel&&d.v>-.2&&(d.dy>Math.min(150,h*.3)||(d.dy>30&&d.v>.5))){
+      const ms=Math.round(Math.max(120,Math.min(300,(h-d.dy)/Math.max(d.v,.01)))); // keep the finger's speed
+      sheet.style.transform="translateY(100%)";FS=null;WS=null;closeSheet(ms)}
+    else{sheet.style.transitionDuration=scrim.style.transitionDuration="200ms";sheet.style.transform="";scrim.style.opacity="";
+      clearTimeout(sheetT);sheetT=setTimeout(()=>{sheet.style.transitionDuration=scrim.style.transitionDuration=""},220)}};
   sheet.addEventListener("touchend",()=>end(false));sheet.addEventListener("touchcancel",()=>end(true))})();
 /* Tap the tab you're already on to jump back to the top. */
 document.querySelector(".nav").addEventListener("click",ev=>{const a=ev.target.closest("a");if(a&&a.getAttribute("href")===location.hash&&window.scrollY>0){ev.preventDefault();window.scrollTo({top:0,behavior:"smooth"})}});
 /* Remember where you were on each page (e.g. the week list) and return there. */
 const SCROLL={};
 window.addEventListener("hashchange",ev=>{const from=new URL(ev.oldURL).hash||"#week";SCROLL[from]=window.scrollY;
-  closeSheet();FS=null;WS=null;rpeOpen=null;swapOpen=null;render();window.scrollTo(0,SCROLL[location.hash||"#week"]||0)});
+  closeSheet();FS=null;WS=null;rpeOpen=null;swapOpen=null;render();if(pendSlide){slide(pendSlide);pendSlide=0}window.scrollTo(0,SCROLL[location.hash||"#week"]||0)});
 render();
 </script>
 <script>if("serviceWorker" in navigator){window.addEventListener("load",()=>navigator.serviceWorker.register("sw.js").catch(()=>{}))}</script>
