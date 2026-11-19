@@ -597,7 +597,22 @@ const WEEK1_PLAN={name:"C1 · Week 1",week:["push-1","abs",null,"pull","leg","pu
     {n:"Wall sit",reps:"40 วิ",sets:4,rest:"1:50",v:U("PiluINmDWhY?si=LGdXaiDbsb17cNAH")}]},
   "push-2":{title:"Push 2",type:"push",warm:U("5s6RPJwTNBc?si=ETncuUgcvWN50zuV"),ex:pushEx1()}
 }};
-const DEFAULT_WEEKS=[DEFAULT_PLAN,WEEK1_PLAN];
+/* coach's C1 Week 2 */
+const pushEx2=(skull,dip)=>[
+  {n:"Straight bar dip",reps:"8–12 ครั้ง",sets:4,rest:"3:00–5:00",v:U("RBBP8cjhYSQ?si=1Q4qQvRnGIbcAeB2")},
+  {n:"Pike push-up",reps:"8–12 ครั้ง",sets:4,rest:"2:00",v:U("e5aXL4jBoEE?si=71colGUSzWbssMHO")},
+  {n:"Skull crusher",reps:skull,sets:4,rest:"2:00",v:U("Ujqqm65d0us?si=nr2-hNKrvzdYyZMR")},
+  {n:"Dip",reps:dip,sets:4,rest:"2:00",v:U("1e7nKhGvnQQ?si=TtoyzFl_jk5jt6Dm")},
+  {n:"Machine bench press",note:"น้ำหนักที่เล่นได้",reps:"10–12 ครั้ง",sets:4,rest:"2:00",v:U("O5viuEPDXKY?si=ksWnu0qvL9uN-rMc")},
+  {n:"Machine shoulder press",reps:"10–12 ครั้ง",sets:4,rest:"2:00",v:U("vL-V5Jfj9OY?si=rJBHIREiT3nszsWa")}
+];
+const WEEK2_PLAN={...JSON.parse(JSON.stringify(WEEK1_PLAN)),name:"C1 · Week 2"};
+WEEK2_PLAN.days["push-1"].ex=pushEx2("8–12 ครั้ง","8–12 ครั้ง");
+WEEK2_PLAN.days["push-2"].ex=pushEx2("10–12 ครั้ง","10–12 ครั้ง");
+WEEK2_PLAN.days.pull.ex.splice(2,0,{n:"Lat pulldown",note:"ครึ่ง นน.ตัว → เท่า นน.ตัว หรือมากกว่า",reps:"8–12 ครั้ง",sets:4,rest:"1:50",v:U("trZQjegcRx0?si=Su5D34Qu8iEEQcW9")});
+WEEK2_PLAN.days.leg.ex.splice(2,1,{n:"Hip thrust",note:"เท่า นน.ตัว หรือมากกว่า",reps:"8–12 ครั้ง",sets:4,rest:"1:50",v:U("pUdIL5x0fWg?si=_YLieGnfj5QHljDu")});
+WEEK2_PLAN.days.leg.ex[4].note="+10 kg";
+const DEFAULT_WEEKS=[DEFAULT_PLAN,WEEK1_PLAN,WEEK2_PLAN];
 const TYPES=[["push","Push","--push"],["pull","Pull","--pull"],["leg","Legs","--leg"],["abs","Abs","--abs"],["other","Other","--other"]];
 const TCOLOR={push:"--push",pull:"--pull",leg:"--leg",abs:"--abs",other:"--other"};
 const WDN=["MON","TUE","WED","THU","FRI","SAT","SUN"];
@@ -660,6 +675,18 @@ if(!store.get("c1-mig-w1",false)){
     else PROG.weeks.splice(1,0,clone(WEEK1_PLAN));
   }
   store.set("c1-prog",PROG);store.set("c1-mig-w1",true);
+}
+/* one-time: add the coach's Week 2 after Week 1 and make it this week's plan (logged workouts keep their own exercises) */
+if(!store.get("c1-mig-w2",false)){
+  const strip=w=>JSON.stringify({...w,name:""});
+  let i=PROG.weeks.findIndex(w=>w.name==="C1 · Week 2");
+  if(i<0||strip(PROG.weeks[i])===strip(WEEK1_PLAN)||(i>0&&strip(PROG.weeks[i])===strip(PROG.weeks[i-1]))){
+    if(i>=0)PROG.weeks[i]=clone(WEEK2_PLAN); // untouched copy made with "+ Add week"
+    else{const w1=PROG.weeks.findIndex(w=>w.name==="C1 · Week 1");i=w1>=0?w1+1:PROG.weeks.length;PROG.weeks.splice(i,0,clone(WEEK2_PLAN))}
+  }
+  const mon=mondayOf(today()),cur=Math.round((parse(mon)-parse(PROG.start))/6048e5);
+  if(cur!==i)PROG.start=addDays(mon,-7*i);
+  store.set("c1-prog",PROG);store.set("c1-mig-w2",true);
 }
 const weekIdx=d=>Math.max(0,Math.min(PROG.weeks.length-1,Math.round((parse(mondayOf(d))-parse(PROG.start))/6048e5)));
 const WP=d=>PROG.weeks[weekIdx(d)];
