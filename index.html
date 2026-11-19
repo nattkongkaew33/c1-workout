@@ -704,6 +704,15 @@ function planFor(d){
   const b=basePlan(d);return b&&DD(d,b)?b:null;
 }
 const started=s=>!!s&&(!!s.go||s.ex.some(x=>x.sets.some(t=>t.d)));
+/* one-time: Week 2 starts Thu 19 Nov 2026 (Thu→Wed), as per-date overrides; later weeks are back on Monday */
+if(!store.get("c1-mig-w2thu",false)){
+  const st="2026-11-19",t=today();
+  if(t>=st&&t<=addDays(st,6)){const wk=PROG.weeks.find(w=>w.name==="C1 · Week 2")||WP(st);
+    for(let i=0;i<7;i++){const d=addDays(st,i),id=wk.week[i];if(d in SCHED||started(S[d]))continue;
+      const v=id&&DD(d,id)?id:"rest";if(v!==(basePlan(d)||"rest"))SCHED[d]=v;if(S[d]&&S[d].day!==v)delete S[d]}
+    saveSch();saveS()}
+  store.set("c1-mig-w2thu",true);
+}
 const typeOf=s=>s.type||(D(s.day)||{}).type||"other";
 const titleOf=s=>s.title||(D(s.day)||{}).title||"Workout";
 
